@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>stacie</title>
+    <meta name="description" content="práctica suave en español — méxico, tú" />
+    <!-- Tailwind via CDN (play) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['ui-sans-serif','system-ui','-apple-system','Segoe UI','Roboto','Noto Sans','Ubuntu','Cantarell','Helvetica Neue','Arial','sans-serif'] }
+          }
+        }
+      }
+    </script>
+    <style>
+      html, body { height: 100%; background-color: #fafaf9; }
+      body { margin: 0; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-stone-50">
+    <div id="root"></div>
+
+    <!-- React + ReactDOM + Babel (for JSX in-browser) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useEffect, useMemo, useRef, useState } = React;
+
+      // ---------------------- helpers ----------------------
+      const esLocale = "es-MX"; // prefer Mexican Spanish
+
+      function cx(...classes) {
+        return classes.filter(Boolean).join(" ");
+      }
+
+      function todayISO() {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d.toISOString().slice(0, 10);
+      }
+
+      function ydayISO() {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        d.setHours(0, 0, 0, 0);
+        return d.toISOString().slice(0, 10);
+      }
+
+      function useLocalStorage(key, initial) {
+        const [value, setValue] = useState(() => {
+          try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : initial;
+          } catch {
+            return initial;
+          }
+        });
+        useEffect(() => {
+          try {
+            localStorage.setItem(key, JSON.stringify(value));
+          } catch {}
+        }, [key, value]);
+        return [value, setValue];
+      }
+
+      // simple Levenshtein distance
+      function lev(a, b) {
+        const m = a.length, n = b.length;
+        const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+              dp[i - 1][j] + 1,
+              dp[i][j - 1] + 1,
+              dp[i - 1][j - 1] + cost
+            );
+          }
+        }
+        return dp[m][n];
+      }
+
+      function stripDiacritics(s) {
+        // accents optional: remove combining marks after NFD
+        return s.normalize("NFD").replace(/[\\p{M}]/gu, "");
+      }
+
+      function tokenize(s) {
+        return stripDiacritics(s.toLowerCase())
+          .replace(/[^a-zñáéíóúü\\s]/gi, "")
+          .split(/\\s+/)
+          .filter(Boolean);
+      }
+
+      function wordScore(target, said) {
+        // returns {pass:boolean, badWords:string[]} based on token distance
+        const t = tokenize(target);
+        const s = tokenize(said);
+        const bad = [];
+        // align by index; simple heuristic
+        for (let i = 0; i < t.length; i++) {
+          const tw = t[i];
+          const sw = s[i] ?? "";
+          const d = lev(tw, sw);
+          const threshold = Math.max(1, Math.floor(tw.length / 3));
+          if (d > threshold) bad.push(tw);
+        }
+        const pass = bad.length <= Math.ceil(t.length * 0.2); // allow ~20% off
+        return { pass, badWords: bad };
+      }
+
+      function speak(text, { rate = 1 } = {}) {
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+        const mx =
+          voices.find((v) => v.lang?.startsWith("es-MX")) ||
+          voices.find((v) => v.lang?.startsWith("es"));
+        if (mx) utter.voice = mx;
+        utter.lang = esLocale;
+        utter.rate = rate;
+        window.speechSynthesis.speak(utter);
+      }
+
+      function useSpeechRecognition({ onResult, onEnd } = {}) {
+        const recRef = useRef(null);
+        const [supported, setSupported] = useState(false);
+        useEffect(() => {
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (SR) {
+            setSupported(true);
+            const rec = new SR();
+            rec.lang = esLocale;
+            rec.interimResults = true;
+            rec.maxAlternatives = 1;
+            recRef.current = rec;
+          }
+        }, []);
+
+        const start = () => {
+          const rec = recRef.current;
+          if (!rec) return;
+          let final = "";
+          rec.onresult = (e) => {
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              const tr = e.results[i][0].transcript;
+              if (e.results[i].isFinal) final += tr;
+            }
+            if (onResult) onResult(final);
+          };
+          rec.onend = () => onEnd && onEnd();
+          try {
+            rec.start();
+          } catch {}
+        };
+
+        const stop = () => {
+          try {
+            recRef.current?.stop();
+          } catch {}
+        };
+
+        return { supported, start, stop };
+      }
+
+      // ---------------------- content ----------------------
+      const ENCOURAGEMENTS = [
+        "Mia: Gracias por practicar conmigo. Estoy orgullosa de ti.",
+        "Otis: tus erres van purrfectas.",
+        "Jules: hoy vas con todo.",
+        "Lassie: tu acento mejora con cada intento.",
+        "Doom: cada palabra es un paso."
+      ];
+
+      const TRACKS = [
+        { key: "social", name: "Amistad / Social", color: "bg-emerald-600" },
+        { key: "health", name: "Salud / Ánimo", color: "bg-rose-600" },
+        { key: "food", name: "Comida / Compras", color: "bg-amber-600" }
+      ];
+
+      const PRESENT_SENTENCES = {
+        social: [
+          { es: "Estoy cansada pero contenta. ¿Y tú?", hint: "say you’re tired but happy" },
+          { es: "Me siento nerviosa hoy, pero tengo ganas de caminar.", hint: "nervous today, want to walk" },
+          { es: "Quiero descansar esta noche, ¿te parece bien?", hint: "I want to rest tonight, is that ok?" },
+          { es: "Necesito un abrazo, por favor.", hint: "I need a hug" }
+        ],
+        health: [
+          { es: "Me está costando dormir últimamente.", hint: "it’s been hard to sleep" },
+          { es: "Tengo cita con la doctora mañana.", hint: "I have an appointment with the doctor" },
+          { es: "Me duele la cabeza, pero estoy tranquila.", hint: "My head hurts, but I’m calm" },
+          { es: "Estoy tomando mi medicina todos los días.", hint: "I’m taking my meds every day" }
+        ],
+        food: [
+          { es: "Se me antoja sopa y pan.", hint: "I’m craving soup and bread" },
+          { es: "¿Tienes ganas de cocinar juntas?", hint: "feel like cooking together?" },
+          { es: "Prefiero té sin azúcar.", hint: "tea without sugar" },
+          { es: "Vamos al mercado, necesito frutas frescas.", hint: "go to the market, need fresh fruit" }
+        ]
+      };
+
+      const EMOTIONS = [
+        "tranquila", "nerviosa", "ansiosa", "orgullosa", "emocionada",
+        "frustrada", "confundida", "agradecida", "agobiada", "animada"
+      ];
+
+      const VERB_LAB = [
+        { inf: "ser", sample: "Soy de Minnesota. ¿De dónde eres?" },
+        { inf: "estar", sample: "Estoy tranquila hoy." },
+        { inf: "tener", sample: "Tengo tiempo esta noche." },
+        { inf: "hacer", sample: "¿Qué haces después?" },
+        { inf: "poder", sample: "No puedo hablar ahora." },
+        { inf: "querer", sample: "Quiero comer contigo." },
+        { inf: "ir", sample: "Voy al trabajo." },
+        { inf: "venir", sample: "¿Vienes conmigo?" },
+        { inf: "decir", sample: "No sé qué decir." },
+        { inf: "dar", sample: "Te doy las gracias." },
+        { inf: "poner", sample: "Pon la mesa, porfa." },
+        { inf: "necesitar", sample: "Necesito descansar." },
+        { inf: "gustar", sample: "Me gusta el café." },
+        { inf: "sentirse", sample: "Me siento animada." },
+        { inf: "pensar", sample: "Pienso en mi familia." },
+        { inf: "pasar", sample: "¿Qué pasa?" },
+        { inf: "tomar", sample: "Tomo té en la noche." },
+        { inf: "llegar", sample: "Llego tarde, perdón." }
+      ];
+
+      const LUNCH_PROMPTS = [
+        "Dile a Mia cómo te sientes hoy con ‘me siento…’ y pide un abrazo.",
+        "Invita a Mia a cocinar algo simple esta noche. Usa ‘¿Tienes ganas de…?’",
+        "Cuenta en dos frases cómo te fue en la mañana.",
+        "Pide silencio con cariño y propone una caminata mañana.",
+        "Di qué se te antoja para cenar y por qué."
+      ];
+
+      // deterministic daily pick
+      function pickByDate(arr) {
+        const d = new Date();
+        const idx = (d.getFullYear() * 372 + (d.getMonth() + 1) * 31 + d.getDate()) % arr.length;
+        return arr[idx];
+      }
+
+      // ===== Lightweight self-tests (dev-only) =================
+      (function runSelfTests() {
+        try {
+          const results = [];
+
+          // lev() tests
+          results.push(["lev exact match", lev("hola", "hola") === 0]);
+          results.push(["lev 1 deletion", lev("hola", "ola") === 1]);
+          results.push(["lev substitution", lev("gato", "pato") === 1]);
+
+          // tokenize() tests (diacritics + punctuation removed, lowercased)
+          const tok1 = tokenize("¡Qué emoción!");
+          results.push([
+            "tokenize removes diacritics/punct",
+            JSON.stringify(tok1) === JSON.stringify(["que", "emocion"])
+          ]);
+
+          // wordScore() tests: allow minor error within threshold
+          const ws1 = wordScore("estoy tranquila", "estoy trankila"); // 'qu'→'k' should still pass
+          results.push(["wordScore minor phonetic diff passes", ws1.pass === true]);
+
+          const ws2 = wordScore("quiero comer tacos hoy", "quiero ______ hoy"); // missing middle words should fail
+          results.push(["wordScore missing words fails", ws2.pass === false]);
+
+          // ENCOURAGEMENTS sanity: all strings, no trailing backslashes
+          const encOk =
+            Array.isArray(ENCOURAGEMENTS) &&
+            ENCOURAGEMENTS.length >= 5 &&
+            ENCOURAGEMENTS.every((s) => typeof s === "string" && !/\\$/.test(s));
+          results.push(["encouragements valid", encOk === true]);
+
+          // stripDiacritics should remove accent marks but keep base letters
+          results.push([
+            "stripDiacritics basic",
+            stripDiacritics("áéíóúüñ café canción").includes("cafe") &&
+              stripDiacritics("áéíóúüñ").replace(/\\s/g, "").length === 6
+          ]);
+
+          const failed = results.filter(([_, ok]) => !ok);
+          if (failed.length) {
+            console.warn("[stacie self-tests] FAIL", failed.map(([name]) => name));
+          } else {
+            console.info("[stacie self-tests] PASS", results.map(([name]) => name));
+          }
+        } catch (e) {
+          console.error("[stacie self-tests] ERROR", e);
+        }
+      })();
+
+      // ---------------------- main app ----------------------
+      function App() {
+        // settings
+        const [bigText, setBigText] = useLocalStorage("stacie.bigText", true);
+        const [goalMinutes, setGoalMinutes] = useLocalStorage("stacie.goal", 10);
+        const [selectedTrack, setSelectedTrack] = useLocalStorage("stacie.track", "social");
+
+        // progress / streak
+        const [streak, setStreak] = useLocalStorage("stacie.streak", 0);
+        const [lastDone, setLastDone] = useLocalStorage("stacie.lastDone", "");
+        const [sessionStarted, setSessionStarted] = useState(false);
+        const [sessionSeconds, setSessionSeconds] = useState(0);
+        const goalSeconds = Math.max(5, goalMinutes) * 60; // guard
+
+        // speech
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState("");
+        const rec = useSpeechRecognition({
+          onResult: (t) => setTranscript(t),
+          onEnd: () => setRecording(false)
+        });
+
+        // flow state
+        const [step, setStep] = useState(0); // 0 warm, 1 verb lab, 2 scene, 3 emotions, 4 close
+        const [verbIdx, setVerbIdx] = useLocalStorage("stacie.verbIdx", 0);
+        const [sceneIdx, setSceneIdx] = useLocalStorage("stacie.sceneIdx", 0);
+        const [emotionIdx, setEmotionIdx] = useLocalStorage("stacie.emotionIdx", 0);
+        const [passed, setPassed] = useState(null); // null|true|false
+        const [badWords, setBadWords] = useState([]);
+
+        // timer
+        useEffect(() => {
+          if (!sessionStarted) return;
+          const id = setInterval(() => setSessionSeconds((s) => s + 1), 1000);
+          return () => clearInterval(id);
+        }, [sessionStarted]);
+
+        // finish session logic
+        useEffect(() => {
+          if (sessionSeconds >= goalSeconds && sessionStarted) {
+            // mark day complete
+            const today = todayISO();
+            if (lastDone !== today) {
+              if (lastDone === ydayISO()) setStreak((s) => s + 1);
+              else setStreak(1);
+              setLastDone(today);
+            }
+            setSessionStarted(false);
+            setStep(4);
+          }
+        }, [sessionSeconds, goalSeconds, sessionStarted, lastDone, setLastDone, setStreak]);
+
+        const trackSentences = PRESENT_SENTENCES[selectedTrack];
+        const scene = trackSentences[sceneIdx % trackSentences.length];
+        const verb = VERB_LAB[verbIdx % VERB_LAB.length];
+        const emotion = EMOTIONS[emotionIdx % EMOTIONS.length];
+        const encouragement = useMemo(() => pickByDate(ENCOURAGEMENTS), []);
+        const lunchCard = useMemo(() => pickByDate(LUNCH_PROMPTS), []);
+
+        // actions
+        function startSession() {
+          setSessionSeconds(0);
+          setStep(0);
+          setSessionStarted(true);
+          speak("Empezamos. Hoy va a ir muy bien.");
+        }
+
+        function nextStep() {
+          setTranscript("");
+          setPassed(null);
+          setBadWords([]);
+          setStep((s) => Math.min(4, s + 1));
+        }
+
+        function prevStep() {
+          setStep((s) => Math.max(0, s - 1));
+        }
+
+        function playScene() { speak(scene.es); }
+        function playVerb() { speak(verb.sample); }
+
+        function handleRecord(target) {
+          if (!rec.supported) return;
+          if (!recording) {
+            setTranscript("");
+            setPassed(null);
+            rec.start();
+            setRecording(true);
+          } else {
+            rec.stop();
+            const { pass, badWords } = wordScore(target, transcript);
+            setPassed(pass);
+            setBadWords(badWords);
+            // advance spaced-ish: rotate content on pass
+            if (pass) {
+              if (target === scene.es) setSceneIdx((i) => i + 1);
+              if (target === verb.sample) setVerbIdx((i) => i + 1);
+            }
+          }
+        }
+
+        function markManual(target) {
+          // fallback for browsers without SR; treat as pass
+          setPassed(true);
+          setBadWords([]);
+          if (target === scene.es) setSceneIdx((i) => i + 1);
+          if (target === verb.sample) setVerbIdx((i) => i + 1);
+        }
+
+        // UI components
+        const Card = ({ children, className }) => (
+          <div className={cx("rounded-2xl shadow-lg p-4 sm:p-6 bg-white", className)}>{children}</div>
+        );
+
+        const SectionTitle = ({ children }) => (
+          <h2 className={cx("font-semibold mb-2", bigText ? "text-xl" : "text-lg")}>{children}</h2>
+        );
+
+        const TargetSentence = ({ text, bad }) => {
+          // highlight words listed in bad
+          const words = text.split(/(\\s+)/);
+          return (
+            <p className={cx("font-medium", bigText ? "text-2xl" : "text-xl")}>
+              {words.map((w, i) => {
+                const clean = stripDiacritics(w.toLowerCase());
+                const isBad = bad.some((b) => b === clean);
+                return (
+                  <span key={i} className={isBad ? "bg-yellow-200 rounded px-1" : ""}>
+                    {w}
+                  </span>
+                );
+              })}
+            </p>
+          );
+        };
+
+        const Stepper = () => (
+          <div className="flex items-center gap-2 mb-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={cx("h-2 flex-1 rounded-full", i <= step ? "bg-black/80" : "bg-black/10")} />
+            ))}
+          </div>
+        );
+
+        return (
+          <div className={cx("min-h-screen w-full", "bg-stone-50")}>
+            <div className={cx("max-w-md mx-auto px-4 py-6 sm:py-8")}>
+              <header className="mb-4 flex items-center justify-between">
+                <div>
+                  <h1 className={cx("font-bold", bigText ? "text-3xl" : "text-2xl")}>stacie</h1>
+                  <p className={cx("text-stone-600", bigText ? "text-base" : "text-sm")}>práctica suave en español — méxico, tú</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-stone-800 font-semibold">🔥 {streak}</div>
+                  <div className="text-stone-500 text-xs">racha</div>
+                </div>
+              </header>
+
+              {/* Lunch partner prompt card */}
+              <Card className="mb-4 border border-stone-200">
+                <SectionTitle>Tarjeta del almuerzo</SectionTitle>
+                <p className={cx(bigText ? "text-lg" : "text-base", "mb-2")}>{lunchCard}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { navigator.clipboard?.writeText(lunchCard); }}
+                    className="px-3 py-2 rounded-xl bg-stone-900 text-white text-sm"
+                  >Copiar</button>
+                  <button onClick={() => speak(lunchCard)} className="px-3 py-2 rounded-xl bg-stone-200 text-sm">Escuchar</button>
+                </div>
+              </Card>
+
+              {/* Track chooser */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {TRACKS.map((t) => (
+                  <button key={t.key} onClick={() => setSelectedTrack(t.key)}
+                    className={cx("rounded-2xl py-3 text-white text-sm font-semibold", t.color, selectedTrack===t.key?"opacity-100":"opacity-70")}
+                  >{t.name}</button>
+                ))}
+              </div>
+
+              <Card className="mb-4 border border-stone-200">
+                <Stepper />
+                {/* Warm start */}
+                {step === 0 && (
+                  <div>
+                    <SectionTitle>Bienvenida</SectionTitle>
+                    <p className={cx(bigText?"text-lg":"text-base","mb-3")}>{encouragement}</p>
+                    <p className={cx(bigText?"text-base":"text-sm","text-stone-600 mb-3")}>Sesión meta: {goalMinutes} min · Reconocimiento de voz: {rec.supported?"sí":"no"}</p>
+                    <div className="flex gap-2">
+                      <button onClick={startSession} className="px-4 py-2 rounded-xl bg-stone-900 text-white">Empezar</button>
+                      <button onClick={() => speak("Hola Stacie, hoy va suave y corto. Tú puedes.")} className="px-4 py-2 rounded-xl bg-stone-200">Escuchar</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Verb Lab */}
+                {step === 1 && (
+                  <div>
+                    <SectionTitle>Laboratorio de verbos</SectionTitle>
+                    <p className="text-stone-600 text-sm mb-2">Presente · {verb.inf}</p>
+                    <TargetSentence text={verb.sample} bad={badWords} />
+                    <div className="flex items-center gap-2 mt-3">
+                      <button onClick={playVerb} className="px-3 py-2 rounded-xl bg-stone-200">▶ Escuchar</button>
+                      <button
+                        onClick={() => handleRecord(verb.sample)}
+                        className={cx("px-3 py-2 rounded-xl text-white", recording?"bg-red-600":"bg-stone-900")}
+                      >{recording?"Detener":"Grabar"}</button>
+                      {!rec.supported && (
+                        <button onClick={() => markManual(verb.sample)} className="px-3 py-2 rounded-xl bg-blue-600 text-white">Dije esto</button>
+                      )}
+                      <button onClick={() => setVerbIdx(i=>i+1)} className="px-3 py-2 rounded-xl bg-stone-100">Saltar</button>
+                    </div>
+                    {transcript && (
+                      <div className="mt-3">
+                        <div className="text-xs text-stone-500 mb-1">Transcripción</div>
+                        <div className="p-2 bg-stone-100 rounded-md text-sm">{transcript}</div>
+                      </div>
+                    )}
+                    {passed !== null && (
+                      <div className={cx("mt-3 px-3 py-2 rounded-xl inline-block", passed?"bg-emerald-100 text-emerald-900":"bg-amber-100 text-amber-900")}>{passed?"✔ Bien":"◻ Necesita trabajo"}{!passed && badWords.length>0?` · Palabras clave: ${badWords.join(", ")}`:""}</div>
+                    )}
+                    <div className="mt-4 flex justify-between">
+                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-stone-100">Atrás</button>
+                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-stone-900 text-white">Siguiente</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Scene */}
+                {step === 2 && (
+                  <div>
+                    <SectionTitle>Escena: {TRACKS.find(t=>t.key===selectedTrack)?.name}</SectionTitle>
+                    <TargetSentence text={scene.es} bad={badWords} />
+                    <p className="text-stone-500 text-sm mt-2">Pista: {scene.hint}</p>
+                    <div className="flex items-center gap-2 mt-3">
+                      <button onClick={playScene} className="px-3 py-2 rounded-xl bg-stone-200">▶ Escuchar</button>
+                      <button
+                        onClick={() => handleRecord(scene.es)}
+                        className={cx("px-3 py-2 rounded-xl text-white", recording?"bg-red-600":"bg-stone-900")}
+                      >{recording?"Detener":"Sombra / Decir"}</button>
+                      {!rec.supported && (
+                        <button onClick={() => markManual(scene.es)} className="px-3 py-2 rounded-xl bg-blue-600 text-white">Dije esto</button>
+                      )}
+                      <button onClick={() => setSceneIdx(i=>i+1)} className="px-3 py-2 rounded-xl bg-stone-100">Otra</button>
+                    </div>
+                    {transcript && (
+                      <div className="mt-3">
+                        <div className="text-xs text-stone-500 mb-1">Transcripción</div>
+                        <div className="p-2 bg-stone-100 rounded-md text-sm">{transcript}</div>
+                      </div>
+                    )}
+                    {passed !== null && (
+                      <div className={cx("mt-3 px-3 py-2 rounded-xl inline-block", passed?"bg-emerald-100 text-emerald-900":"bg-amber-100 text-amber-900")}>{passed?"✔ Bien":"◻ Necesita trabajo"}{!passed && badWords.length>0?` · Palabras clave: ${badWords.join(", ")}`:""}</div>
+                    )}
+                    <div className="mt-4 flex justify-between">
+                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-stone-100">Atrás</button>
+                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-stone-900 text-white">Siguiente</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Emotions */}
+                {step === 3 && (
+                  <div>
+                    <SectionTitle>Hablar de emociones</SectionTitle>
+                    <p className={cx(bigText?"text-lg":"text-base","mb-2")}>Di una frase con <span className="font-semibold">me siento</span> + emoción:</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {EMOTIONS.map((e, i) => (
+                        <button key={i} onClick={()=>setEmotionIdx(i)} className="px-3 py-1.5 rounded-full bg-stone-200 text-sm">{e}</button>
+                      ))}
+                    </div>
+                    <TargetSentence text={`Me siento ${emotion} porque…`} bad={[]} />
+                    <div className="flex items-center gap-2 mt-3">
+                      <button onClick={() => speak(`Me siento ${emotion} porque`)} className="px-3 py-2 rounded-xl bg-stone-200">▶ Escuchar</button>
+                      <button onClick={() => handleRecord(`Me siento ${emotion} porque`)} className={cx("px-3 py-2 rounded-xl text-white", recording?"bg-red-600":"bg-stone-900")}>{recording?"Detener":"Decir"}</button>
+                      {!rec.supported && (<button onClick={() => markManual(`Me siento ${emotion} porque`)} className="px-3 py-2 rounded-xl bg-blue-600 text-white">Dije esto</button>)}
+                    </div>
+                    {transcript && (
+                      <div className="mt-3">
+                        <div className="text-xs text-stone-500 mb-1">Transcripción</div>
+                        <div className="p-2 bg-stone-100 rounded-md text-sm">{transcript}</div>
+                      </div>
+                    )}
+                    <div className="mt-4 flex justify-between">
+                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-stone-100">Atrás</button>
+                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-stone-900 text-white">Terminar</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Close */}
+                {step === 4 && (
+                  <div>
+                    <SectionTitle>Cierre</SectionTitle>
+                    <p className={cx(bigText?"text-lg":"text-base","mb-2")}>
+                      {lastDone===todayISO()?"¡Sesión completa!":"Sesión guardada."} {encouragement}
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={()=>{ setStep(1); setSessionStarted(true); }} className="px-3 py-2 rounded-xl bg-stone-200">Otra ronda</button>
+                      <button onClick={()=>{ setSessionStarted(false); setStep(0); }} className="px-3 py-2 rounded-xl bg-stone-900 text-white">Salir</button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              {/* Session controller / progress */}
+              {sessionStarted && (
+                <Card className="mb-4 border border-stone-200">
+                  <SectionTitle>Progreso</SectionTitle>
+                  <div className="h-2 w-full bg-stone-200 rounded-full overflow-hidden mb-2">
+                    <div className="h-full bg-stone-900" style={{ width: `${Math.min(100, (sessionSeconds/goalSeconds)*100)}%` }} />
+                  </div>
+                  <div className="text-sm text-stone-600">{Math.floor(sessionSeconds/60)}:{String(sessionSeconds%60).padStart(2,'0')} / {goalMinutes}:00</div>
+                  <div className="mt-3 flex gap-2">
+                    <button onClick={()=>setStep(1)} className="px-3 py-2 rounded-xl bg-stone-100">Verb Lab</button>
+                    <button onClick={()=>setStep(2)} className="px-3 py-2 rounded-xl bg-stone-100">Escena</button>
+                    <button onClick={()=>setStep(3)} className="px-3 py-2 rounded-xl bg-stone-100">Emociones</button>
+                  </div>
+                </Card>
+              )}
+
+              {/* Settings */}
+              <Card className="mb-24 border border-stone-200">
+                <SectionTitle>Ajustes</SectionTitle>
+                <div className="flex items-center justify-between py-2">
+                  <span>Texto grande</span>
+                  <button onClick={()=>setBigText(v=>!v)} className="px-3 py-1.5 rounded-xl bg-stone-200">{bigText?"Sí":"No"}</button>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span>Meta nocturna</span>
+                  <select value={goalMinutes} onChange={e=>setGoalMinutes(parseInt(e.target.value))} className="px-3 py-1.5 rounded-xl bg-stone-200">
+                    {[5,8,10].map(m => <option key={m} value={m}>{m} min</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span>Reiniciar racha</span>
+                  <button onClick={()=>{ setStreak(0); setLastDone(""); }} className="px-3 py-1.5 rounded-xl bg-rose-600 text-white">Reiniciar</button>
+                </div>
+              </Card>
+
+              <footer className="text-center text-xs text-stone-500 pb-10">
+                hecho con cariño · méxico (tú) · v0.1
+              </footer>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
