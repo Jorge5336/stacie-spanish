@@ -1,10 +1,11 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>stacie</title>
     <meta name="description" content="práctica suave en español — méxico, tú"/>
+
     <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -18,28 +19,68 @@
               ]
             },
             colors: {
-              brand: { 900:'#0c0a09', 800:'#1c1917', 700:'#292524' }
+              brand: {
+                50:'#edf7f3',
+                100:'#d6efe6',
+                200:'#b0e0cf',
+                300:'#84cbb3',
+                400:'#59b497',
+                500:'#2f9a7b',
+                600:'#1f7d62',
+                700:'#186651',
+                800:'#115240',
+                900:'#0d3d30'  /* dark green */
+              },
+              blossom: {
+                50:'#fff1f5',
+                100:'#ffe4ec',
+                200:'#fecdd7',
+                300:'#f9a8c9',
+                400:'#f472b6', /* bright blossom */
+                500:'#ec5aa6',
+                600:'#db4b94',
+                700:'#bf3d7e',
+                800:'#9e3568',
+                900:'#7f2b55'
+              }
             },
             boxShadow: {
-              soft: '0 6px 24px rgba(0,0,0,.08)'
+              soft: '0 8px 28px rgba(0,0,0,.10)'
             }
           }
         }
       };
     </script>
+
     <style>
-      html, body { height: 100%; background:#fafaf9; }
+      html, body { height: 100%; background:#f6faf8; } /* light green tint */
       body { margin: 0; }
-      /* mobile tap highlights nicer */
       * { -webkit-tap-highlight-color: transparent; }
       canvas { image-rendering: pixelated; }
+      /* subtle blossom background in the corners */
+      .blossom-bg::before,
+      .blossom-bg::after {
+        content:"";
+        position: fixed;
+        width: 360px; height: 360px;
+        pointer-events: none;
+        z-index: 0;
+        background: radial-gradient(closest-side, rgba(244,114,182,.18), transparent 70%),
+                    radial-gradient(closest-side, rgba(244,114,182,.12), transparent 70%),
+                    radial-gradient(closest-side, rgba(244,114,182,.10), transparent 70%);
+        filter: blur(2px);
+      }
+      .blossom-bg::before { bottom: -80px; left: -60px; }
+      .blossom-bg::after  { top: -80px; right: -60px; }
     </style>
+
     <!-- React + ReactDOM + Babel -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
-  <body class="min-h-screen bg-stone-50">
+
+  <body class="min-h-screen blossom-bg">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -47,51 +88,41 @@
        * stacie — single-file app
        * React 18 UMD + Babel + Tailwind (CDNs)
        * Features:
-       *  - Daily routine steps: Bienvenida → Verb Lab → Escena → Emociones → Cierre
-       *  - Tracks: Social, Salud/Ánimo, Comida/Compras (start w/ food)
-       *  - Speech synthesis (es-MX preferred) + recognition (webkit)
-       *  - Pass / needs work scoring with diacritics-optional
+       *  - Daily routine: Bienvenida → Verb Lab → Escena → Emociones → Cierre
+       *  - Tracks: Social, Salud/Ánimo, Comida/Compras (food default)
+       *  - TTS es-MX preferred + Speech Recognition (webkit)
+       *  - Pass/needs work with diacritics optional
        *  - Lunch partner prompt + copy/TTS
        *  - Streaks + session goal (5/8/10)
-       *  - Procedural daily picks (deterministic by date)
-       *  - Snake game w/ TTS words when eating fruit
+       *  - Deterministic daily picks (seeded) + placement test (levels)
+       *  - Inclusive language toggle (femenino vs. inclusivo-e)
+       *  - Snake game with TTS on eat
        *  - Self-tests logged on load
        ******************************************************************/
-
       const { useEffect, useMemo, useRef, useState } = React;
 
       // ---------------- helpers ----------------
       const esLocale = 'es-MX';
 
-      function cx(...classes) {
-        return classes.filter(Boolean).join(' ');
+      function cx(...classes) { return classes.filter(Boolean).join(' '); }
+      function todayISO(){
+        const d=new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10);
       }
-      function todayISO() {
-        const d = new Date();
-        d.setHours(0,0,0,0);
-        return d.toISOString().slice(0,10);
+      function ydayISO(){
+        const d=new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); return d.toISOString().slice(0,10);
       }
-      function ydayISO() {
-        const d = new Date();
-        d.setDate(d.getDate()-1);
-        d.setHours(0,0,0,0);
-        return d.toISOString().slice(0,10);
-      }
-      function useLocalStorage(key, initial) {
-        const [value, setValue] = useState(() => {
-          try {
-            const raw = localStorage.getItem(key);
-            return raw ? JSON.parse(raw) : initial;
-          } catch { return initial; }
+      function useLocalStorage(key, initial){
+        const [value,setValue]=useState(()=>{
+          try { const raw=localStorage.getItem(key); return raw?JSON.parse(raw):initial; }
+          catch { return initial; }
         });
-        useEffect(() => {
-          try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-        }, [key, value]);
-        return [value, setValue];
+        useEffect(()=>{ try{ localStorage.setItem(key, JSON.stringify(value)); }catch{} },[key,value]);
+        return [value,setValue];
       }
-      // Levenshtein
+
+      // Levenshtein + tokenization
       function lev(a,b){
-        const m=a.length, n=b.length;
+        const m=a.length,n=b.length;
         const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
         for(let i=0;i<=m;i++)dp[i][0]=i;
         for(let j=0;j<=n;j++)dp[0][j]=j;
@@ -103,23 +134,14 @@
         }
         return dp[m][n];
       }
-      function stripDiacritics(s){
-        try {
-          return s.normalize('NFD').replace(/[\p{M}]/gu,'');
-        } catch {
-          return s; // older browsers
-        }
-      }
+      function stripDiacritics(s){ try{ return s.normalize('NFD').replace(/[\p{M}]/gu,''); }catch{ return s; } }
       function tokenize(s){
         return stripDiacritics(String(s||'').toLowerCase())
           .replace(/[^a-zñáéíóúü\s]/gi,'')
-          .split(/\s+/)
-          .filter(Boolean);
+          .split(/\s+/).filter(Boolean);
       }
       function wordScore(target, said){
-        const t = tokenize(target);
-        const s = tokenize(said);
-        const bad=[];
+        const t=tokenize(target), s=tokenize(said), bad=[];
         for(let i=0;i<t.length;i++){
           const tw=t[i], sw=s[i]??'';
           const d=lev(tw,sw);
@@ -130,128 +152,176 @@
         return { pass, badWords: bad };
       }
 
-      // speech synthesis + voice picking
-      function chooseEsVoice() {
+      // Inclusive slot replacement: "[fem|incl]"
+      function flex(text, inclusive=true){
+        return String(text).replace(/\[([^\]|]+)\|([^\]]+)\]/g, (_, fem, incl) => inclusive ? incl : fem);
+      }
+
+      // speech synthesis + voice
+      function chooseEsVoice(){
         if (typeof window==='undefined' || !('speechSynthesis' in window)) return null;
         const voices = window.speechSynthesis.getVoices?.() || [];
         return voices.find(v=>v.lang?.toLowerCase().startsWith('es-mx'))
             || voices.find(v=>v.lang?.toLowerCase().startsWith('es-'))
             || null;
       }
-      function speak(text, {rate=1}={}) {
+      function speak(text,{rate=1}={}){
         if (typeof window==='undefined' || !('speechSynthesis' in window)) return;
         const u = new SpeechSynthesisUtterance(text);
-        u.lang = esLocale;
-        u.rate = rate;
-        const v = chooseEsVoice();
-        if (v) u.voice = v;
-        window.speechSynthesis.cancel();
+        u.lang = esLocale; u.rate = rate;
+        const v = chooseEsVoice(); if (v) u.voice = v;
+        try { window.speechSynthesis.cancel(); } catch {}
         window.speechSynthesis.speak(u);
       }
-      function useSpeechRecognition({ onResult, onEnd }={}) {
+      function useSpeechRecognition({ onResult, onEnd }={}){
         const recRef = useRef(null);
-        const [supported, setSupported] = useState(false);
+        const [supported,setSupported]=useState(false);
         useEffect(()=>{
           const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (SR) {
-            const rec = new SR();
-            rec.lang = esLocale;
-            rec.interimResults = true;
-            rec.maxAlternatives = 1;
-            recRef.current = rec;
-            setSupported(true);
-          }
+          if (SR){ const rec=new SR(); rec.lang=esLocale; rec.interimResults=true; rec.maxAlternatives=1; recRef.current=rec; setSupported(true); }
         },[]);
-        const start = () => {
-          const rec = recRef.current;
-          if (!rec) return;
-          let final = '';
-          rec.onresult = (e) => {
-            for (let i=e.resultIndex;i<e.results.length;i++) {
-              const tr = e.results[i][0].transcript;
-              if (e.results[i].isFinal) final += tr;
-            }
-            onResult && onResult(final);
-          };
-          rec.onend = () => onEnd && onEnd();
-          try { rec.start(); } catch {}
-        };
-        const stop = () => { try { recRef.current?.stop(); } catch {} };
+        const start=()=>{ const rec=recRef.current; if(!rec) return; let final=''; rec.onresult=(e)=>{ for(let i=e.resultIndex;i<e.results.length;i++){ const tr=e.results[i][0].transcript; if(e.results[i].isFinal) final+=tr; } onResult&&onResult(final); }; rec.onend=()=>onEnd&&onEnd(); try{ rec.start(); }catch{} };
+        const stop = ()=>{ try{ recRef.current?.stop(); }catch{} };
         return { supported, start, stop };
       }
 
-      // ---------------- content seeds ----------------
+      // ---------------- Seeded RNG for daily plan ----------------
+      function seedFromString(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+      function mulberry32(a){ return function(){ let t=(a+=0x6D2B79F5); t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7), t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
+      function rngFromKey(key){ return mulberry32(seedFromString(key)); }
+      function sampleN(rng, arr, n){
+        const copy=arr.slice();
+        for(let i=copy.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]]; }
+        return copy.slice(0, Math.min(n, copy.length));
+      }
+
+      // ---------------- content seeds (corrected Spanish & neutral) ----------------
       const ENCOURAGEMENTS = [
         'Mia: Gracias por practicar conmigo. Estoy orgullosa de ti.',
-        'Otis: tus erres van purrfectas.',
-        'Jules: hoy vas con todo.',
-        'Lassie: tu acento mejora con cada intento.',
-        'Doom: cada palabra es un paso.'
+        'Otis: Tus erres suenan purrfectas.',
+        'Jules: ¡Sigue adelante! 🐾',
+        'Lassie: Tu acento mejora con cada intento.',
+        'Doom: Cada palabra es un paso.'
       ];
+
       const TRACKS = [
-        { key:'social', name:'Amistad / Social', color:'bg-emerald-600' },
-        { key:'health', name:'Salud / Ánimo', color:'bg-rose-600' },
-        { key:'food', name:'Comida / Compras', color:'bg-amber-600' }
+        { key:'social', name:'Amistad / Social', color:'bg-brand-700' },
+        { key:'health', name:'Salud / Ánimo', color:'bg-brand-600' },
+        { key:'food',   name:'Comida / Compras', color:'bg-brand-800' }
       ];
+
+      // Sentences use inclusive slots [fem|incl] where needed
       const PRESENT_SENTENCES = {
         social: [
-          { es:'Estoy cansada pero contenta. ¿Y tú?', hint:'say you’re tired but happy' },
-          { es:'Me siento nerviosa hoy, pero tengo ganas de caminar.', hint:'nervous today, want to walk' },
-          { es:'Quiero descansar esta noche, ¿te parece bien?', hint:'I want to rest tonight, is that ok?' },
+          { es:'Estoy [cansada|cansade] pero [contenta|contente]. ¿Y tú?', hint:'tired but happy' },
+          { es:'Me siento [nerviosa|nerviose] hoy, pero tengo ganas de caminar.', hint:'nervous today, want to walk' },
+          { es:'Quiero descansar esta noche, ¿te parece bien?', hint:'rest tonight ok?' },
           { es:'Necesito un abrazo, por favor.', hint:'I need a hug' }
         ],
         health: [
           { es:'Me está costando dormir últimamente.', hint:'it’s been hard to sleep' },
-          { es:'Tengo cita con la doctora mañana.', hint:'I have an appointment with the doctor' },
-          { es:'Me duele la cabeza, pero estoy tranquila.', hint:'My head hurts, but I’m calm' },
+          { es:'Tengo cita médica mañana.', hint:'I have a medical appointment' },
+          { es:'Me duele la cabeza, pero estoy [tranquila|tranquile].', hint:'my head hurts but I’m calm' },
           { es:'Estoy tomando mi medicina todos los días.', hint:'I’m taking my meds every day' }
         ],
         food: [
           { es:'Se me antoja sopa y pan.', hint:'I’m craving soup and bread' },
-          { es:'¿Tienes ganas de cocinar juntas?', hint:'feel like cooking together?' },
+          { es:'¿Quieres cocinar conmigo?', hint:'want to cook with me?' },
           { es:'Prefiero té sin azúcar.', hint:'tea without sugar' },
-          { es:'Vamos al mercado, necesito frutas frescas.', hint:'go to the market, need fresh fruit' }
+          { es:'Vamos al mercado; necesito frutas frescas.', hint:'go to the market, need fresh fruit' }
         ]
       };
-      const EMOTIONS = [
-        'tranquila','nerviosa','ansiosa','orgullosa','emocionada',
-        'frustrada','confundida','agradecida','agobiada','animada'
-      ];
-      const VERB_LAB = [
-        { inf:'ser', sample:'Soy de Minnesota. ¿De dónde eres?' },
-        { inf:'estar', sample:'Estoy tranquila hoy.' },
-        { inf:'tener', sample:'Tengo tiempo esta noche.' },
-        { inf:'hacer', sample:'¿Qué haces después?' },
-        { inf:'poder', sample:'No puedo hablar ahora.' },
-        { inf:'querer', sample:'Quiero comer contigo.' },
-        { inf:'ir', sample:'Voy al trabajo.' },
-        { inf:'venir', sample:'¿Vienes conmigo?' },
-        { inf:'decir', sample:'No sé qué decir.' },
-        { inf:'dar', sample:'Te doy las gracias.' },
-        { inf:'poner', sample:'Pon la mesa, porfa.' },
-        { inf:'necesitar', sample:'Necesito descansar.' },
-        { inf:'gustar', sample:'Me gusta el café.' },
-        { inf:'sentirse', sample:'Me siento animada.' },
-        { inf:'pensar', sample:'Pienso en mi familia.' },
-        { inf:'pasar', sample:'¿Qué pasa?' },
-        { inf:'tomar', sample:'Tomo té en la noche.' },
-        { inf:'llegar', sample:'Llego tarde, perdón.' }
-      ];
-      const LUNCH_PROMPTS = [
-        'Dile a Mia cómo te sientes hoy con ‘me siento…’ y pide un abrazo.',
-        'Invita a Mia a cocinar algo simple esta noche. Usa ‘¿Tienes ganas de…?’',
-        'Cuenta en dos frases cómo te fue en la mañana.',
-        'Pide silencio con cariño y propone una caminata mañana.',
-        'Di qué se te antoja para cenar y por qué.',
-        'Pide un consejo usando “¿qué me recomiendas…?”'
-      ];
-      const FOOD_WORDS = ['pollo','papas','helado','arroz','tortilla','salsa','agua','limón','pan','queso'];
 
-      // Deterministic daily pick
-      function pickByDate(arr) {
-        const d = new Date();
-        const idx = (d.getFullYear()*372 + (d.getMonth()+1)*31 + d.getDate()) % arr.length;
+      // Emotions as [fem|incl] options (we’ll render with flex())
+      const EMOTIONS = [
+        '[tranquila|tranquile]','[nerviosa|nerviose]','[ansiosa|ansiose]','[orgullosa|orgullose]','[emocionada|emocionade]',
+        '[frustrada|frustrade]','[confundida|confundide]','[agradecida|agradecide]','[agobiada|agobiade]','[animada|animade]'
+      ];
+
+      const VERB_LAB = [
+        { inf:'ser',        sample:'Soy de Minnesota. ¿De dónde eres?' },
+        { inf:'estar',      sample:'Estoy [tranquila|tranquile] hoy.' },
+        { inf:'tener',      sample:'Tengo tiempo esta noche.' },
+        { inf:'hacer',      sample:'¿Qué haces después?' },
+        { inf:'poder',      sample:'No puedo hablar ahora.' },
+        { inf:'querer',     sample:'Quiero comer contigo.' },
+        { inf:'ir',         sample:'Voy al trabajo.' },
+        { inf:'venir',      sample:'¿Vienes conmigo?' },
+        { inf:'decir',      sample:'No sé qué decir.' },
+        { inf:'dar',        sample:'Te doy las gracias.' },
+        { inf:'poner',      sample:'Pon la mesa, porfa.' },
+        { inf:'necesitar',  sample:'Necesito descansar.' },
+        { inf:'gustar',     sample:'Me gusta el café.' },
+        { inf:'sentirse',   sample:'Me siento [animada|animade].' },
+        { inf:'pensar',     sample:'Pienso en mi familia.' },
+        { inf:'pasar',      sample:'¿Qué pasa?' },
+        { inf:'tomar',      sample:'Tomo té en la noche.' },
+        { inf:'llegar',     sample:'Llego tarde, perdón.' }
+      ];
+
+      const LUNCH_PROMPTS = [
+        'Cuéntame cómo te sientes hoy con “me siento…”. Pide un abrazo si lo necesitas.',
+        'Invítame a cocinar algo simple esta noche. Usa “¿Quieres…?”',
+        'Dime en dos frases cómo te fue en la mañana.',
+        'Pide silencio con cariño y propón una caminata mañana.',
+        'Di qué se te antoja para cenar y por qué.',
+        'Pide un consejo con “¿Qué me recomiendas…?”'
+      ];
+
+      const FOOD_WORDS_BANK = [
+        { lvl:0, w:'pollo' }, { lvl:0, w:'papas' }, { lvl:0, w:'pan' }, { lvl:0, w:'agua' },
+        { lvl:1, w:'arroz' }, { lvl:1, w:'tortilla' }, { lvl:1, w:'salsa' }, { lvl:1, w:'limón' },
+        { lvl:2, w:'queso' }, { lvl:2, w:'aguacate' }, { lvl:2, w:'cebolla' }, { lvl:2, w:'jitomate' }
+      ];
+
+      // Banked content with levels for the daily plan
+      const VERB_BANK = VERB_LAB.map(v => ({ ...v, lvl: v.sample.includes('Pon ')||v.sample.includes('Llego ') ? 2 :
+                                                   v.sample.includes('¿Qué haces') || v.sample.includes('¿Vienes') ? 1 : 0 }));
+
+      const SCENE_BANK = [
+        // food
+        { lvl:0, track:'food',   es:'Tengo hambre. Quiero algo sencillo.', hint:'say you’re hungry' },
+        { lvl:1, track:'food',   es:'¿Quieres cocinar conmigo?',          hint:'want to cook together?' },
+        { lvl:2, track:'food',   es:'Pon la tetera y trae dos tazas, porfa.', hint:'little command + vocab' },
+        // social
+        { lvl:0, track:'social', es:'Estoy [cansada|cansade] pero [contenta|contente]. ¿Y tú?', hint:'tired but happy' },
+        { lvl:1, track:'social', es:'Quiero descansar esta noche, ¿te parece bien?',            hint:'rest tonight ok?' },
+        { lvl:2, track:'social', es:'Dime cómo te fue hoy, con calma.',                         hint:'soft command “dime”' },
+        // health
+        { lvl:0, track:'health', es:'Me está costando dormir últimamente.', hint:'hard to sleep' },
+        { lvl:1, track:'health', es:'Tengo cita médica mañana.',             hint:'appointment tomorrow' },
+        { lvl:2, track:'health', es:'Toma agua y respira hondo conmigo.',    hint:'command “toma”' }
+      ];
+
+      // Deterministic daily helper
+      function pickByDate(arr){
+        const d=new Date();
+        const idx=(d.getFullYear()*372 + (d.getMonth()+1)*31 + d.getDate()) % arr.length;
         return arr[idx];
+      }
+
+      // Daily plan generator (level-aware)
+      function generateDayPlan(level, dateStr){
+        const lvl = Math.max(0, Math.min(2, Number(level||0)));
+        const rng = rngFromKey(`${dateStr}|lvl:${lvl}`);
+
+        const trackOptions=['food','social','health'];
+        const trackDefault = trackOptions[Math.floor(rng()*trackOptions.length)];
+
+        const verbs = VERB_BANK.filter(v=> (v.lvl??0) <= lvl);
+        const verbPick = sampleN(rng, verbs, 1)[0];
+
+        const scenes = SCENE_BANK.filter(s=>s.lvl<=lvl && s.track===trackDefault);
+        const scenePick = (scenes.length? scenes: SCENE_BANK.filter(s=>s.lvl<=lvl))[Math.floor(rng()*Math.max(1,scenes.length||1))];
+
+        const emoPick = EMOTIONS[Math.floor(rng()*EMOTIONS.length)];
+
+        const words = FOOD_WORDS_BANK.filter(w=>w.lvl<=lvl).map(x=>x.w);
+        const snakeWords = sampleN(rng, words, 8);
+
+        const lunchPrompt = pickByDate(LUNCH_PROMPTS);
+
+        return { trackDefault, verbPick, scenePick, emoPick, snakeWords, lunchPrompt };
       }
 
       // ---------------- self-tests ----------------
@@ -274,299 +344,336 @@
           const encOk = Array.isArray(ENCOURAGEMENTS) && ENCOURAGEMENTS.length>=5 && ENCOURAGEMENTS.every(s=>typeof s==='string' && !/\\$/.test(s));
           results.push(['encouragements valid', encOk===true]);
 
-          // voice list sanity (just presence check, browsers differ)
           results.push(['speech synthesis present', typeof window!=='undefined' && 'speechSynthesis' in window]);
 
           const failed = results.filter(([,ok])=>!ok);
           if (failed.length) console.warn('[stacie self-tests] FAIL', failed.map(([n])=>n));
           else console.info('[stacie self-tests] PASS', results.map(([n])=>n));
-        } catch(e) {
-          console.error('[stacie self-tests] ERROR', e);
-        }
+        } catch(e) { console.error('[stacie self-tests] ERROR', e); }
       })();
 
-      // ---------------- snake game ----------------
-      function SnakeGame({ words }) {
-        const canvasRef = useRef(null);
-        const [running, setRunning] = useState(false);
-        const [paused, setPaused] = useState(false);
-        const [score, setScore] = useState(0);
-        const [speed, setSpeed] = useState(140);
-        const grid = 20;
-        const cell = 16; // px
-        const size = grid*cell;
-        const [snake, setSnake] = useState([{x:10,y:10}]);
-        const [dir, setDir] = useState({x:1,y:0});
-        const [food, setFood] = useState({x:5,y:5});
-        const [wordIdx, setWordIdx] = useState(0);
-        const [word, setWord] = useState(words[0]||'palabra');
-        const tickRef = useRef(null);
+      // ---------------- Snake game ----------------
+      function SnakeGame({ words }){
+        const canvasRef=useRef(null);
+        const [running,setRunning]=useState(false);
+        const [paused,setPaused]=useState(false);
+        const [score,setScore]=useState(0);
+        const [speed,setSpeed]=useState(140);
+        const grid=20, cell=16, size=grid*cell;
+        const [snake,setSnake]=useState([{x:10,y:10}]);
+        const [dir,setDir]=useState({x:1,y:0});
+        const [food,setFood]=useState({x:5,y:5});
+        const [wordIdx,setWordIdx]=useState(0);
+        const [word,setWord]=useState(words[0]||'palabra');
+        const tickRef=useRef(null);
 
-        useEffect(()=>{ setWord(words[wordIdx%words.length]); },[wordIdx, words]);
+        useEffect(()=>{ setWord(words[wordIdx%Math.max(1,words.length)]||'palabra'); },[wordIdx,words]);
 
-        function randFood() {
-          // avoid spawning on snake
+        function randFood(){
           while(true){
-            const fx = Math.floor(Math.random()*grid);
-            const fy = Math.floor(Math.random()*grid);
-            if (!snake.some(s=>s.x===fx && s.y===fy)) return {x:fx,y:fy};
+            const fx=Math.floor(Math.random()*grid), fy=Math.floor(Math.random()*grid);
+            if(!snake.some(s=>s.x===fx&&s.y===fy)) return {x:fx,y:fy};
           }
         }
+        function resetGame(){ setSnake([{x:10,y:10}]); setDir({x:1,y:0}); setFood({x:5,y:5}); setScore(0); setWordIdx(0); setPaused(false); }
 
-        function resetGame() {
-          setSnake([{x:10,y:10}]);
-          setDir({x:1,y:0});
-          setFood({x:5,y:5});
-          setScore(0);
-          setWordIdx(0);
-          setPaused(false);
-        }
-
-        // keyboard
         useEffect(()=>{
           function onKey(e){
-            if (['ArrowUp','KeyW'].includes(e.code) && dir.y!==1){ setDir({x:0,y:-1}); }
-            else if (['ArrowDown','KeyS'].includes(e.code) && dir.y!==-1){ setDir({x:0,y:1}); }
-            else if (['ArrowLeft','KeyA'].includes(e.code) && dir.x!==1){ setDir({x:-1,y:0}); }
-            else if (['ArrowRight','KeyD'].includes(e.code) && dir.x!==-1){ setDir({x:1,y:0}); }
-            else if (e.code==='Space'){ setPaused(p=>!p); }
+            if (['ArrowUp','KeyW'].includes(e.code) && dir.y!==1) setDir({x:0,y:-1});
+            else if (['ArrowDown','KeyS'].includes(e.code) && dir.y!==-1) setDir({x:0,y:1});
+            else if (['ArrowLeft','KeyA'].includes(e.code) && dir.x!==1) setDir({x:-1,y:0});
+            else if (['ArrowRight','KeyD'].includes(e.code) && dir.x!==-1) setDir({x:1,y:0});
+            else if (e.code==='Space') setPaused(p=>!p);
           }
           window.addEventListener('keydown', onKey);
           return ()=>window.removeEventListener('keydown', onKey);
         },[dir]);
 
-        // game loop
         useEffect(()=>{
-          if(!running || paused) { clearInterval(tickRef.current); return; }
-          tickRef.current = setInterval(step, speed);
+          if(!running||paused){ clearInterval(tickRef.current); return; }
+          tickRef.current=setInterval(step, speed);
           return ()=>clearInterval(tickRef.current);
-        },[running, paused, speed, snake, dir, food, wordIdx]);
+        },[running,paused,speed,snake,dir,food,wordIdx]);
 
         function step(){
           setSnake(prev=>{
-            const head = {x: (prev[0].x + dir.x + grid)%grid, y: (prev[0].y + dir.y + grid)%grid};
-            const hitSelf = prev.some(s=>s.x===head.x && s.y===head.y);
-            if (hitSelf) {
-              setRunning(false);
-              speak('Uy, choque. Otra vez.');
-              return [{x:10,y:10}];
-            }
+            const head={x:(prev[0].x+dir.x+grid)%grid,y:(prev[0].y+dir.y+grid)%grid};
+            const hitSelf = prev.some(s=>s.x===head.x&&s.y===head.y);
+            if (hitSelf){ setRunning(false); speak('Uy, chocamos. Otra vez.'); return [{x:10,y:10}]; }
             const ate = head.x===food.x && head.y===food.y;
-            const next = [head, ...prev];
-            if (!ate) next.pop();
+            const next=[head,...prev];
+            if(!ate) next.pop();
             else {
-              // score, new food + next word, speak
               setScore(s=>s+1);
               setFood(randFood());
               setWordIdx(i=>i+1);
               speak(word);
-              // speed up a bit
-              setSpeed(ms => Math.max(60, ms-6));
+              setSpeed(ms=>Math.max(60, ms-6));
             }
             return next;
           });
           draw();
         }
-
         function draw(){
-          const ctx = canvasRef.current?.getContext('2d');
-          if (!ctx) return;
+          const ctx=canvasRef.current?.getContext('2d'); if(!ctx) return;
           ctx.clearRect(0,0,size,size);
-          // bg
-          ctx.fillStyle = '#f5f5f4';
-          ctx.fillRect(0,0,size,size);
-          // grid dots
-          ctx.fillStyle = '#e7e5e4';
-          for(let x=0;x<size;x+=cell) for(let y=0;y<size;y+=cell) ctx.fillRect(x,y,1,1);
-          // food
-          ctx.fillStyle = '#e11d48';
-          ctx.fillRect(food.x*cell, food.y*cell, cell, cell);
-          // snake
-          ctx.fillStyle = '#0c0a09';
-          snake.forEach((s,i)=>{
-            ctx.globalAlpha = Math.max(0.6, 1 - i*0.02);
-            ctx.fillRect(s.x*cell, s.y*cell, cell, cell);
-          });
-          ctx.globalAlpha=1;
+          ctx.fillStyle='#ecfeff'; ctx.fillRect(0,0,size,size);
+          ctx.fillStyle='#d1fae5'; for(let x=0;x<size;x+=cell) for(let y=0;y<size;y+=cell) ctx.fillRect(x,y,1,1);
+          ctx.fillStyle='#f472b6'; ctx.fillRect(food.x*cell, food.y*cell, cell, cell);  // blossom
+          ctx.fillStyle='#0d3d30'; snake.forEach((s,i)=>{ ctx.globalAlpha=Math.max(.65,1-i*.02); ctx.fillRect(s.x*cell, s.y*cell, cell, cell);}); ctx.globalAlpha=1;
         }
-
         useEffect(draw,[snake,food]);
 
         return (
-          <div className="rounded-2xl bg-white p-4 shadow-soft border border-stone-200">
+          <div className="rounded-2xl bg-white p-4 shadow-soft border border-brand-100 relative">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold">Juego: Snake de palabras</h3>
-              <div className="text-sm text-stone-600">Puntos: <span className="font-semibold">{score}</span></div>
+              <h3 className="font-semibold text-brand-900">Juego: Snake de palabras</h3>
+              <div className="text-sm text-brand-700">Puntos: <span className="font-semibold">{score}</span></div>
             </div>
-            <div className="mb-2 text-sm text-stone-600">Come la fruta; escucharás la palabra: <span className="font-medium">{word}</span></div>
+            <div className="mb-2 text-sm text-brand-800">Come la fruta; escucharás la palabra: <span className="font-medium text-blossom-600">{word}</span></div>
             <div className="flex flex-col sm:flex-row items-center gap-3">
-              <canvas ref={canvasRef} width={size} height={size} className="rounded-xl border border-stone-200 shadow-inner bg-stone-100"></canvas>
+              <canvas ref={canvasRef} width={size} height={size} className="rounded-xl border border-brand-100 shadow-inner bg-brand-50"></canvas>
               <div className="flex flex-col gap-2 w-full sm:w-40">
-                <button onClick={()=>{ setRunning(true); setPaused(false); speak('Listo.'); }} className="px-3 py-2 rounded-lg bg-stone-900 text-white">Iniciar</button>
-                <button onClick={()=>setPaused(p=>!p)} className="px-3 py-2 rounded-lg bg-stone-200">{paused?'Reanudar':'Pausar'}</button>
-                <button onClick={()=>{ setRunning(false); resetGame(); }} className="px-3 py-2 rounded-lg bg-stone-100">Reiniciar</button>
-                <div className="text-xs text-stone-500">Controles: ↑↓←→ o WASD · Espacio = Pausa</div>
+                <button onClick={()=>{ setRunning(true); setPaused(false); speak('Listo.'); }} className="px-3 py-2 rounded-lg bg-brand-900 text-white">Iniciar</button>
+                <button onClick={()=>setPaused(p=>!p)} className="px-3 py-2 rounded-lg bg-brand-100 text-brand-900">{paused?'Reanudar':'Pausar'}</button>
+                <button onClick={()=>{ setRunning(false); resetGame(); }} className="px-3 py-2 rounded-lg bg-white border border-brand-200">Reiniciar</button>
+                <div className="text-xs text-brand-700">Controles: ↑↓←→ o WASD · Espacio = Pausa</div>
               </div>
             </div>
+            <div className="absolute -top-2 -right-2 text-blossom-400">✿</div>
           </div>
         );
       }
 
-      // ---------------- UI components ----------------
+      // ---------------- UI atoms ----------------
       const Card = ({ children, className }) => (
-        <div className={cx('rounded-2xl shadow-soft p-4 sm:p-6 bg-white border border-stone-200', className)}>{children}</div>
+        <div className={cx('relative rounded-2xl shadow-soft p-4 sm:p-6 bg-white border border-brand-100', className)}>
+          <div className="absolute -top-2 -left-2 text-blossom-300 select-none">✿</div>
+          {children}
+        </div>
       );
       const SectionTitle = ({ children }) => (
-        <h2 className="text-lg sm:text-xl font-semibold mb-2">{children}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-brand-900">{children}</h2>
       );
-      const TargetSentence = ({ text, bad, bigText }) => {
-        const parts = text.split(/(\s+)/);
+      const TargetSentence = ({ text, bad, bigText, inclusive }) => {
+        const t = flex(text, inclusive);
+        const parts = t.split(/(\s+)/);
         return (
-          <p className={cx('font-medium', bigText?'text-2xl':'text-xl')}>
+          <p className={cx('font-medium text-brand-900', bigText?'text-2xl':'text-xl')}>
             {parts.map((w,i)=>{
               const clean = stripDiacritics(w.toLowerCase());
               const isBad = bad?.some(b=>b===clean);
-              return <span key={i} className={isBad?'bg-yellow-200 rounded px-1':''}>{w}</span>
+              return <span key={i} className={isBad?'bg-blossom-100 rounded px-1':''}>{w}</span>
             })}
           </p>
         );
       };
 
+      // ---------------- Placement Test ----------------
+      function PlacementTest({ onDone }){
+        const q = [
+          { prompt:'¿Cómo se dice “chicken” en español?', options:['pollo','queso','galleta','arroz'], answer:0 },
+          { prompt:'Completa: “Yo ____ tiempo esta noche.” (tener)', options:['tengo','tienes','tiene','tenemos'], answer:0 },
+          { prompt:'Elige la opción natural: “Me siento ____.”', options:['nervioso','nerviosa','nerviose','nerviosos'], answer:2 },
+          { prompt:'Traduce: “I want to eat with you.”', options:['Quiero comer contigo','Quiero comiendo contigo','Quise comer contigo','Voy a comerte'], answer:0 },
+          { prompt:'¿Qué significa “¿Quieres ir por helado esta noche?”', options:['Do you want to get ice cream tonight?','Do you want to make soup tonight?','Do you want breakfast now?','Do you want to talk later?'], answer:0 },
+          { prompt:'El mandato correcto (tú): ____ la ventana, porfa.', options:['Abre','Abra','Abran','Abramos'], answer:0 }
+        ];
+        const [i,setI]=useState(0), [score,setScore]=useState(0), [sel,setSel]=useState(null);
+        const done = i>=q.length;
+        function next(){ if(sel===null) return; if(sel===q[i].answer) setScore(s=>s+1); setSel(null); setI(k=>k+1); }
+        function finalize(){ const lvl = score<=2?0:score<=4?1:2; onDone(lvl, score); }
+        return (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 border border-brand-100">
+              {!done ? (
+                <>
+                  <h3 className="text-xl font-semibold mb-2 text-brand-900">Prueba de nivel</h3>
+                  <p className="mb-4 text-brand-800">{q[i].prompt}</p>
+                  <div className="flex flex-col gap-2 mb-4">
+                    {q[i].options.map((opt,idx)=>(
+                      <button key={idx} onClick={()=>setSel(idx)}
+                        className={cx('px-3 py-2 rounded-xl border text-left',
+                                      sel===idx?'border-brand-900 bg-brand-50':'border-brand-200')}>
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm text-brand-700">Pregunta {i+1} de {q.length}</div>
+                    <button onClick={next} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Siguiente</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xl font-semibold mb-2 text-brand-900">Resultado preliminar</h3>
+                  <p className="mb-4 text-brand-800">Puntos: {score} / {q.length}</p>
+                  <button onClick={finalize} className="px-4 py-2 rounded-xl bg-emerald-600 text-white">
+                    Empezar con este nivel
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      }
+
       // ---------------- main app ----------------
-      function App() {
+      function App(){
         // settings
-        const [bigText, setBigText] = useLocalStorage('stacie.bigText', true);
-        const [goalMinutes, setGoalMinutes] = useLocalStorage('stacie.goal', 10);
-        const [selectedTrack, setSelectedTrack] = useLocalStorage('stacie.track', 'food');
+        const [bigText,setBigText] = useLocalStorage('stacie.bigText', true);
+        const [goalMinutes,setGoalMinutes] = useLocalStorage('stacie.goal', 10);
+        const [inclusive,setInclusive] = useLocalStorage('stacie.inclusive', true);
+        const [selectedTrack,setSelectedTrack] = useLocalStorage('stacie.track','food');
+
+        // level / placement
+        const [level,setLevel] = useLocalStorage('stacie.level', null);
+        const [showPlacement,setShowPlacement] = useState(level===null);
 
         // progress / streak
-        const [streak, setStreak] = useLocalStorage('stacie.streak', 0);
-        const [lastDone, setLastDone] = useLocalStorage('stacie.lastDone', '');
-        const [sessionStarted, setSessionStarted] = useState(false);
-        const [sessionSeconds, setSessionSeconds] = useState(0);
+        const [streak,setStreak] = useLocalStorage('stacie.streak', 0);
+        const [lastDone,setLastDone] = useLocalStorage('stacie.lastDone', '');
+        const [sessionStarted,setSessionStarted] = useState(false);
+        const [sessionSeconds,setSessionSeconds] = useState(0);
         const goalSeconds = Math.max(5, goalMinutes)*60;
 
-        // speech
-        const [recording, setRecording] = useState(false);
-        const [transcript, setTranscript] = useState('');
-        const rec = useSpeechRecognition({
-          onResult: (t)=>setTranscript(t),
-          onEnd: ()=>setRecording(false)
-        });
+        // speech recog
+        const [recording,setRecording] = useState(false);
+        const [transcript,setTranscript] = useState('');
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
 
-        // flow state
-        const [step, setStep] = useState(0); // 0 warm, 1 verb lab, 2 scene, 3 emociones, 4 cierre
-        const [verbIdx, setVerbIdx] = useLocalStorage('stacie.verbIdx', 0);
-        const [sceneIdx, setSceneIdx] = useLocalStorage('stacie.sceneIdx', 0);
-        const [emotionIdx, setEmotionIdx] = useLocalStorage('stacie.emotionIdx', 0);
-        const [passed, setPassed] = useState(null);
-        const [badWords, setBadWords] = useState([]);
+        // flow
+        const [step,setStep] = useState(0); // 0 warm,1 verb,2 scene,3 emo,4 close
+        const [verbIdx,setVerbIdx] = useLocalStorage('stacie.verbIdx',0);
+        const [sceneIdx,setSceneIdx] = useLocalStorage('stacie.sceneIdx',0);
+        const [emotionIdx,setEmotionIdx] = useLocalStorage('stacie.emotionIdx',0);
+        const [passed,setPassed] = useState(null);
+        const [badWords,setBadWords] = useState([]);
+
+        // snake words of the day
+        const [snakeWords,setSnakeWords] = useState(FOOD_WORDS_BANK.filter(w=>w.lvl===0).map(x=>x.w));
+
+        // build daily plan once level is known
+        useEffect(()=>{
+          if (level===null) return;
+          const date=todayISO();
+          const plan=generateDayPlan(level, date);
+
+          // default track (only the first time)
+          if (!localStorage.getItem('stacie.track')) setSelectedTrack(plan.trackDefault);
+
+          // deterministic starting indices for the day
+          const rng=rngFromKey(`${date}|seed-idx|lvl:${level}`);
+          setVerbIdx(Math.floor(rng()*VERB_LAB.length));
+          const active = plan.trackDefault;
+          setSceneIdx(Math.floor(rng()*PRESENT_SENTENCES[active].length));
+          setEmotionIdx(Math.floor(rng()*EMOTIONS.length));
+
+          setSnakeWords(plan.snakeWords);
+          // cache lunch prompt for the day (display-only)
+          localStorage.setItem('stacie.lunchPrompt', JSON.stringify(plan.lunchPrompt));
+        },[level]);
 
         // timer
         useEffect(()=>{
           if(!sessionStarted) return;
-          const id = setInterval(()=>setSessionSeconds(s=>s+1),1000);
+          const id=setInterval(()=>setSessionSeconds(s=>s+1),1000);
           return ()=>clearInterval(id);
         },[sessionStarted]);
 
         // finish session
         useEffect(()=>{
-          if (sessionSeconds>=goalSeconds && sessionStarted) {
+          if (sessionSeconds>=goalSeconds && sessionStarted){
             const today=todayISO();
-            if (lastDone!==today) {
+            if (lastDone!==today){
               if (lastDone===ydayISO()) setStreak(s=>s+1);
               else setStreak(1);
               setLastDone(today);
+
+              // simple level-up rule
+              try{
+                const current=Number(level??0);
+                if ((streak+1)>=7 && current<2){ setLevel(current+1); console.info('[stacie] level up →', current+1); }
+              }catch{}
             }
             setSessionStarted(false);
             setStep(4);
             speak('¡Sesión completa!');
           }
-        },[sessionSeconds, goalSeconds, sessionStarted, lastDone]);
+        },[sessionSeconds,goalSeconds,sessionStarted,lastDone]);
 
         // data picks
         const trackSentences = PRESENT_SENTENCES[selectedTrack];
-        const scene = trackSentences[sceneIdx % trackSentences.length];
-        const verb = VERB_LAB[verbIdx % VERB_LAB.length];
-        const emotion = EMOTIONS[emotionIdx % EMOTIONS.length];
+        const sceneRaw = trackSentences[sceneIdx % trackSentences.length];
+        const verbRaw  = VERB_LAB[verbIdx % VERB_LAB.length];
+        const emotionRaw = EMOTIONS[emotionIdx % EMOTIONS.length];
+
+        const scene = { ...sceneRaw, es: flex(sceneRaw.es, inclusive) };
+        const verb  = { ...verbRaw,  sample: flex(verbRaw.sample, inclusive) };
+        const emotion = flex(emotionRaw, inclusive);
+
         const encouragement = useMemo(()=>pickByDate(ENCOURAGEMENTS),[]);
-        const lunchCard = useMemo(()=>pickByDate(LUNCH_PROMPTS),[]);
+        const lunchCard = useMemo(()=>{
+          try { const stored = JSON.parse(localStorage.getItem('stacie.lunchPrompt')||'null'); return stored || pickByDate(LUNCH_PROMPTS); }
+          catch{ return pickByDate(LUNCH_PROMPTS); }
+        },[]);
 
         // actions
-        function startSession(){
-          setSessionSeconds(0);
-          setStep(0);
-          setSessionStarted(true);
-          speak('Empezamos. Hoy va a ir muy bien.');
-        }
-        function nextStep(){
-          setTranscript('');
-          setPassed(null);
-          setBadWords([]);
-          setStep(s=>Math.min(4, s+1));
-        }
-        function prevStep(){ setStep(s=>Math.max(0, s-1)); }
+        function startSession(){ setSessionSeconds(0); setStep(0); setSessionStarted(true); speak('Empezamos. Hoy va a ir muy bien.'); }
+        function nextStep(){ setTranscript(''); setPassed(null); setBadWords([]); setStep(s=>Math.min(4,s+1)); }
+        function prevStep(){ setStep(s=>Math.max(0,s-1)); }
         function playScene(){ speak(scene.es); }
         function playVerb(){ speak(verb.sample); }
 
         function handleRecord(target){
-          if (!rec.supported) return;
-          if (!recording) {
-            setTranscript('');
-            setPassed(null);
-            rec.start();
-            setRecording(true);
-          } else {
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); setPassed(null); rec.start(); setRecording(true); }
+          else {
             rec.stop();
             const { pass, badWords } = wordScore(target, transcript);
-            setPassed(pass);
-            setBadWords(badWords);
-            if (pass) {
-              if (target===scene.es) setSceneIdx(i=>i+1);
-              if (target===verb.sample) setVerbIdx(i=>i+1);
-              speak('Bien hecho');
-            } else {
-              speak('Casi, intenta de nuevo');
-            }
+            setPassed(pass); setBadWords(badWords);
+            if (pass){ if(target===scene.es) setSceneIdx(i=>i+1); if(target===verb.sample) setVerbIdx(i=>i+1); speak('¡Bien hecho!'); }
+            else speak('Casi, intenta de nuevo.');
           }
         }
-        function markManual(target){
-          setPassed(true);
-          setBadWords([]);
-          if (target===scene.es) setSceneIdx(i=>i+1);
-          if (target===verb.sample) setVerbIdx(i=>i+1);
-        }
+        function markManual(target){ setPassed(true); setBadWords([]); if(target===scene.es) setSceneIdx(i=>i+1); if(target===verb.sample) setVerbIdx(i=>i+1); }
 
-        // UI
         const Stepper = () => (
           <div className="flex items-center gap-2 mb-3">
             {[0,1,2,3].map(i=>(
-              <div key={i} className={cx('h-2 flex-1 rounded-full', i<=step?'bg-brand-900/80':'bg-brand-900/10')}/>
+              <div key={i} className={cx('h-2 flex-1 rounded-full', i<=step?'bg-brand-900/90':'bg-brand-900/15')}/>
             ))}
           </div>
         );
 
         return (
           <div className="min-h-screen w-full">
-            <div className="max-w-md mx-auto px-4 py-6 sm:py-8">
-              <header className="mb-4 flex items-center justify-between">
+            {showPlacement && (
+              <PlacementTest onDone={(lvl)=>{
+                setLevel(lvl); setShowPlacement(false);
+                speak(lvl===0?'Empezamos suave.':lvl===1?'¡Perfecto! Más conversación.':'¡Excelente! Probemos con mandatos.');
+              }}/>
+            )}
+
+            <div className="relative max-w-md mx-auto px-4 py-6 sm:py-8">
+              <header className="mb-5 flex items-center justify-between relative z-10">
                 <div>
-                  <h1 className={cx('font-bold', bigText?'text-3xl':'text-2xl')}>stacie</h1>
-                  <p className={cx('text-stone-600', bigText?'text-base':'text-sm')}>práctica suave en español — méxico, tú</p>
+                  <h1 className={cx('font-bold text-brand-900', bigText?'text-3xl':'text-2xl')}>stacie</h1>
+                  <p className={cx('text-brand-700', bigText?'text-base':'text-sm')}>práctica suave en español — méxico, tú</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-stone-800 font-semibold">🔥 {streak}</div>
-                  <div className="text-stone-500 text-xs">racha</div>
+                  <div className="text-brand-900 font-semibold">🔥 {streak}</div>
+                  <div className="text-brand-700 text-xs">racha</div>
                 </div>
               </header>
 
               {/* Lunch partner prompt */}
               <Card className="mb-4">
                 <SectionTitle>Tarjeta del almuerzo</SectionTitle>
-                <p className={cx(bigText?'text-lg':'text-base','mb-2')}>{lunchCard}</p>
+                <p className={cx(bigText?'text-lg':'text-base','mb-2 text-brand-900')}>{lunchCard}</p>
                 <div className="flex gap-2">
-                  <button onClick={()=>navigator.clipboard?.writeText(lunchCard)} className="px-3 py-2 rounded-xl bg-stone-900 text-white text-sm">Copiar</button>
-                  <button onClick={()=>speak(lunchCard)} className="px-3 py-2 rounded-xl bg-stone-200 text-sm">Escuchar</button>
+                  <button onClick={()=>navigator.clipboard?.writeText(lunchCard)} className="px-3 py-2 rounded-xl bg-brand-900 text-white text-sm">Copiar</button>
+                  <button onClick={()=>speak(lunchCard)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900 text-sm">Escuchar</button>
                 </div>
               </Card>
 
@@ -574,7 +681,7 @@
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {TRACKS.map(t=>(
                   <button key={t.key} onClick={()=>setSelectedTrack(t.key)}
-                          className={cx('rounded-2xl py-3 text-white text-sm font-semibold', t.color, selectedTrack===t.key?'opacity-100':'opacity-70')}>
+                          className={cx('rounded-2xl py-3 text-white text-sm font-semibold shadow', t.color, selectedTrack===t.key?'opacity-100':'opacity-75')}>
                     {t.name}
                   </button>
                 ))}
@@ -582,17 +689,18 @@
 
               <Card className="mb-4">
                 <Stepper/>
+
                 {/* Warm start */}
                 {step===0 && (
                   <div>
                     <SectionTitle>Bienvenida</SectionTitle>
-                    <p className={cx(bigText?'text-lg':'text-base','mb-3')}>{encouragement}</p>
-                    <p className={cx(bigText?'text-base':'text-sm','text-stone-600 mb-3')}>
+                    <p className={cx(bigText?'text-lg':'text-base','mb-3 text-brand-900')}>{encouragement}</p>
+                    <p className={cx(bigText?'text-base':'text-sm','text-brand-700 mb-3')}>
                       Sesión meta: {goalMinutes} min · Reconocimiento de voz: {rec.supported?'sí':'no'}
                     </p>
                     <div className="flex gap-2">
-                      <button onClick={startSession} className="px-4 py-2 rounded-xl bg-stone-900 text-white">Empezar</button>
-                      <button onClick={()=>speak('Hola Stacie, hoy va suave y corto. Tú puedes.')} className="px-4 py-2 rounded-xl bg-stone-200">Escuchar</button>
+                      <button onClick={startSession} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Empezar</button>
+                      <button onClick={()=>speak('Hola, hoy va suave y corto. Tú puedes.')} className="px-4 py-2 rounded-xl bg-brand-100 text-brand-900">Escuchar</button>
                     </div>
                   </div>
                 )}
@@ -601,22 +709,22 @@
                 {step===1 && (
                   <div>
                     <SectionTitle>Laboratorio de verbos</SectionTitle>
-                    <p className="text-stone-600 text-sm mb-2">Presente · {verb.inf}</p>
-                    <TargetSentence text={verb.sample} bad={badWords} bigText={bigText}/>
+                    <p className="text-brand-700 text-sm mb-2">Presente · {verb.inf}</p>
+                    <TargetSentence text={verb.sample} bad={badWords} bigText={bigText} inclusive={inclusive}/>
                     <div className="flex items-center gap-2 mt-3">
-                      <button onClick={playVerb} className="px-3 py-2 rounded-xl bg-stone-200">▶ Escuchar</button>
-                      <button onClick={()=>handleRecord(verb.sample)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-red-600':'bg-stone-900')}>
+                      <button onClick={playVerb} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶ Escuchar</button>
+                      <button onClick={()=>handleRecord(verb.sample)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
                         {recording?'Detener':'Grabar'}
                       </button>
                       {!rec.supported && (
-                        <button onClick={()=>markManual(verb.sample)} className="px-3 py-2 rounded-xl bg-blue-600 text-white">Dije esto</button>
+                        <button onClick={()=>markManual(verb.sample)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>
                       )}
-                      <button onClick={()=>setVerbIdx(i=>i+1)} className="px-3 py-2 rounded-xl bg-stone-100">Saltar</button>
+                      <button onClick={()=>setVerbIdx(i=>i+1)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Saltar</button>
                     </div>
                     {transcript && (
                       <div className="mt-3">
-                        <div className="text-xs text-stone-500 mb-1">Transcripción</div>
-                        <div className="p-2 bg-stone-100 rounded-md text-sm">{transcript}</div>
+                        <div className="text-xs text-brand-700 mb-1">Transcripción</div>
+                        <div className="p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
                       </div>
                     )}
                     {passed!==null && (
@@ -625,8 +733,8 @@
                       </div>
                     )}
                     <div className="mt-4 flex justify-between">
-                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-stone-100">Atrás</button>
-                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-stone-900 text-white">Siguiente</button>
+                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Atrás</button>
+                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Siguiente</button>
                     </div>
                   </div>
                 )}
@@ -635,22 +743,22 @@
                 {step===2 && (
                   <div>
                     <SectionTitle>Escena: {TRACKS.find(t=>t.key===selectedTrack)?.name}</SectionTitle>
-                    <TargetSentence text={scene.es} bad={badWords} bigText={bigText}/>
-                    <p className="text-stone-500 text-sm mt-2">Pista: {scene.hint}</p>
+                    <TargetSentence text={scene.es} bad={badWords} bigText={bigText} inclusive={inclusive}/>
+                    <p className="text-brand-700 text-sm mt-2">Pista: {scene.hint}</p>
                     <div className="flex items-center gap-2 mt-3">
-                      <button onClick={playScene} className="px-3 py-2 rounded-xl bg-stone-200">▶ Escuchar</button>
-                      <button onClick={()=>handleRecord(scene.es)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-red-600':'bg-stone-900')}>
+                      <button onClick={playScene} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶ Escuchar</button>
+                      <button onClick={()=>handleRecord(scene.es)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
                         {recording?'Detener':'Sombra / Decir'}
                       </button>
                       {!rec.supported && (
-                        <button onClick={()=>markManual(scene.es)} className="px-3 py-2 rounded-xl bg-blue-600 text-white">Dije esto</button>
+                        <button onClick={()=>markManual(scene.es)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>
                       )}
-                      <button onClick={()=>setSceneIdx(i=>i+1)} className="px-3 py-2 rounded-xl bg-stone-100">Otra</button>
+                      <button onClick={()=>setSceneIdx(i=>i+1)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Otra</button>
                     </div>
                     {transcript && (
                       <div className="mt-3">
-                        <div className="text-xs text-stone-500 mb-1">Transcripción</div>
-                        <div className="p-2 bg-stone-100 rounded-md text-sm">{transcript}</div>
+                        <div className="text-xs text-brand-700 mb-1">Transcripción</div>
+                        <div className="p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
                       </div>
                     )}
                     {passed!==null && (
@@ -659,8 +767,8 @@
                       </div>
                     )}
                     <div className="mt-4 flex justify-between">
-                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-stone-100">Atrás</button>
-                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-stone-900 text-white">Siguiente</button>
+                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Atrás</button>
+                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Siguiente</button>
                     </div>
                   </div>
                 )}
@@ -669,31 +777,33 @@
                 {step===3 && (
                   <div>
                     <SectionTitle>Hablar de emociones</SectionTitle>
-                    <p className={cx(bigText?'text-lg':'text-base','mb-2')}>
+                    <p className={cx(bigText?'text-lg':'text-base','mb-2 text-brand-900')}>
                       Di una frase con <span className="font-semibold">me siento</span> + emoción:
                     </p>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {EMOTIONS.map((e,i)=>(
-                        <button key={i} onClick={()=>setEmotionIdx(i)} className="px-3 py-1.5 rounded-full bg-stone-200 text-sm">{e}</button>
+                        <button key={i} onClick={()=>setEmotionIdx(i)} className="px-3 py-1.5 rounded-full bg-brand-100 text-sm text-brand-900">
+                          {flex(e,inclusive)}
+                        </button>
                       ))}
                     </div>
-                    <TargetSentence text={`Me siento ${emotion} porque…`} bad={[]} bigText={bigText}/>
+                    <TargetSentence text={`Me siento ${emotion} porque…`} bad={[]} bigText={bigText} inclusive={inclusive}/>
                     <div className="flex items-center gap-2 mt-3">
-                      <button onClick={()=>speak(`Me siento ${emotion} porque`)} className="px-3 py-2 rounded-xl bg-stone-200">▶ Escuchar</button>
-                      <button onClick={()=>handleRecord(`Me siento ${emotion} porque`)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-red-600':'bg-stone-900')}>
+                      <button onClick={()=>speak(`Me siento ${emotion} porque`)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶ Escuchar</button>
+                      <button onClick={()=>handleRecord(`Me siento ${emotion} porque`)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
                         {recording?'Detener':'Decir'}
                       </button>
-                      {!rec.supported && (<button onClick={()=>markManual(`Me siento ${emotion} porque`)} className="px-3 py-2 rounded-xl bg-blue-600 text-white">Dije esto</button>)}
+                      {!rec.supported && (<button onClick={()=>markManual(`Me siento ${emotion} porque`)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>)}
                     </div>
                     {transcript && (
                       <div className="mt-3">
-                        <div className="text-xs text-stone-500 mb-1">Transcripción</div>
-                        <div className="p-2 bg-stone-100 rounded-md text-sm">{transcript}</div>
+                        <div className="text-xs text-brand-700 mb-1">Transcripción</div>
+                        <div className="p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
                       </div>
                     )}
                     <div className="mt-4 flex justify-between">
-                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-stone-100">Atrás</button>
-                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-stone-900 text-white">Terminar</button>
+                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Atrás</button>
+                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Terminar</button>
                     </div>
                   </div>
                 )}
@@ -702,12 +812,12 @@
                 {step===4 && (
                   <div>
                     <SectionTitle>Cierre</SectionTitle>
-                    <p className={cx(bigText?'text-lg':'text-base','mb-2')}>
+                    <p className={cx(bigText?'text-lg':'text-base','mb-2 text-brand-900')}>
                       {lastDone===todayISO()?'¡Sesión completa!':'Sesión guardada.'} {encouragement}
                     </p>
                     <div className="flex gap-2">
-                      <button onClick={()=>{ setStep(1); setSessionStarted(true); }} className="px-3 py-2 rounded-xl bg-stone-200">Otra ronda</button>
-                      <button onClick={()=>{ setSessionStarted(false); setStep(0); }} className="px-3 py-2 rounded-xl bg-stone-900 text-white">Salir</button>
+                      <button onClick={()=>{ setStep(1); setSessionStarted(true); }} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">Otra ronda</button>
+                      <button onClick={()=>{ setSessionStarted(false); setStep(0); }} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
                     </div>
                   </div>
                 )}
@@ -717,33 +827,41 @@
               {sessionStarted && (
                 <Card className="mb-4">
                   <SectionTitle>Progreso</SectionTitle>
-                  <div className="h-2 w-full bg-stone-200 rounded-full overflow-hidden mb-2">
-                    <div className="h-full bg-stone-900" style={{ width: `${Math.min(100,(sessionSeconds/goalSeconds)*100)}%` }} />
+                  <div className="h-2 w-full bg-brand-100 rounded-full overflow-hidden mb-2">
+                    <div className="h-full bg-brand-900" style={{ width: `${Math.min(100,(sessionSeconds/goalSeconds)*100)}%` }} />
                   </div>
-                  <div className="text-sm text-stone-600">
+                  <div className="text-sm text-brand-800">
                     {Math.floor(sessionSeconds/60)}:{String(sessionSeconds%60).padStart(2,'0')} / {goalMinutes}:00
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <button onClick={()=>setStep(1)} className="px-3 py-2 rounded-xl bg-stone-100">Verb Lab</button>
-                    <button onClick={()=>setStep(2)} className="px-3 py-2 rounded-xl bg-stone-100">Escena</button>
-                    <button onClick={()=>setStep(3)} className="px-3 py-2 rounded-xl bg-stone-100">Emociones</button>
+                    <button onClick={()=>setStep(1)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Verb Lab</button>
+                    <button onClick={()=>setStep(2)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Escena</button>
+                    <button onClick={()=>setStep(3)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Emociones</button>
                   </div>
                 </Card>
               )}
 
               {/* Snake Game */}
-              <SnakeGame words={FOOD_WORDS} />
+              <SnakeGame words={snakeWords} />
 
               {/* Settings */}
               <Card className="mt-4 mb-24">
                 <SectionTitle>Ajustes</SectionTitle>
                 <div className="flex items-center justify-between py-2">
                   <span>Texto grande</span>
-                  <button onClick={()=>setBigText(v=>!v)} className="px-3 py-1.5 rounded-xl bg-stone-200">{bigText?'Sí':'No'}</button>
+                  <button onClick={()=>setBigText(v=>!v)} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">{bigText?'Sí':'No'}</button>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span>Lenguaje inclusivo (e)</span>
+                  <button onClick={()=>setInclusive(v=>!v)} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">{inclusive?'Activado':'Desactivado'}</button>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span>Rehacer prueba de nivel</span>
+                  <button onClick={()=>{ setLevel(null); setShowPlacement(true); }} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">Iniciar</button>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <span>Meta nocturna</span>
-                  <select value={goalMinutes} onChange={e=>setGoalMinutes(parseInt(e.target.value))} className="px-3 py-1.5 rounded-xl bg-stone-200">
+                  <select value={goalMinutes} onChange={e=>setGoalMinutes(parseInt(e.target.value))} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">
                     {[5,8,10].map(m=><option key={m} value={m}>{m} min</option>)}
                   </select>
                 </div>
@@ -753,7 +871,7 @@
                 </div>
               </Card>
 
-              <footer className="text-center text-xs text-stone-500 pb-10">
+              <footer className="text-center text-xs text-brand-700 pb-10">
                 hecho con cariño · méxico (tú) · v2
               </footer>
             </div>
