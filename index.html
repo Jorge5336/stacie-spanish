@@ -13,51 +13,30 @@
 
     <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: [
-                'ui-sans-serif','system-ui','-apple-system','Segoe UI','Roboto',
-                'Noto Sans','Ubuntu','Cantarell','Helvetica Neue','Arial','sans-serif'
-              ]
-            },
-            colors: {
-              brand: {
-                50:'#edf7f3',
-                100:'#d6efe6',
-                200:'#b0e0cf',
-                300:'#84cbb3',
-                400:'#59b497',
-                500:'#2f9a7b',
-                600:'#1f7d62',
-                700:'#186651',
-                800:'#115240',
-                900:'#0d3d30'
-              },
-              blossom: {
-                50:'#fff1f5',
-                100:'#ffe4ec',
-                200:'#fecdd7',
-                300:'#f9a8c9',
-                400:'#f472b6',
-                500:'#ec5aa6',
-                600:'#db4b94',
-                700:'#bf3d7e',
-                800:'#9e3568',
-                900:'#7f2b55'
-              }
-            },
-            boxShadow: {
-              soft: '0 8px 28px rgba(0,0,0,.10)'
-            }
-          }
-        }
-      };
-    </script>
 
     <style>
+      :root {
+        --brand-50: #edf7f3;
+        --brand-100: #d6efe6;
+        --brand-200: #b0e0cf;
+        --brand-300: #84cbb3;
+        --brand-400: #59b497;
+        --brand-500: #2f9a7b;
+        --brand-600: #1f7d62;
+        --brand-700: #186651;
+        --brand-800: #115240;
+        --brand-900: #0d3d30;
+        --blossom-50: #fff1f5;
+        --blossom-100: #ffe4ec;
+        --blossom-200: #fecdd7;
+        --blossom-300: #f9a8c9;
+        --blossom-400: #f472b6;
+        --blossom-500: #ec5aa6;
+        --blossom-600: #db4b94;
+        --blossom-700: #bf3d7e;
+        --blossom-800: #9e3568;
+        --blossom-900: #7f2b55;
+      }
       html, body { height: 100%; background:#f6faf8; }
       body { margin: 0; }
       * { -webkit-tap-highlight-color: transparent; }
@@ -76,6 +55,27 @@
       }
       .blossom-bg::before { bottom: -80px; left: -60px; }
       .blossom-bg::after  { top: -80px; right: -60px; }
+      
+      /* Brand color classes */
+      .bg-brand-50 { background-color: var(--brand-50); }
+      .bg-brand-100 { background-color: var(--brand-100); }
+      .bg-brand-200 { background-color: var(--brand-200); }
+      .bg-brand-600 { background-color: var(--brand-600); }
+      .bg-brand-700 { background-color: var(--brand-700); }
+      .bg-brand-800 { background-color: var(--brand-800); }
+      .bg-brand-900 { background-color: var(--brand-900); }
+      .text-brand-700 { color: var(--brand-700); }
+      .text-brand-800 { color: var(--brand-800); }
+      .text-brand-900 { color: var(--brand-900); }
+      .border-brand-100 { border-color: var(--brand-100); }
+      .border-brand-200 { border-color: var(--brand-200); }
+      .border-brand-900 { border-color: var(--brand-900); }
+      .bg-blossom-100 { background-color: var(--blossom-100); }
+      .bg-blossom-300 { background-color: var(--blossom-300); }
+      .bg-blossom-400 { background-color: var(--blossom-400); }
+      .bg-blossom-600 { background-color: var(--blossom-600); }
+      .text-blossom-600 { color: var(--blossom-600); }
+      .shadow-soft { box-shadow: 0 8px 28px rgba(0,0,0,.10); }
     </style>
 
     <!-- React + ReactDOM + Babel -->
@@ -329,7 +329,7 @@
           { id:'hlt-20', lvl:1, es:'Me preocupa este síntoma que tengo.', hint:'worried about this symptom' },
           // Level 2
           { id:'hlt-21', lvl:2, es:'Toma agua y respira hondo conmigo.', hint:'drink water and breathe deep' },
-          { id:'hlt-22', lvl:2, es:'Descansa un poco, yo me encargo.', hint:'rest I'll take care of it' },
+          { id:'hlt-22', lvl:2, es:'Descansa un poco, yo me encargo.', hint:'rest I will take care of it' },
           { id:'hlt-23', lvl:2, es:'Avísame si te sientes peor, porfa.', hint:'let me know if you feel worse' },
           { id:'hlt-24', lvl:2, es:'Llama al doctor si no mejoras.', hint:'call the doctor if not better' },
           { id:'hlt-25', lvl:2, es:'Acuéstate y cierra los ojos un rato.', hint:'lie down and close your eyes' },
