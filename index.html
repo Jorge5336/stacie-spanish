@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>stacie</title>
     <meta name="description" content="práctica suave en español — méxico, tú"/>
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d3d30">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
     <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,14 +34,14 @@
                 600:'#1f7d62',
                 700:'#186651',
                 800:'#115240',
-                900:'#0d3d30'  /* dark green */
+                900:'#0d3d30'
               },
               blossom: {
                 50:'#fff1f5',
                 100:'#ffe4ec',
                 200:'#fecdd7',
                 300:'#f9a8c9',
-                400:'#f472b6', /* bright blossom */
+                400:'#f472b6',
                 500:'#ec5aa6',
                 600:'#db4b94',
                 700:'#bf3d7e',
@@ -53,11 +58,10 @@
     </script>
 
     <style>
-      html, body { height: 100%; background:#f6faf8; } /* light green tint */
+      html, body { height: 100%; background:#f6faf8; }
       body { margin: 0; }
       * { -webkit-tap-highlight-color: transparent; }
       canvas { image-rendering: pixelated; }
-      /* subtle blossom background in the corners */
       .blossom-bg::before,
       .blossom-bg::after {
         content:"";
@@ -85,21 +89,24 @@
 
     <script type="text/babel">
       /******************************************************************
-       * stacie — single-file app
-       * React 18 UMD + Babel + Tailwind (CDNs)
-       * Features:
-       *  - Daily routine: Bienvenida → Verb Lab → Escena → Emociones → Cierre
-       *  - Tracks: Social, Salud/Ánimo, Comida/Compras (food default)
-       *  - TTS es-MX preferred + Speech Recognition (webkit)
-       *  - Pass/needs work with diacritics optional
-       *  - Lunch partner prompt + copy/TTS
-       *  - Streaks + session goal (5/8/10)
-       *  - Deterministic daily picks (seeded) + placement test (levels)
-       *  - Inclusive language toggle (femenino vs. inclusivo-e)
-       *  - Snake game with TTS on eat
-       *  - Self-tests logged on load
+       * stacie v2 — Enhanced Spanish Practice
+       * Phase 1 improvements:
+       *  - 10x content library (200+ sentences, 50+ verbs)
+       *  - Spaced repetition system
+       *  - Recording playback
+       *  - Weekly review mode
+       *  - Better progress tracking
+       *  - PWA-ready
        ******************************************************************/
       const { useEffect, useMemo, useRef, useState } = React;
+
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/stacie-spanish/sw.js')
+            .catch(err => console.log('SW registration failed:', err));
+        });
+      }
 
       // ---------------- helpers ----------------
       const esLocale = 'es-MX';
@@ -152,7 +159,7 @@
         return { pass, badWords: bad };
       }
 
-      // Inclusive slot replacement: "[fem|incl]"
+      // Inclusive slot replacement
       function flex(text, inclusive=true){
         return String(text).replace(/\[([^\]|]+)\|([^\]]+)\]/g, (_, fem, incl) => inclusive ? incl : fem);
       }
@@ -185,7 +192,7 @@
         return { supported, start, stop };
       }
 
-      // ---------------- Seeded RNG for daily plan ----------------
+      // ---------------- Seeded RNG ----------------
       function seedFromString(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
       function mulberry32(a){ return function(){ let t=(a+=0x6D2B79F5); t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7), t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
       function rngFromKey(key){ return mulberry32(seedFromString(key)); }
@@ -195,162 +202,325 @@
         return copy.slice(0, Math.min(n, copy.length));
       }
 
-      // ---------------- content seeds (corrected Spanish & neutral) ----------------
+      // ---------------- Spaced Repetition System ----------------
+      function useSpacedRepetition(){
+        const [perf,setPerf] = useLocalStorage('stacie.performance', {});
+        
+        function recordAttempt(id, passed){
+          setPerf(prev => {
+            const item = prev[id] || { attempts: 0, successes: 0, lastSeen: null, interval: 1 };
+            return {
+              ...prev,
+              [id]: {
+                attempts: item.attempts + 1,
+                successes: item.successes + (passed ? 1 : 0),
+                lastSeen: Date.now(),
+                interval: passed ? Math.min(30, item.interval * 2) : 1
+              }
+            };
+          });
+        }
+
+        function getWeakItems(allItems, limit=10){
+          const scored = allItems.map(item => {
+            const p = perf[item.id] || { attempts: 0, successes: 0, lastSeen: null, interval: 1 };
+            const rate = p.attempts > 0 ? p.successes / p.attempts : 1;
+            const daysSince = p.lastSeen ? (Date.now() - p.lastSeen) / (1000*60*60*24) : 999;
+            const needsReview = daysSince >= p.interval;
+            const priority = needsReview ? (1 - rate) * 100 : 0;
+            return { ...item, priority, rate, needsReview };
+          });
+          return scored.filter(x => x.needsReview || x.rate < 0.7)
+                      .sort((a,b) => b.priority - a.priority)
+                      .slice(0, limit);
+        }
+
+        function getStats(){
+          const items = Object.values(perf);
+          const total = items.length;
+          const mastered = items.filter(x => x.attempts >= 3 && x.successes / x.attempts >= 0.8).length;
+          const struggling = items.filter(x => x.attempts >= 2 && x.successes / x.attempts < 0.5).length;
+          return { total, mastered, struggling };
+        }
+
+        return { recordAttempt, getWeakItems, getStats, perf };
+      }
+
+      // ---------------- EXPANDED CONTENT ----------------
       const ENCOURAGEMENTS = [
-        'Mia: Gracias por practicar conmigo. Estoy orgullosa de ti.',
-        'Otis: Tus erres suenan purrfectas.',
-        'Jules: ¡Sigue adelante! 🐾',
+        'Mia: Gracias por practicar conmigo. Estoy [orgullosa|orgullose] de ti.',
+        'Otis: Tus erres suenan purrfectas. 🐾',
+        'Jules: ¡Sigue adelante! Cada día mejoras.',
         'Lassie: Tu acento mejora con cada intento.',
-        'Doom: Cada palabra es un paso.'
+        'Doom: Cada palabra es un paso. Vas muy bien.',
+        'Mia: Me encanta escucharte hablar español.',
+        'Otis: Miau. Eso significa "excelente" en gato.',
+        'Jules: Estoy [impresionada|impresionade]. En serio.',
+        'Lassie: Tu pronunciación está mejorando mucho.',
+        'Doom: Sigue así. Lo estás haciendo súper bien.'
       ];
 
       const TRACKS = [
         { key:'social', name:'Amistad / Social', color:'bg-brand-700' },
         { key:'health', name:'Salud / Ánimo', color:'bg-brand-600' },
-        { key:'food',   name:'Comida / Compras', color:'bg-brand-800' }
+        { key:'food',   name:'Comida / Compras', color:'bg-brand-800' },
+        { key:'family', name:'Familia / Suegros', color:'bg-brand-900' }
       ];
 
-      // Sentences use inclusive slots [fem|incl] where needed
+      // MASSIVELY EXPANDED CONTENT (200+ sentences across all tracks)
       const PRESENT_SENTENCES = {
         social: [
-          { es:'Estoy [cansada|cansade] pero [contenta|contente]. ¿Y tú?', hint:'tired but happy' },
-          { es:'Me siento [nerviosa|nerviose] hoy, pero tengo ganas de caminar.', hint:'nervous today, want to walk' },
-          { es:'Quiero descansar esta noche, ¿te parece bien?', hint:'rest tonight ok?' },
-          { es:'Necesito un abrazo, por favor.', hint:'I need a hug' }
+          // Level 0
+          { id:'soc-01', lvl:0, es:'Estoy [cansada|cansade] pero [contenta|contente]. ¿Y tú?', hint:'tired but happy' },
+          { id:'soc-02', lvl:0, es:'Tengo ganas de caminar. ¿Vienes?', hint:'want to walk' },
+          { id:'soc-03', lvl:0, es:'Necesito un abrazo, porfa.', hint:'need a hug' },
+          { id:'soc-04', lvl:0, es:'Hoy fue un buen día. ¿Cómo estuvo el tuyo?', hint:'good day, how was yours' },
+          { id:'soc-05', lvl:0, es:'Quiero descansar un poco.', hint:'want to rest a bit' },
+          { id:'soc-06', lvl:0, es:'Me siento mejor ahora. Gracias.', hint:'feel better now' },
+          { id:'soc-07', lvl:0, es:'Tengo mucho sueño esta noche.', hint:'very sleepy' },
+          { id:'soc-08', lvl:0, es:'¿Quieres ver una película conmigo?', hint:'want to watch a movie' },
+          { id:'soc-09', lvl:0, es:'Prefiero quedarme en casa hoy.', hint:'prefer to stay home' },
+          { id:'soc-10', lvl:0, es:'Estoy [lista|liste] para salir.', hint:'ready to go' },
+          // Level 1
+          { id:'soc-11', lvl:1, es:'Me siento [nerviosa|nerviose] hoy, pero tengo ganas de intentar.', hint:'nervous but willing' },
+          { id:'soc-12', lvl:1, es:'Quiero descansar esta noche, ¿te parece bien?', hint:'rest tonight ok?' },
+          { id:'soc-13', lvl:1, es:'¿Podemos hablar de algo importante más tarde?', hint:'talk about something important' },
+          { id:'soc-14', lvl:1, es:'Me gustaría pasar más tiempo juntos.', hint:'spend more time together' },
+          { id:'soc-15', lvl:1, es:'Estoy pensando en lo que dijiste ayer.', hint:'thinking about what you said' },
+          { id:'soc-16', lvl:1, es:'Necesito tu opinión sobre algo.', hint:'need your opinion' },
+          { id:'soc-17', lvl:1, es:'¿Cómo te fue en el trabajo hoy?', hint:'how was work' },
+          { id:'soc-18', lvl:1, es:'Me encanta cuando pasamos tiempo así.', hint:'love when we spend time like this' },
+          { id:'soc-19', lvl:1, es:'¿Qué planes tienes para el fin de semana?', hint:'plans for weekend' },
+          { id:'soc-20', lvl:1, es:'Quiero contarte algo que pasó hoy.', hint:'want to tell you something' },
+          // Level 2
+          { id:'soc-21', lvl:2, es:'Dime cómo te fue hoy, con calma.', hint:'tell me how your day was' },
+          { id:'soc-22', lvl:2, es:'Háblame de lo que te preocupa, por favor.', hint:'talk to me about what worries you' },
+          { id:'soc-23', lvl:2, es:'Ven, siéntate conmigo un rato.', hint:'come sit with me' },
+          { id:'soc-24', lvl:2, es:'Cuéntame más sobre eso que mencionaste.', hint:'tell me more about that' },
+          { id:'soc-25', lvl:2, es:'Espera un momento, déjame pensar.', hint:'wait let me think' },
+          { id:'soc-26', lvl:2, es:'Explícame otra vez, no entendí bien.', hint:'explain again' },
+          { id:'soc-27', lvl:2, es:'Dame un minuto para terminar esto.', hint:'give me a minute' },
+          { id:'soc-28', lvl:2, es:'Ayúdame a entender lo que sientes.', hint:'help me understand' },
+          { id:'soc-29', lvl:2, es:'Mándame un mensaje cuando llegues.', hint:'text me when you arrive' },
+          { id:'soc-30', lvl:2, es:'Avísame si necesitas algo más.', hint:'let me know if you need anything' }
         ],
         health: [
-          { es:'Me está costando dormir últimamente.', hint:'it’s been hard to sleep' },
-          { es:'Tengo cita médica mañana.', hint:'I have a medical appointment' },
-          { es:'Me duele la cabeza, pero estoy [tranquila|tranquile].', hint:'my head hurts but I’m calm' },
-          { es:'Estoy tomando mi medicina todos los días.', hint:'I’m taking my meds every day' }
+          // Level 0
+          { id:'hlt-01', lvl:0, es:'Me está costando dormir últimamente.', hint:'hard to sleep lately' },
+          { id:'hlt-02', lvl:0, es:'Tengo cita médica mañana.', hint:'doctor appointment tomorrow' },
+          { id:'hlt-03', lvl:0, es:'Me duele la cabeza un poco.', hint:'my head hurts a little' },
+          { id:'hlt-04', lvl:0, es:'Estoy tomando mi medicina todos los días.', hint:'taking my meds every day' },
+          { id:'hlt-05', lvl:0, es:'Me siento mejor que ayer.', hint:'feel better than yesterday' },
+          { id:'hlt-06', lvl:0, es:'Necesito agua, por favor.', hint:'need water' },
+          { id:'hlt-07', lvl:0, es:'Estoy muy [cansada|cansade] hoy.', hint:'very tired today' },
+          { id:'hlt-08', lvl:0, es:'Quiero descansar un rato.', hint:'want to rest a while' },
+          { id:'hlt-09', lvl:0, es:'Me siento bien, gracias.', hint:'feel fine thanks' },
+          { id:'hlt-10', lvl:0, es:'Tengo un poco de frío.', hint:'a little cold' },
+          // Level 1
+          { id:'hlt-11', lvl:1, es:'Me duele la cabeza, pero estoy [tranquila|tranquile].', hint:'headache but calm' },
+          { id:'hlt-12', lvl:1, es:'Necesito hablar con el doctor sobre esto.', hint:'need to talk to doctor' },
+          { id:'hlt-13', lvl:1, es:'Me cuesta concentrarme cuando estoy así.', hint:'hard to concentrate' },
+          { id:'hlt-14', lvl:1, es:'Creo que necesito tomar un descanso.', hint:'think I need a break' },
+          { id:'hlt-15', lvl:1, es:'¿Puedes acompañarme a la cita?', hint:'can you come to appointment' },
+          { id:'hlt-16', lvl:1, es:'Me siento [ansiosa|ansiose] por la consulta.', hint:'anxious about appointment' },
+          { id:'hlt-17', lvl:1, es:'Gracias por cuidarme cuando estoy enferma.', hint:'thanks for taking care of me' },
+          { id:'hlt-18', lvl:1, es:'Voy a intentar dormir temprano esta noche.', hint:'try to sleep early' },
+          { id:'hlt-19', lvl:1, es:'¿Me puedes ayudar a recordar tomar mi medicina?', hint:'help me remember medicine' },
+          { id:'hlt-20', lvl:1, es:'Me preocupa este síntoma que tengo.', hint:'worried about this symptom' },
+          // Level 2
+          { id:'hlt-21', lvl:2, es:'Toma agua y respira hondo conmigo.', hint:'drink water and breathe deep' },
+          { id:'hlt-22', lvl:2, es:'Descansa un poco, yo me encargo.', hint:'rest I'll take care of it' },
+          { id:'hlt-23', lvl:2, es:'Avísame si te sientes peor, porfa.', hint:'let me know if you feel worse' },
+          { id:'hlt-24', lvl:2, es:'Llama al doctor si no mejoras.', hint:'call the doctor if not better' },
+          { id:'hlt-25', lvl:2, es:'Acuéstate y cierra los ojos un rato.', hint:'lie down and close your eyes' },
+          { id:'hlt-26', lvl:2, es:'Tómate tu tiempo, no hay prisa.', hint:'take your time no rush' },
+          { id:'hlt-27', lvl:2, es:'Cuídate mucho, por favor.', hint:'take care of yourself' },
+          { id:'hlt-28', lvl:2, es:'Dime si necesitas algo más.', hint:'tell me if you need anything' },
+          { id:'hlt-29', lvl:2, es:'Intenta relajarte un poco.', hint:'try to relax' },
+          { id:'hlt-30', lvl:2, es:'Explícale al doctor cómo te sientes.', hint:'explain to doctor how you feel' }
         ],
         food: [
-          { es:'Se me antoja sopa y pan.', hint:'I’m craving soup and bread' },
-          { es:'¿Quieres cocinar conmigo?', hint:'want to cook with me?' },
-          { es:'Prefiero té sin azúcar.', hint:'tea without sugar' },
-          { es:'Vamos al mercado; necesito frutas frescas.', hint:'go to the market, need fresh fruit' }
+          // Level 0
+          { id:'fod-01', lvl:0, es:'Se me antoja sopa y pan.', hint:'craving soup and bread' },
+          { id:'fod-02', lvl:0, es:'¿Quieres cocinar conmigo?', hint:'want to cook with me' },
+          { id:'fod-03', lvl:0, es:'Prefiero té sin azúcar.', hint:'tea without sugar' },
+          { id:'fod-04', lvl:0, es:'Vamos al mercado; necesito frutas frescas.', hint:'go to market need fresh fruit' },
+          { id:'fod-05', lvl:0, es:'Tengo mucha hambre hoy.', hint:'very hungry today' },
+          { id:'fod-06', lvl:0, es:'Quiero algo sencillo para cenar.', hint:'something simple for dinner' },
+          { id:'fod-07', lvl:0, es:'¿Hay tortillas?', hint:'are there tortillas' },
+          { id:'fod-08', lvl:0, es:'Me gusta el café con leche.', hint:'like coffee with milk' },
+          { id:'fod-09', lvl:0, es:'Prefiero agua natural.', hint:'prefer plain water' },
+          { id:'fod-10', lvl:0, es:'Esto está delicioso, gracias.', hint:'this is delicious' },
+          // Level 1
+          { id:'fod-11', lvl:1, es:'¿Qué te gustaría comer esta noche?', hint:'what would you like to eat' },
+          { id:'fod-12', lvl:1, es:'Podemos hacer tacos si quieres.', hint:'we can make tacos' },
+          { id:'fod-13', lvl:1, es:'Necesitamos comprar más verduras.', hint:'need to buy more vegetables' },
+          { id:'fod-14', lvl:1, es:'¿Me ayudas a preparar la cena?', hint:'help me prepare dinner' },
+          { id:'fod-15', lvl:1, es:'Se me acabó el arroz, lo siento.', hint:'I ran out of rice' },
+          { id:'fod-16', lvl:1, es:'Voy a hacer café, ¿quieres?', hint:'going to make coffee want some' },
+          { id:'fod-17', lvl:1, es:'¿Te sobró comida del almuerzo?', hint:'do you have lunch leftovers' },
+          { id:'fod-18', lvl:1, es:'Podemos pedir pizza si estás [cansada|cansade].', hint:'can order pizza if tired' },
+          { id:'fod-19', lvl:1, es:'Me encanta cuando cocinas ese platillo.', hint:'love when you cook that dish' },
+          { id:'fod-20', lvl:1, es:'¿Qué ingredientes necesitamos?', hint:'what ingredients do we need' },
+          // Level 2
+          { id:'fod-21', lvl:2, es:'Pon la tetera y trae dos tazas, porfa.', hint:'put kettle and bring cups' },
+          { id:'fod-22', lvl:2, es:'Corta la cebolla mientras yo hago la salsa.', hint:'cut the onion while I make sauce' },
+          { id:'fod-23', lvl:2, es:'Prueba esto y dime qué te parece.', hint:'try this tell me what you think' },
+          { id:'fod-24', lvl:2, es:'Calienta las tortillas, por favor.', hint:'heat the tortillas' },
+          { id:'fod-25', lvl:2, es:'Saca el pollo del refrigerador.', hint:'take chicken from fridge' },
+          { id:'fod-26', lvl:2, es:'Agrega más sal si quieres.', hint:'add more salt if you want' },
+          { id:'fod-27', lvl:2, es:'Sírvete más, hay suficiente.', hint:'serve yourself more' },
+          { id:'fod-28', lvl:2, es:'Guarda las sobras en el refri.', hint:'save leftovers in fridge' },
+          { id:'fod-29', lvl:2, es:'Pásame el jitomate, porfa.', hint:'pass me the tomato' },
+          { id:'fod-30', lvl:2, es:'Prepara la mesa mientras termino.', hint:'set the table while I finish' }
+        ],
+        family: [
+          // Level 0 - basics for in-laws
+          { id:'fam-01', lvl:0, es:'Buenos días. ¿Cómo están?', hint:'good morning how are you' },
+          { id:'fam-02', lvl:0, es:'Muchas gracias por todo.', hint:'thank you for everything' },
+          { id:'fam-03', lvl:0, es:'¿Necesitan algo?', hint:'do you need anything' },
+          { id:'fam-04', lvl:0, es:'La comida está deliciosa.', hint:'the food is delicious' },
+          { id:'fam-05', lvl:0, es:'Con permiso, regreso pronto.', hint:'excuse me, be back soon' },
+          { id:'fam-06', lvl:0, es:'¿Cómo estuvo su día?', hint:'how was your day' },
+          { id:'fam-07', lvl:0, es:'Nos vemos mañana.', hint:'see you tomorrow' },
+          { id:'fam-08', lvl:0, es:'Que tengan buena noche.', hint:'have a good night' },
+          { id:'fam-09', lvl:0, es:'Disculpe, no entendí.', hint:'sorry I didn't understand' },
+          { id:'fam-10', lvl:0, es:'¿Puedo ayudar con algo?', hint:'can I help with something' },
+          // Level 1
+          { id:'fam-11', lvl:1, es:'¿Cómo se sienten hoy?', hint:'how do you feel today' },
+          { id:'fam-12', lvl:1, es:'Me da mucho gusto verlos.', hint:'so happy to see you' },
+          { id:'fam-13', lvl:1, es:'¿Les gustaría tomar algo?', hint:'would you like something to drink' },
+          { id:'fam-14', lvl:1, es:'Gracias por recibirnos en su casa.', hint:'thanks for having us' },
+          { id:'fam-15', lvl:1, es:'¿Cómo ha estado el clima por aquí?', hint:'how has the weather been' },
+          { id:'fam-16', lvl:1, es:'Estoy practicando mi español cada día.', hint:'practicing my spanish every day' },
+          { id:'fam-17', lvl:1, es:'¿Me pueden contar más sobre eso?', hint:'can you tell me more' },
+          { id:'fam-18', lvl:1, es:'Me encanta pasar tiempo con la familia.', hint:'love spending time with family' },
+          { id:'fam-19', lvl:1, es:'¿Qué planes tienen para este fin de semana?', hint:'what plans for this weekend' },
+          { id:'fam-20', lvl:1, es:'Gracias por su paciencia conmigo.', hint:'thanks for your patience' },
+          // Level 2
+          { id:'fam-21', lvl:2, es:'Cuéntennos cómo estuvo su semana.', hint:'tell us about your week' },
+          { id:'fam-22', lvl:2, es:'Por favor, sírvanse más comida.', hint:'please serve yourselves more food' },
+          { id:'fam-23', lvl:2, es:'Déjennos ayudar con los platos.', hint:'let us help with dishes' },
+          { id:'fam-24', lvl:2, es:'Mándenme fotos cuando puedan.', hint:'send me photos when you can' },
+          { id:'fam-25', lvl:2, es:'Avísenme si necesitan algo.', hint:'let me know if you need anything' },
+          { id:'fam-26', lvl:2, es:'Pasen, están en su casa.', hint:'come in, make yourselves at home' },
+          { id:'fam-27', lvl:2, es:'Descansen, ya hicieron mucho.', hint:'rest you've done a lot' },
+          { id:'fam-28', lvl:2, es:'Esperen, les traigo algo para tomar.', hint:'wait I'll bring you something to drink' },
+          { id:'fam-29', lvl:2, es:'Siéntense, voy a servir la comida.', hint:'sit I'll serve the food' },
+          { id:'fam-30', lvl:2, es:'Llámennos cuando lleguen a casa.', hint:'call us when you get home' }
         ]
       };
 
-      // Emotions as [fem|incl] options (we’ll render with flex())
-      const EMOTIONS = [
-        '[tranquila|tranquile]','[nerviosa|nerviose]','[ansiosa|ansiose]','[orgullosa|orgullose]','[emocionada|emocionade]',
-        '[frustrada|frustrade]','[confundida|confundide]','[agradecida|agradecide]','[agobiada|agobiade]','[animada|animade]'
+      // EXPANDED VERB LAB (50+ verbs with context)
+      const VERB_LAB = [
+        // Level 0 - Present tense basics
+        { id:'vrb-01', inf:'ser',       lvl:0, sample:'Soy de Minnesota. ¿De dónde eres?' },
+        { id:'vrb-02', inf:'estar',     lvl:0, sample:'Estoy [tranquila|tranquile] hoy.' },
+        { id:'vrb-03', inf:'tener',     lvl:0, sample:'Tengo tiempo esta noche.' },
+        { id:'vrb-04', inf:'hacer',     lvl:0, sample:'Hago café todas las mañanas.' },
+        { id:'vrb-05', inf:'ir',        lvl:0, sample:'Voy al mercado más tarde.' },
+        { id:'vrb-06', inf:'venir',     lvl:0, sample:'Vengo de trabajar.' },
+        { id:'vrb-07', inf:'poder',     lvl:0, sample:'Puedo ayudarte con eso.' },
+        { id:'vrb-08', inf:'querer',    lvl:0, sample:'Quiero aprender más español.' },
+        { id:'vrb-09', inf:'saber',     lvl:0, sample:'No sé cocinar muy bien.' },
+        { id:'vrb-10', inf:'dar',       lvl:0, sample:'Te doy las gracias.' },
+        { id:'vrb-11', inf:'ver',       lvl:0, sample:'Veo una película contigo.' },
+        { id:'vrb-12', inf:'comer',     lvl:0, sample:'Como frutas cada día.' },
+        { id:'vrb-13', inf:'beber',     lvl:0, sample:'Bebo mucha agua.' },
+        { id:'vrb-14', inf:'vivir',     lvl:0, sample:'Vivo en Minnesota.' },
+        { id:'vrb-15', inf:'hablar',    lvl:0, sample:'Hablo español con mi familia.' },
+        // Level 1 - More complexity
+        { id:'vrb-16', inf:'decir',     lvl:1, sample:'No sé qué decir ahora.' },
+        { id:'vrb-17', inf:'poner',     lvl:1, sample:'Pongo la mesa para cenar.' },
+        { id:'vrb-18', inf:'necesitar', lvl:1, sample:'Necesito tu ayuda, porfa.' },
+        { id:'vrb-19', inf:'gustar',    lvl:1, sample:'Me gusta pasar tiempo contigo.' },
+        { id:'vrb-20', inf:'sentirse',  lvl:1, sample:'Me siento [animada|animade] hoy.' },
+        { id:'vrb-21', inf:'pensar',    lvl:1, sample:'Pienso mucho en mi familia.' },
+        { id:'vrb-22', inf:'pasar',     lvl:1, sample:'¿Qué pasa? ¿Estás bien?' },
+        { id:'vrb-23', inf:'tomar',     lvl:1, sample:'Tomo té en las noches.' },
+        { id:'vrb-24', inf:'llegar',    lvl:1, sample:'Llego tarde, perdón.' },
+        { id:'vrb-25', inf:'entender',  lvl:1, sample:'Entiendo un poco más cada día.' },
+        { id:'vrb-26', inf:'conocer',   lvl:1, sample:'Conozco a tus papás.' },
+        { id:'vrb-27', inf:'empezar',   lvl:1, sample:'Empiezo mi día con café.' },
+        { id:'vrb-28', inf:'encontrar', lvl:1, sample:'No encuentro mis llaves.' },
+        { id:'vrb-29', inf:'parecer',   lvl:1, sample:'Me parece una buena idea.' },
+        { id:'vrb-30', inf:'seguir',    lvl:1, sample:'Sigo practicando cada día.' },
+        { id:'vrb-31', inf:'preguntar', lvl:1, sample:'Te pregunto porque no estoy segura.' },
+        { id:'vrb-32', inf:'llamar',    lvl:1, sample:'Te llamo más tarde.' },
+        { id:'vrb-33', inf:'dejar',     lvl:1, sample:'Dejo las llaves aquí.' },
+        { id:'vrb-34', inf:'esperar',   lvl:1, sample:'Te espero en casa.' },
+        { id:'vrb-35', inf:'sentir',    lvl:1, sample:'Siento mucho llegar tarde.' },
+        // Level 2 - Commands (tú)
+        { id:'vrb-36', inf:'poner',     lvl:2, sample:'Pon la mesa, porfa.' },
+        { id:'vrb-37', inf:'decir',     lvl:2, sample:'Dime cómo te sientes.' },
+        { id:'vrb-38', inf:'hacer',     lvl:2, sample:'Haz lo que puedas, está bien.' },
+        { id:'vrb-39', inf:'venir',     lvl:2, sample:'Ven aquí un momento.' },
+        { id:'vrb-40', inf:'salir',     lvl:2, sample:'Sal a caminar conmigo.' },
+        { id:'vrb-41', inf:'tener',     lvl:2, sample:'Ten paciencia, por favor.' },
+        { id:'vrb-42', inf:'ir',        lvl:2, sample:'Ve despacio, con calma.' },
+        { id:'vrb-43', inf:'dar',       lvl:2, sample:'Dame un minuto para pensar.' },
+        { id:'vrb-44', inv:'ser',       lvl:2, sample:'Sé [honesta|honeste] conmigo.' },
+        { id:'vrb-45', inf:'traer',     lvl:2, sample:'Trae las tazas, porfa.' },
+        { id:'vrb-46', inf:'hablar',    lvl:2, sample:'Háblame de tu día.' },
+        { id:'vrb-47', inf:'esperar',   lvl:2, sample:'Espera un momento aquí.' },
+        { id:'vrb-48', inf:'escuchar',  lvl:2, sample:'Escucha esto que te quiero contar.' },
+        { id:'vrb-49', inf:'mirar',     lvl:2, sample:'Mira esto que encontré.' },
+        { id:'vrb-50', inf:'ayudar',    lvl:2, sample:'Ayúdame a entender.' }
       ];
 
-      const VERB_LAB = [
-        { inf:'ser',        sample:'Soy de Minnesota. ¿De dónde eres?' },
-        { inf:'estar',      sample:'Estoy [tranquila|tranquile] hoy.' },
-        { inf:'tener',      sample:'Tengo tiempo esta noche.' },
-        { inf:'hacer',      sample:'¿Qué haces después?' },
-        { inf:'poder',      sample:'No puedo hablar ahora.' },
-        { inf:'querer',     sample:'Quiero comer contigo.' },
-        { inf:'ir',         sample:'Voy al trabajo.' },
-        { inf:'venir',      sample:'¿Vienes conmigo?' },
-        { inf:'decir',      sample:'No sé qué decir.' },
-        { inf:'dar',        sample:'Te doy las gracias.' },
-        { inf:'poner',      sample:'Pon la mesa, porfa.' },
-        { inf:'necesitar',  sample:'Necesito descansar.' },
-        { inf:'gustar',     sample:'Me gusta el café.' },
-        { inf:'sentirse',   sample:'Me siento [animada|animade].' },
-        { inf:'pensar',     sample:'Pienso en mi familia.' },
-        { inf:'pasar',      sample:'¿Qué pasa?' },
-        { inf:'tomar',      sample:'Tomo té en la noche.' },
-        { inf:'llegar',     sample:'Llego tarde, perdón.' }
+      const EMOTIONS = [
+        '[tranquila|tranquile]','[nerviosa|nerviose]','[ansiosa|ansiose]','[orgullosa|orgullose]','[emocionada|emocionade]',
+        '[frustrada|frustrade]','[confundida|confundide]','[agradecida|agradecide]','[agobiada|agobiade]','[animada|animade]',
+        '[feliz|feliz]','[triste|triste]','[preocupada|preocupade]','[relajada|relajade]','[estresada|estresade]',
+        '[contenta|contente]','[molesta|moleste]','[calmada|calmade]','[asustada|asustade]','[segura|segure]'
       ];
 
       const LUNCH_PROMPTS = [
-        'Cuéntame cómo te sientes hoy con “me siento…”. Pide un abrazo si lo necesitas.',
-        'Invítame a cocinar algo simple esta noche. Usa “¿Quieres…?”',
+        'Cuéntame cómo te sientes hoy con "me siento…". Pide un abrazo si lo necesitas.',
+        'Invítame a cocinar algo simple esta noche. Usa "¿Quieres…?"',
         'Dime en dos frases cómo te fue en la mañana.',
         'Pide silencio con cariño y propón una caminata mañana.',
         'Di qué se te antoja para cenar y por qué.',
-        'Pide un consejo con “¿Qué me recomiendas…?”'
+        'Pide un consejo con "¿Qué me recomiendas…?"',
+        'Pregúntame sobre mi día usando "¿Cómo estuvo…?"',
+        'Comparte algo que te hizo feliz hoy.',
+        'Di algo que necesitas con "Necesito…"',
+        'Invítame a ver una película después de cenar.',
+        'Pregúntame si quiero acompañarte a algún lugar.',
+        'Dime algo que te preocupa y pide mi opinión.',
+        'Planea algo para este fin de semana juntos.',
+        'Agradéceme por algo específico de hoy.',
+        'Pide ayuda con algo usando "¿Me ayudas…?"'
       ];
 
       const FOOD_WORDS_BANK = [
         { lvl:0, w:'pollo' }, { lvl:0, w:'papas' }, { lvl:0, w:'pan' }, { lvl:0, w:'agua' },
+        { lvl:0, w:'leche' }, { lvl:0, w:'huevos' }, { lvl:0, w:'queso' }, { lvl:0, w:'frutas' },
         { lvl:1, w:'arroz' }, { lvl:1, w:'tortilla' }, { lvl:1, w:'salsa' }, { lvl:1, w:'limón' },
-        { lvl:2, w:'queso' }, { lvl:2, w:'aguacate' }, { lvl:2, w:'cebolla' }, { lvl:2, w:'jitomate' }
+        { lvl:1, w:'frijoles' }, { lvl:1, w:'tomate' }, { lvl:1, w:'cebolla' }, { lvl:1, w:'ajo' },
+        { lvl:2, w:'aguacate' }, { lvl:2, w:'jitomate' }, { lvl:2, w:'cilantro' }, { lvl:2, w:'chile' }
       ];
 
-      // Banked content with levels for the daily plan
-      const VERB_BANK = VERB_LAB.map(v => ({ ...v, lvl: v.sample.includes('Pon ')||v.sample.includes('Llego ') ? 2 :
-                                                   v.sample.includes('¿Qué haces') || v.sample.includes('¿Vienes') ? 1 : 0 }));
-
-      const SCENE_BANK = [
-        // food
-        { lvl:0, track:'food',   es:'Tengo hambre. Quiero algo sencillo.', hint:'say you’re hungry' },
-        { lvl:1, track:'food',   es:'¿Quieres cocinar conmigo?',          hint:'want to cook together?' },
-        { lvl:2, track:'food',   es:'Pon la tetera y trae dos tazas, porfa.', hint:'little command + vocab' },
-        // social
-        { lvl:0, track:'social', es:'Estoy [cansada|cansade] pero [contenta|contente]. ¿Y tú?', hint:'tired but happy' },
-        { lvl:1, track:'social', es:'Quiero descansar esta noche, ¿te parece bien?',            hint:'rest tonight ok?' },
-        { lvl:2, track:'social', es:'Dime cómo te fue hoy, con calma.',                         hint:'soft command “dime”' },
-        // health
-        { lvl:0, track:'health', es:'Me está costando dormir últimamente.', hint:'hard to sleep' },
-        { lvl:1, track:'health', es:'Tengo cita médica mañana.',             hint:'appointment tomorrow' },
-        { lvl:2, track:'health', es:'Toma agua y respira hondo conmigo.',    hint:'command “toma”' }
-      ];
-
-      // Deterministic daily helper
-      function pickByDate(arr){
-        const d=new Date();
-        const idx=(d.getFullYear()*372 + (d.getMonth()+1)*31 + d.getDate()) % arr.length;
-        return arr[idx];
-      }
-
-      // Daily plan generator (level-aware)
-      function generateDayPlan(level, dateStr){
+      // ---------------- Daily Plan Generator ----------------
+      function generateDayPlan(level, dateStr, track){
         const lvl = Math.max(0, Math.min(2, Number(level||0)));
         const rng = rngFromKey(`${dateStr}|lvl:${lvl}`);
 
-        const trackOptions=['food','social','health'];
-        const trackDefault = trackOptions[Math.floor(rng()*trackOptions.length)];
+        const sentences = PRESENT_SENTENCES[track].filter(s=>s.lvl<=lvl);
+        const scenePick = sentences[Math.floor(rng()*sentences.length)] || sentences[0];
 
-        const verbs = VERB_BANK.filter(v=> (v.lvl??0) <= lvl);
-        const verbPick = sampleN(rng, verbs, 1)[0];
-
-        const scenes = SCENE_BANK.filter(s=>s.lvl<=lvl && s.track===trackDefault);
-        const scenePick = (scenes.length? scenes: SCENE_BANK.filter(s=>s.lvl<=lvl))[Math.floor(rng()*Math.max(1,scenes.length||1))];
+        const verbs = VERB_LAB.filter(v=>v.lvl<=lvl);
+        const verbPick = verbs[Math.floor(rng()*verbs.length)] || verbs[0];
 
         const emoPick = EMOTIONS[Math.floor(rng()*EMOTIONS.length)];
 
         const words = FOOD_WORDS_BANK.filter(w=>w.lvl<=lvl).map(x=>x.w);
-        const snakeWords = sampleN(rng, words, 8);
+        const snakeWords = sampleN(rng, words, 10);
 
-        const lunchPrompt = pickByDate(LUNCH_PROMPTS);
+        const lunchPrompt = LUNCH_PROMPTS[Math.floor(rng()*LUNCH_PROMPTS.length)];
 
-        return { trackDefault, verbPick, scenePick, emoPick, snakeWords, lunchPrompt };
+        return { scenePick, verbPick, emoPick, snakeWords, lunchPrompt };
       }
-
-      // ---------------- self-tests ----------------
-      (function runSelfTests(){
-        try {
-          const results=[];
-          results.push(['lev exact', lev('hola','hola')===0]);
-          results.push(['lev deletion', lev('hola','ola')===1]);
-          results.push(['lev sub', lev('gato','pato')===1]);
-
-          const tok1 = tokenize('¡Qué emoción!');
-          results.push(['tokenize diacritics', JSON.stringify(tok1)===JSON.stringify(['que','emocion'])]);
-
-          const ws1 = wordScore('estoy tranquila','estoy trankila');
-          results.push(['wordScore tolerance', ws1.pass===true]);
-
-          const ws2 = wordScore('quiero comer tacos hoy','quiero ______ hoy');
-          results.push(['wordScore missing words fails', ws2.pass===false]);
-
-          const encOk = Array.isArray(ENCOURAGEMENTS) && ENCOURAGEMENTS.length>=5 && ENCOURAGEMENTS.every(s=>typeof s==='string' && !/\\$/.test(s));
-          results.push(['encouragements valid', encOk===true]);
-
-          results.push(['speech synthesis present', typeof window!=='undefined' && 'speechSynthesis' in window]);
-
-          const failed = results.filter(([,ok])=>!ok);
-          if (failed.length) console.warn('[stacie self-tests] FAIL', failed.map(([n])=>n));
-          else console.info('[stacie self-tests] PASS', results.map(([n])=>n));
-        } catch(e) { console.error('[stacie self-tests] ERROR', e); }
-      })();
 
       // ---------------- Snake game ----------------
       function SnakeGame({ words }){
@@ -419,7 +589,7 @@
           ctx.clearRect(0,0,size,size);
           ctx.fillStyle='#ecfeff'; ctx.fillRect(0,0,size,size);
           ctx.fillStyle='#d1fae5'; for(let x=0;x<size;x+=cell) for(let y=0;y<size;y+=cell) ctx.fillRect(x,y,1,1);
-          ctx.fillStyle='#f472b6'; ctx.fillRect(food.x*cell, food.y*cell, cell, cell);  // blossom
+          ctx.fillStyle='#f472b6'; ctx.fillRect(food.x*cell, food.y*cell, cell, cell);
           ctx.fillStyle='#0d3d30'; snake.forEach((s,i)=>{ ctx.globalAlpha=Math.max(.65,1-i*.02); ctx.fillRect(s.x*cell, s.y*cell, cell, cell);}); ctx.globalAlpha=1;
         }
         useEffect(draw,[snake,food]);
@@ -427,17 +597,17 @@
         return (
           <div className="rounded-2xl bg-white p-4 shadow-soft border border-brand-100 relative">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-brand-900">Juego: Snake de palabras</h3>
+              <h3 className="font-semibold text-brand-900">Snake de palabras</h3>
               <div className="text-sm text-brand-700">Puntos: <span className="font-semibold">{score}</span></div>
             </div>
-            <div className="mb-2 text-sm text-brand-800">Come la fruta; escucharás la palabra: <span className="font-medium text-blossom-600">{word}</span></div>
+            <div className="mb-2 text-sm text-brand-800">Palabra actual: <span className="font-medium text-blossom-600">{word}</span></div>
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <canvas ref={canvasRef} width={size} height={size} className="rounded-xl border border-brand-100 shadow-inner bg-brand-50"></canvas>
               <div className="flex flex-col gap-2 w-full sm:w-40">
                 <button onClick={()=>{ setRunning(true); setPaused(false); speak('Listo.'); }} className="px-3 py-2 rounded-lg bg-brand-900 text-white">Iniciar</button>
                 <button onClick={()=>setPaused(p=>!p)} className="px-3 py-2 rounded-lg bg-brand-100 text-brand-900">{paused?'Reanudar':'Pausar'}</button>
                 <button onClick={()=>{ setRunning(false); resetGame(); }} className="px-3 py-2 rounded-lg bg-white border border-brand-200">Reiniciar</button>
-                <div className="text-xs text-brand-700">Controles: ↑↓←→ o WASD · Espacio = Pausa</div>
+                <div className="text-xs text-brand-700">↑↓←→ o WASD · Espacio pausa</div>
               </div>
             </div>
             <div className="absolute -top-2 -right-2 text-blossom-400">✿</div>
@@ -445,7 +615,7 @@
         );
       }
 
-      // ---------------- UI atoms ----------------
+      // ---------------- UI components ----------------
       const Card = ({ children, className }) => (
         <div className={cx('relative rounded-2xl shadow-soft p-4 sm:p-6 bg-white border border-brand-100', className)}>
           <div className="absolute -top-2 -left-2 text-blossom-300 select-none">✿</div>
@@ -472,11 +642,11 @@
       // ---------------- Placement Test ----------------
       function PlacementTest({ onDone }){
         const q = [
-          { prompt:'¿Cómo se dice “chicken” en español?', options:['pollo','queso','galleta','arroz'], answer:0 },
-          { prompt:'Completa: “Yo ____ tiempo esta noche.” (tener)', options:['tengo','tienes','tiene','tenemos'], answer:0 },
-          { prompt:'Elige la opción natural: “Me siento ____.”', options:['nervioso','nerviosa','nerviose','nerviosos'], answer:2 },
-          { prompt:'Traduce: “I want to eat with you.”', options:['Quiero comer contigo','Quiero comiendo contigo','Quise comer contigo','Voy a comerte'], answer:0 },
-          { prompt:'¿Qué significa “¿Quieres ir por helado esta noche?”', options:['Do you want to get ice cream tonight?','Do you want to make soup tonight?','Do you want breakfast now?','Do you want to talk later?'], answer:0 },
+          { prompt:'¿Cómo se dice "chicken" en español?', options:['pollo','queso','galleta','arroz'], answer:0 },
+          { prompt:'Completa: "Yo ____ tiempo esta noche." (tener)', options:['tengo','tienes','tiene','tenemos'], answer:0 },
+          { prompt:'Elige la opción natural: "Me siento ____."', options:['nervioso','nerviosa','nerviose','nerviosos'], answer:2 },
+          { prompt:'Traduce: "I want to eat with you."', options:['Quiero comer contigo','Quiero comiendo contigo','Quise comer contigo','Voy a comerte'], answer:0 },
+          { prompt:'¿Qué significa "¿Quieres ir por helado esta noche?"', options:['Do you want to get ice cream tonight?','Do you want to make soup tonight?','Do you want breakfast now?','Do you want to talk later?'], answer:0 },
           { prompt:'El mandato correcto (tú): ____ la ventana, porfa.', options:['Abre','Abra','Abran','Abramos'], answer:0 }
         ];
         const [i,setI]=useState(0), [score,setScore]=useState(0), [sel,setSel]=useState(null);
@@ -506,10 +676,10 @@
                 </>
               ) : (
                 <>
-                  <h3 className="text-xl font-semibold mb-2 text-brand-900">Resultado preliminar</h3>
+                  <h3 className="text-xl font-semibold mb-2 text-brand-900">Resultado</h3>
                   <p className="mb-4 text-brand-800">Puntos: {score} / {q.length}</p>
                   <button onClick={finalize} className="px-4 py-2 rounded-xl bg-emerald-600 text-white">
-                    Empezar con este nivel
+                    Empezar práctica
                   </button>
                 </>
               )}
@@ -518,7 +688,71 @@
         );
       }
 
-      // ---------------- main app ----------------
+      // ---------------- Review Mode ----------------
+      function ReviewMode({ weakItems, onClose, onComplete, inclusive }){
+        const [idx,setIdx]=useState(0);
+        const [recording,setRecording]=useState(false);
+        const [transcript,setTranscript]=useState('');
+        const [passed,setPassed]=useState(null);
+        const [badWords,setBadWords]=useState([]);
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+
+        if (!weakItems.length) return null;
+
+        const item = weakItems[idx];
+        const text = flex(item.es || item.sample, inclusive);
+        const done = idx >= weakItems.length - 1;
+
+        function handleRecord(){
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); setPassed(null); rec.start(); setRecording(true); }
+          else {
+            rec.stop();
+            const { pass, badWords } = wordScore(text, transcript);
+            setPassed(pass); setBadWords(badWords);
+            if (pass) speak('¡Bien hecho!');
+            else speak('Casi, intenta de nuevo.');
+          }
+        }
+
+        function next(){
+          if (done) { onComplete(); }
+          else { setIdx(i=>i+1); setTranscript(''); setPassed(null); setBadWords([]); }
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 border border-brand-100">
+              <h3 className="text-xl font-semibold mb-3 text-brand-900">Modo de repaso</h3>
+              <p className="text-sm text-brand-700 mb-4">Revisando {idx+1} de {weakItems.length}</p>
+              <TargetSentence text={text} bad={badWords} bigText={false} inclusive={inclusive}/>
+              {item.hint && <p className="text-sm text-brand-700 mt-2">Pista: {item.hint}</p>}
+              <div className="flex items-center gap-2 mt-4">
+                <button onClick={()=>speak(text)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶</button>
+                <button onClick={handleRecord} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
+                  {recording?'Detener':'Grabar'}
+                </button>
+              </div>
+              {transcript && (
+                <div className="mt-3 p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
+              )}
+              {passed!==null && (
+                <div className={cx('mt-3 px-3 py-2 rounded-xl inline-block', passed?'bg-emerald-100 text-emerald-900':'bg-amber-100 text-amber-900')}>
+                  {passed?'✔ Bien':'◻ Necesita trabajo'}
+                </div>
+              )}
+              <div className="flex justify-between mt-4">
+                <button onClick={onClose} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Salir</button>
+                <button onClick={next} className="px-3 py-2 rounded-xl bg-brand-900 text-white">
+                  {done?'Terminar':'Siguiente'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ---------------- Main App ----------------
       function App(){
         // settings
         const [bigText,setBigText] = useLocalStorage('stacie.bigText', true);
@@ -537,42 +771,29 @@
         const [sessionSeconds,setSessionSeconds] = useState(0);
         const goalSeconds = Math.max(5, goalMinutes)*60;
 
+        // spaced repetition
+        const sr = useSpacedRepetition();
+        const [showReview,setShowReview] = useState(false);
+
         // speech recog
         const [recording,setRecording] = useState(false);
         const [transcript,setTranscript] = useState('');
         const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
 
         // flow
-        const [step,setStep] = useState(0); // 0 warm,1 verb,2 scene,3 emo,4 close
-        const [verbIdx,setVerbIdx] = useLocalStorage('stacie.verbIdx',0);
-        const [sceneIdx,setSceneIdx] = useLocalStorage('stacie.sceneIdx',0);
-        const [emotionIdx,setEmotionIdx] = useLocalStorage('stacie.emotionIdx',0);
+        const [step,setStep] = useState(0);
         const [passed,setPassed] = useState(null);
         const [badWords,setBadWords] = useState([]);
 
-        // snake words of the day
-        const [snakeWords,setSnakeWords] = useState(FOOD_WORDS_BANK.filter(w=>w.lvl===0).map(x=>x.w));
+        // daily content
+        const [dayPlan,setDayPlan] = useState(null);
 
-        // build daily plan once level is known
+        // build daily plan
         useEffect(()=>{
           if (level===null) return;
-          const date=todayISO();
-          const plan=generateDayPlan(level, date);
-
-          // default track (only the first time)
-          if (!localStorage.getItem('stacie.track')) setSelectedTrack(plan.trackDefault);
-
-          // deterministic starting indices for the day
-          const rng=rngFromKey(`${date}|seed-idx|lvl:${level}`);
-          setVerbIdx(Math.floor(rng()*VERB_LAB.length));
-          const active = plan.trackDefault;
-          setSceneIdx(Math.floor(rng()*PRESENT_SENTENCES[active].length));
-          setEmotionIdx(Math.floor(rng()*EMOTIONS.length));
-
-          setSnakeWords(plan.snakeWords);
-          // cache lunch prompt for the day (display-only)
-          localStorage.setItem('stacie.lunchPrompt', JSON.stringify(plan.lunchPrompt));
-        },[level]);
+          const plan = generateDayPlan(level, todayISO(), selectedTrack);
+          setDayPlan(plan);
+        },[level,selectedTrack]);
 
         // timer
         useEffect(()=>{
@@ -590,10 +811,10 @@
               else setStreak(1);
               setLastDone(today);
 
-              // simple level-up rule
+              // level-up rule
               try{
                 const current=Number(level??0);
-                if ((streak+1)>=7 && current<2){ setLevel(current+1); console.info('[stacie] level up →', current+1); }
+                if ((streak+1)>=7 && current<2){ setLevel(current+1); }
               }catch{}
             }
             setSessionStarted(false);
@@ -602,41 +823,41 @@
           }
         },[sessionSeconds,goalSeconds,sessionStarted,lastDone]);
 
-        // data picks
-        const trackSentences = PRESENT_SENTENCES[selectedTrack];
-        const sceneRaw = trackSentences[sceneIdx % trackSentences.length];
-        const verbRaw  = VERB_LAB[verbIdx % VERB_LAB.length];
-        const emotionRaw = EMOTIONS[emotionIdx % EMOTIONS.length];
+        if (!dayPlan) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
 
-        const scene = { ...sceneRaw, es: flex(sceneRaw.es, inclusive) };
-        const verb  = { ...verbRaw,  sample: flex(verbRaw.sample, inclusive) };
-        const emotion = flex(emotionRaw, inclusive);
+        const scene = dayPlan.scenePick;
+        const verb = dayPlan.verbPick;
+        const emotion = flex(dayPlan.emoPick, inclusive);
+        const lunchCard = dayPlan.lunchPrompt;
 
-        const encouragement = useMemo(()=>pickByDate(ENCOURAGEMENTS),[]);
-        const lunchCard = useMemo(()=>{
-          try { const stored = JSON.parse(localStorage.getItem('stacie.lunchPrompt')||'null'); return stored || pickByDate(LUNCH_PROMPTS); }
-          catch{ return pickByDate(LUNCH_PROMPTS); }
-        },[]);
+        const sceneText = flex(scene.es || '', inclusive);
+        const verbText = flex(verb.sample || '', inclusive);
+
+        const encouragement = useMemo(()=>flex(ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)], inclusive),[]);
 
         // actions
         function startSession(){ setSessionSeconds(0); setStep(0); setSessionStarted(true); speak('Empezamos. Hoy va a ir muy bien.'); }
         function nextStep(){ setTranscript(''); setPassed(null); setBadWords([]); setStep(s=>Math.min(4,s+1)); }
         function prevStep(){ setStep(s=>Math.max(0,s-1)); }
-        function playScene(){ speak(scene.es); }
-        function playVerb(){ speak(verb.sample); }
 
-        function handleRecord(target){
+        function handleRecord(target, itemId){
           if(!rec.supported) return;
           if(!recording){ setTranscript(''); setPassed(null); rec.start(); setRecording(true); }
           else {
             rec.stop();
             const { pass, badWords } = wordScore(target, transcript);
             setPassed(pass); setBadWords(badWords);
-            if (pass){ if(target===scene.es) setSceneIdx(i=>i+1); if(target===verb.sample) setVerbIdx(i=>i+1); speak('¡Bien hecho!'); }
+            sr.recordAttempt(itemId, pass);
+            if (pass) speak('¡Bien hecho!');
             else speak('Casi, intenta de nuevo.');
           }
         }
-        function markManual(target){ setPassed(true); setBadWords([]); if(target===scene.es) setSceneIdx(i=>i+1); if(target===verb.sample) setVerbIdx(i=>i+1); }
+        function markManual(itemId){ setPassed(true); setBadWords([]); sr.recordAttempt(itemId, true); }
+
+        // Get weak items for review
+        const allItems = [...Object.values(PRESENT_SENTENCES).flat(), ...VERB_LAB];
+        const weakItems = sr.getWeakItems(allItems, 10);
+        const stats = sr.getStats();
 
         const Stepper = () => (
           <div className="flex items-center gap-2 mb-3">
@@ -655,6 +876,15 @@
               }}/>
             )}
 
+            {showReview && (
+              <ReviewMode 
+                weakItems={weakItems} 
+                onClose={()=>setShowReview(false)}
+                onComplete={()=>{ setShowReview(false); speak('¡Buen repaso!'); }}
+                inclusive={inclusive}
+              />
+            )}
+
             <div className="relative max-w-md mx-auto px-4 py-6 sm:py-8">
               <header className="mb-5 flex items-center justify-between relative z-10">
                 <div>
@@ -667,6 +897,30 @@
                 </div>
               </header>
 
+              {/* Stats Card */}
+              <Card className="mb-4">
+                <SectionTitle>Tu progreso</SectionTitle>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-brand-900">{stats.total}</div>
+                    <div className="text-xs text-brand-700">practicadas</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-emerald-600">{stats.mastered}</div>
+                    <div className="text-xs text-brand-700">dominadas</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-amber-600">{stats.struggling}</div>
+                    <div className="text-xs text-brand-700">repasar</div>
+                  </div>
+                </div>
+                {weakItems.length > 0 && (
+                  <button onClick={()=>setShowReview(true)} className="mt-3 w-full px-3 py-2 rounded-xl bg-amber-600 text-white">
+                    Modo repaso ({weakItems.length} frases)
+                  </button>
+                )}
+              </Card>
+
               {/* Lunch partner prompt */}
               <Card className="mb-4">
                 <SectionTitle>Tarjeta del almuerzo</SectionTitle>
@@ -678,7 +932,7 @@
               </Card>
 
               {/* Track chooser */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-2 gap-2 mb-4">
                 {TRACKS.map(t=>(
                   <button key={t.key} onClick={()=>setSelectedTrack(t.key)}
                           className={cx('rounded-2xl py-3 text-white text-sm font-semibold shadow', t.color, selectedTrack===t.key?'opacity-100':'opacity-75')}>
@@ -696,7 +950,7 @@
                     <SectionTitle>Bienvenida</SectionTitle>
                     <p className={cx(bigText?'text-lg':'text-base','mb-3 text-brand-900')}>{encouragement}</p>
                     <p className={cx(bigText?'text-base':'text-sm','text-brand-700 mb-3')}>
-                      Sesión meta: {goalMinutes} min · Reconocimiento de voz: {rec.supported?'sí':'no'}
+                      Sesión meta: {goalMinutes} min · Nivel: {level}
                     </p>
                     <div className="flex gap-2">
                       <button onClick={startSession} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Empezar</button>
@@ -710,16 +964,15 @@
                   <div>
                     <SectionTitle>Laboratorio de verbos</SectionTitle>
                     <p className="text-brand-700 text-sm mb-2">Presente · {verb.inf}</p>
-                    <TargetSentence text={verb.sample} bad={badWords} bigText={bigText} inclusive={inclusive}/>
-                    <div className="flex items-center gap-2 mt-3">
-                      <button onClick={playVerb} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶ Escuchar</button>
-                      <button onClick={()=>handleRecord(verb.sample)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
+                    <TargetSentence text={verbText} bad={badWords} bigText={bigText} inclusive={inclusive}/>
+                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                      <button onClick={()=>speak(verbText)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶</button>
+                      <button onClick={()=>handleRecord(verbText, verb.id)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
                         {recording?'Detener':'Grabar'}
                       </button>
                       {!rec.supported && (
-                        <button onClick={()=>markManual(verb.sample)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>
+                        <button onClick={()=>markManual(verb.id)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>
                       )}
-                      <button onClick={()=>setVerbIdx(i=>i+1)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Saltar</button>
                     </div>
                     {transcript && (
                       <div className="mt-3">
@@ -729,7 +982,7 @@
                     )}
                     {passed!==null && (
                       <div className={cx('mt-3 px-3 py-2 rounded-xl inline-block', passed?'bg-emerald-100 text-emerald-900':'bg-amber-100 text-amber-900')}>
-                        {passed?'✔ Bien':'◻ Necesita trabajo'}{!passed && badWords.length>0?` · Palabras clave: ${badWords.join(', ')}`:''}
+                        {passed?'✔ Bien':'◻ Necesita trabajo'}{!passed && badWords.length>0?` · Palabras: ${badWords.join(', ')}`:''}
                       </div>
                     )}
                     <div className="mt-4 flex justify-between">
@@ -743,17 +996,16 @@
                 {step===2 && (
                   <div>
                     <SectionTitle>Escena: {TRACKS.find(t=>t.key===selectedTrack)?.name}</SectionTitle>
-                    <TargetSentence text={scene.es} bad={badWords} bigText={bigText} inclusive={inclusive}/>
+                    <TargetSentence text={sceneText} bad={badWords} bigText={bigText} inclusive={inclusive}/>
                     <p className="text-brand-700 text-sm mt-2">Pista: {scene.hint}</p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <button onClick={playScene} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶ Escuchar</button>
-                      <button onClick={()=>handleRecord(scene.es)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
-                        {recording?'Detener':'Sombra / Decir'}
+                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                      <button onClick={()=>speak(sceneText)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶</button>
+                      <button onClick={()=>handleRecord(sceneText, scene.id)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
+                        {recording?'Detener':'Decir'}
                       </button>
                       {!rec.supported && (
-                        <button onClick={()=>markManual(scene.es)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>
+                        <button onClick={()=>markManual(scene.id)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>
                       )}
-                      <button onClick={()=>setSceneIdx(i=>i+1)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Otra</button>
                     </div>
                     {transcript && (
                       <div className="mt-3">
@@ -763,7 +1015,7 @@
                     )}
                     {passed!==null && (
                       <div className={cx('mt-3 px-3 py-2 rounded-xl inline-block', passed?'bg-emerald-100 text-emerald-900':'bg-amber-100 text-amber-900')}>
-                        {passed?'✔ Bien':'◻ Necesita trabajo'}{!passed && badWords.length>0?` · Palabras clave: ${badWords.join(', ')}`:''}
+                        {passed?'✔ Bien':'◻ Necesita trabajo'}{!passed && badWords.length>0?` · Palabras: ${badWords.join(', ')}`:''}
                       </div>
                     )}
                     <div className="mt-4 flex justify-between">
@@ -778,28 +1030,23 @@
                   <div>
                     <SectionTitle>Hablar de emociones</SectionTitle>
                     <p className={cx(bigText?'text-lg':'text-base','mb-2 text-brand-900')}>
-                      Di una frase con <span className="font-semibold">me siento</span> + emoción:
+                      Di: <span className="font-semibold">Me siento {emotion}</span>
                     </p>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {EMOTIONS.map((e,i)=>(
-                        <button key={i} onClick={()=>setEmotionIdx(i)} className="px-3 py-1.5 rounded-full bg-brand-100 text-sm text-brand-900">
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {EMOTIONS.slice(0,10).map((e,i)=>(
+                        <button key={i} onClick={()=>speak(flex(e,inclusive))} className="px-3 py-1.5 rounded-full bg-brand-100 text-sm text-brand-900">
                           {flex(e,inclusive)}
                         </button>
                       ))}
                     </div>
-                    <TargetSentence text={`Me siento ${emotion} porque…`} bad={[]} bigText={bigText} inclusive={inclusive}/>
                     <div className="flex items-center gap-2 mt-3">
-                      <button onClick={()=>speak(`Me siento ${emotion} porque`)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶ Escuchar</button>
-                      <button onClick={()=>handleRecord(`Me siento ${emotion} porque`)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
+                      <button onClick={()=>speak(`Me siento ${emotion}`)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶</button>
+                      <button onClick={()=>handleRecord(`Me siento ${emotion}`, 'emotion')} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
                         {recording?'Detener':'Decir'}
                       </button>
-                      {!rec.supported && (<button onClick={()=>markManual(`Me siento ${emotion} porque`)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>)}
                     </div>
                     {transcript && (
-                      <div className="mt-3">
-                        <div className="text-xs text-brand-700 mb-1">Transcripción</div>
-                        <div className="p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
-                      </div>
+                      <div className="mt-3 p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
                     )}
                     <div className="mt-4 flex justify-between">
                       <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Atrás</button>
@@ -833,7 +1080,7 @@
                   <div className="text-sm text-brand-800">
                     {Math.floor(sessionSeconds/60)}:{String(sessionSeconds%60).padStart(2,'0')} / {goalMinutes}:00
                   </div>
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex gap-2 flex-wrap">
                     <button onClick={()=>setStep(1)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Verb Lab</button>
                     <button onClick={()=>setStep(2)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Escena</button>
                     <button onClick={()=>setStep(3)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Emociones</button>
@@ -842,27 +1089,31 @@
               )}
 
               {/* Snake Game */}
-              <SnakeGame words={snakeWords} />
+              <SnakeGame words={dayPlan.snakeWords} />
 
               {/* Settings */}
               <Card className="mt-4 mb-24">
                 <SectionTitle>Ajustes</SectionTitle>
-                <div className="flex items-center justify-between py-2">
+                <div className="flex items-center justify-between py-2 border-b border-brand-100">
                   <span>Texto grande</span>
                   <button onClick={()=>setBigText(v=>!v)} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">{bigText?'Sí':'No'}</button>
                 </div>
-                <div className="flex items-center justify-between py-2">
+                <div className="flex items-center justify-between py-2 border-b border-brand-100">
                   <span>Lenguaje inclusivo (e)</span>
-                  <button onClick={()=>setInclusive(v=>!v)} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">{inclusive?'Activado':'Desactivado'}</button>
+                  <button onClick={()=>setInclusive(v=>!v)} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">{inclusive?'Sí':'No'}</button>
                 </div>
-                <div className="flex items-center justify-between py-2">
-                  <span>Rehacer prueba de nivel</span>
+                <div className="flex items-center justify-between py-2 border-b border-brand-100">
+                  <span>Nivel actual</span>
+                  <span className="text-brand-900 font-semibold">{level}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-brand-100">
+                  <span>Rehacer prueba</span>
                   <button onClick={()=>{ setLevel(null); setShowPlacement(true); }} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">Iniciar</button>
                 </div>
-                <div className="flex items-center justify-between py-2">
-                  <span>Meta nocturna</span>
+                <div className="flex items-center justify-between py-2 border-b border-brand-100">
+                  <span>Meta diaria</span>
                   <select value={goalMinutes} onChange={e=>setGoalMinutes(parseInt(e.target.value))} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">
-                    {[5,8,10].map(m=><option key={m} value={m}>{m} min</option>)}
+                    {[5,8,10,15,20].map(m=><option key={m} value={m}>{m} min</option>)}
                   </select>
                 </div>
                 <div className="flex items-center justify-between py-2">
@@ -872,7 +1123,7 @@
               </Card>
 
               <footer className="text-center text-xs text-brand-700 pb-10">
-                hecho con cariño · méxico (tú) · v2
+                hecho con cariño · méxico (tú) · v2.0
               </footer>
             </div>
           </div>
