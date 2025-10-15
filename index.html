@@ -822,6 +822,7 @@
             speak('¡Sesión completa!');
           }
         },[sessionSeconds,goalSeconds,sessionStarted,lastDone]);
+         const encouragement = useMemo(()=>flex(ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)], inclusive),[]);
 
         if (!dayPlan) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
 
@@ -833,7 +834,7 @@
         const sceneText = flex(scene.es || '', inclusive);
         const verbText = flex(verb.sample || '', inclusive);
 
-        const encouragement = useMemo(()=>flex(ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)], inclusive),[]);
+       
 
         // actions
         function startSession(){ setSessionSeconds(0); setStep(0); setSessionStarted(true); speak('Empezamos. Hoy va a ir muy bien.'); }
