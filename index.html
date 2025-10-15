@@ -822,8 +822,7 @@
             speak('¡Sesión completa!');
           }
         },[sessionSeconds,goalSeconds,sessionStarted,lastDone]);
-         const encouragement = useMemo(()=>flex(ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)], inclusive),[]);
-
+        const encouragement = useMemo(()=>flex(ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)], inclusive),[]);
         if (!dayPlan) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
 
         const scene = dayPlan.scenePick;
