@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>stacie v3</title>
+    <title>stacie v4</title>
     <meta name="description" content="práctica profesional en español — méxico, tú"/>
     
     <!-- PWA -->
@@ -38,26 +38,10 @@
       html, body { height: 100%; background:#f6faf8; }
       body { margin: 0; }
       * { -webkit-tap-highlight-color: transparent; }
-      canvas { image-rendering: pixelated; }
-      .blossom-bg::before,
-      .blossom-bg::after {
-        content:"";
-        position: fixed;
-        width: 360px; height: 360px;
-        pointer-events: none;
-        z-index: 0;
-        background: radial-gradient(closest-side, rgba(244,114,182,.18), transparent 70%),
-                    radial-gradient(closest-side, rgba(244,114,182,.12), transparent 70%),
-                    radial-gradient(closest-side, rgba(244,114,182,.10), transparent 70%);
-        filter: blur(2px);
-      }
-      .blossom-bg::before { bottom: -80px; left: -60px; }
-      .blossom-bg::after  { top: -80px; right: -60px; }
       
-      /* Brand color classes */
+      /* Brand colors */
       .bg-brand-50 { background-color: var(--brand-50); }
       .bg-brand-100 { background-color: var(--brand-100); }
-      .bg-brand-200 { background-color: var(--brand-200); }
       .bg-brand-600 { background-color: var(--brand-600); }
       .bg-brand-700 { background-color: var(--brand-700); }
       .bg-brand-800 { background-color: var(--brand-800); }
@@ -65,41 +49,75 @@
       .text-brand-700 { color: var(--brand-700); }
       .text-brand-800 { color: var(--brand-800); }
       .text-brand-900 { color: var(--brand-900); }
-      .border-brand-100 { border-color: var(--brand-100); }
       .border-brand-200 { border-color: var(--brand-200); }
       .border-brand-900 { border-color: var(--brand-900); }
       .bg-blossom-100 { background-color: var(--blossom-100); }
-      .bg-blossom-300 { background-color: var(--blossom-300); }
-      .bg-blossom-400 { background-color: var(--blossom-400); }
       .bg-blossom-600 { background-color: var(--blossom-600); }
       .text-blossom-600 { color: var(--blossom-600); }
+      
       .shadow-soft { box-shadow: 0 8px 28px rgba(0,0,0,.10); }
+      
+      /* Tab bar fixed at bottom */
+      .tab-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 1px solid #d6efe6;
+        z-index: 100;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+      }
+      
+      /* Main content with bottom padding for tab bar */
+      .main-content {
+        padding-bottom: 80px;
+        min-height: 100vh;
+      }
+      
+      /* Achievement toast */
+      @keyframes slideIn {
+        from { transform: translateY(-100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .toast {
+        animation: slideIn 0.3s ease-out;
+      }
+      
+      /* Hero card gradient */
+      .hero-card {
+        background: linear-gradient(135deg, var(--brand-700) 0%, var(--brand-900) 100%);
+      }
+      
+      /* Badge glow */
+      .badge-earned {
+        box-shadow: 0 0 20px rgba(236, 90, 166, 0.4);
+      }
     </style>
     <!-- React + ReactDOM + Babel -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
-  <body class="min-h-screen blossom-bg">
+  <body>
     <div id="root"></div>
     <script type="text/babel">
       /******************************************************************
-       * stacie v3 — Professional Spanish Practice
-       * New in v3:
-       *  - Work track for Carleton admissions & UMN residence life
-       *  - Recording playback to hear your progress
-       *  - No placement test, start at level 0
-       *  - Conversation builder for real scenarios
-       *  - Enhanced professional vocabulary
+       * stacie v4 — Complete Edition
+       * Features:
+       *  - Tab navigation with Hoy dashboard
+       *  - Conversation Builder with branching scenarios
+       *  - Voice Journal with audio recording
+       *  - Weekly Report Card with analytics
+       *  - Audio Export (.webm download)
+       *  - Progress Visualization (charts & graphs)
+       *  - Challenge Mode & Flashcards
+       *  - Achievement Badge System
+       *  - Cultural Tips library
+       *  - Partner Mode content
        ******************************************************************/
       const { useEffect, useMemo, useRef, useState } = React;
-      // Register service worker
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/stacie-spanish/sw.js')
-            .catch(err => console.log('SW registration failed:', err));
-        });
-      }
+      
       // ---------------- helpers ----------------
       const esLocale = 'es-MX';
       function cx(...classes) { return classes.filter(Boolean).join(' '); }
@@ -109,6 +127,9 @@
       function ydayISO(){
         const d=new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); return d.toISOString().slice(0,10);
       }
+      function daysAgo(n){
+        const d=new Date(); d.setDate(d.getDate()-n); d.setHours(0,0,0,0); return d.toISOString().slice(0,10);
+      }
       function useLocalStorage(key, initial){
         const [value,setValue]=useState(()=>{
           try { const raw=localStorage.getItem(key); return raw?JSON.parse(raw):initial; }
@@ -117,6 +138,7 @@
         useEffect(()=>{ try{ localStorage.setItem(key, JSON.stringify(value)); }catch{} },[key,value]);
         return [value,setValue];
       }
+      
       // Levenshtein + tokenization
       function lev(a,b){
         const m=a.length,n=b.length;
@@ -148,11 +170,12 @@
         const pass = bad.length <= Math.ceil(t.length*0.2);
         return { pass, badWords: bad };
       }
-      // Inclusive slot replacement
+      
       function flex(text, inclusive=true){
         return String(text).replace(/\[([^\]|]+)\|([^\]]+)\]/g, (_, fem, incl) => inclusive ? incl : fem);
       }
-      // speech synthesis + voice
+      
+      // speech synthesis
       function chooseEsVoice(){
         if (typeof window==='undefined' || !('speechSynthesis' in window)) return null;
         const voices = window.speechSynthesis.getVoices?.() || [];
@@ -179,899 +202,1118 @@
         const stop = ()=>{ try{ recRef.current?.stop(); }catch{} };
         return { supported, start, stop };
       }
-      // ---------------- Seeded RNG ----------------
-      function seedFromString(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
-      function mulberry32(a){ return function(){ let t=(a+=0x6D2B79F5); t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7), t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
-      function rngFromKey(key){ return mulberry32(seedFromString(key)); }
-      function sampleN(rng, arr, n){
-        const copy=arr.slice();
-        for(let i=copy.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]]; }
-        return copy.slice(0, Math.min(n, copy.length));
-      }
-      // ---------------- Spaced Repetition System ----------------
-      function useSpacedRepetition(){
-        const [perf,setPerf] = useLocalStorage('stacie.performance', {});
+      
+      // Audio Recording with MediaRecorder
+      function useAudioRecorder(){
+        const [recording, setRecording] = useState(false);
+        const [audioBlob, setAudioBlob] = useState(null);
+        const mediaRecorderRef = useRef(null);
+        const chunksRef = useRef([]);
         
-        function recordAttempt(id, passed){
-          setPerf(prev => {
-            const item = prev[id] || { attempts: 0, successes: 0, lastSeen: null, interval: 1 };
-            return {
-              ...prev,
-              [id]: {
-                attempts: item.attempts + 1,
-                successes: item.successes + (passed ? 1 : 0),
-                lastSeen: Date.now(),
-                interval: passed ? Math.min(30, item.interval * 2) : 1
-              }
+        async function startRecording(){
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            chunksRef.current = [];
+            
+            mediaRecorder.ondataavailable = (e) => {
+              if(e.data.size > 0) chunksRef.current.push(e.data);
             };
-          });
+            
+            mediaRecorder.onstop = () => {
+              const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+              setAudioBlob(blob);
+              stream.getTracks().forEach(track => track.stop());
+            };
+            
+            mediaRecorder.start();
+            setRecording(true);
+          } catch(err) {
+            console.error('Error accessing microphone:', err);
+          }
         }
-        function getWeakItems(allItems, limit=10){
-          const scored = allItems.map(item => {
-            const p = perf[item.id] || { attempts: 0, successes: 0, lastSeen: null, interval: 1 };
-            const rate = p.attempts > 0 ? p.successes / p.attempts : 1;
-            const daysSince = p.lastSeen ? (Date.now() - p.lastSeen) / (1000*60*60*24) : 999;
-            const needsReview = daysSince >= p.interval;
-            const priority = needsReview ? (1 - rate) * 100 : 0;
-            return { ...item, priority, rate, needsReview };
-          });
-          return scored.filter(x => x.needsReview || x.rate < 0.7)
-                      .sort((a,b) => b.priority - a.priority)
-                      .slice(0, limit);
+        
+        function stopRecording(){
+          if(mediaRecorderRef.current && recording){
+            mediaRecorderRef.current.stop();
+            setRecording(false);
+          }
         }
-        function getStats(){
-          const items = Object.values(perf);
-          const total = items.length;
-          const mastered = items.filter(x => x.attempts >= 3 && x.successes / x.attempts >= 0.8).length;
-          const struggling = items.filter(x => x.attempts >= 2 && x.successes / x.attempts < 0.5).length;
-          return { total, mastered, struggling };
+        
+        function downloadAudio(filename = 'recording.webm'){
+          if(!audioBlob) return;
+          const url = URL.createObjectURL(audioBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
         }
-        return { recordAttempt, getWeakItems, getStats, perf };
+        
+        return { recording, audioBlob, startRecording, stopRecording, downloadAudio };
       }
-      // ---------------- EXPANDED CONTENT ----------------
-      const ENCOURAGEMENTS = [
-        'Mia: Gracias por practicar conmigo. Estoy [orgullosa|orgullose] de ti.',
-        'Otis: Tus erres suenan purrfectas. 🐾',
-        'Jules: ¡Sigue adelante! Cada día mejoras.',
-        'Lassie: Tu acento mejora con cada intento.',
-        'Doom: Cada palabra es un paso. Vas muy bien.',
-        'Mia: Me encanta escucharte hablar español.',
-        'Otis: Miau. Eso significa "excelente" en gato.',
-        'Jules: Estoy [impresionada|impresionade]. En serio.',
-        'Lassie: Tu pronunciación está mejorando mucho.',
-        'Doom: Sigue así. Lo estás haciendo súper bien.'
-      ];
+      
+      // ---------------- CONTENT ----------------
       const TRACKS = [
-        { key:'social', name:'Amistad / Social', color:'bg-brand-700' },
-        { key:'health', name:'Salud / Ánimo', color:'bg-brand-600' },
-        { key:'food',   name:'Comida / Compras', color:'bg-brand-800' },
-        { key:'family', name:'Familia / Suegros', color:'bg-brand-900' },
-        { key:'work',   name:'Trabajo / Profesional', color:'bg-blossom-600' }
+        { key:'work', name:'Trabajo', icon:'💼', color:'bg-blossom-600' },
+        { key:'family', name:'Familia', icon:'👨‍👩‍👧', color:'bg-brand-900' },
+        { key:'food', name:'Comida', icon:'🍽️', color:'bg-brand-800' },
+        { key:'health', name:'Salud', icon:'💚', color:'bg-brand-600' }
       ];
-      // MASSIVELY EXPANDED CONTENT (250+ sentences across all tracks)
-      const PRESENT_SENTENCES = {
-        social: [
-          // Level 0
-          { id:'soc-01', lvl:0, es:'Estoy [cansada|cansade] pero [contenta|contente]. ¿Y tú?', hint:'tired but happy' },
-          { id:'soc-02', lvl:0, es:'Tengo ganas de caminar. ¿Vienes?', hint:'want to walk' },
-          { id:'soc-03', lvl:0, es:'Necesito un abrazo porfa.', hint:'need a hug' },
-          { id:'soc-04', lvl:0, es:'Hoy fue un buen día. ¿Cómo estuvo el tuyo?', hint:'good day how was yours' },
-          { id:'soc-05', lvl:0, es:'Quiero descansar un poco.', hint:'want to rest a bit' },
-          { id:'soc-06', lvl:0, es:'Me siento mejor ahora. Gracias.', hint:'feel better now' },
-          { id:'soc-07', lvl:0, es:'Tengo mucho sueño esta noche.', hint:'very sleepy' },
-          { id:'soc-08', lvl:0, es:'¿Quieres ver una película conmigo?', hint:'want to watch a movie' },
-          { id:'soc-09', lvl:0, es:'Prefiero quedarme en casa hoy.', hint:'prefer to stay home' },
-          { id:'soc-10', lvl:0, es:'Estoy [lista|liste] para salir.', hint:'ready to go' },
-          // Level 1
-          { id:'soc-11', lvl:1, es:'Me siento [nerviosa|nerviose] hoy pero tengo ganas de intentar.', hint:'nervous but willing' },
-          { id:'soc-12', lvl:1, es:'Quiero descansar esta noche ¿te parece bien?', hint:'rest tonight ok?' },
-          { id:'soc-13', lvl:1, es:'¿Podemos hablar de algo importante más tarde?', hint:'talk about something important' },
-          { id:'soc-14', lvl:1, es:'Me gustaría pasar más tiempo juntos.', hint:'spend more time together' },
-          { id:'soc-15', lvl:1, es:'Estoy pensando en lo que dijiste ayer.', hint:'thinking about what you said' },
-          { id:'soc-16', lvl:1, es:'Necesito tu opinión sobre algo.', hint:'need your opinion' },
-          { id:'soc-17', lvl:1, es:'¿Cómo te fue en el trabajo hoy?', hint:'how was work' },
-          { id:'soc-18', lvl:1, es:'Me encanta cuando pasamos tiempo así.', hint:'love when we spend time like this' },
-          { id:'soc-19', lvl:1, es:'¿Qué planes tienes para el fin de semana?', hint:'plans for weekend' },
-          { id:'soc-20', lvl:1, es:'Quiero contarte algo que pasó hoy.', hint:'want to tell you something' },
-          // Level 2
-          { id:'soc-21', lvl:2, es:'Dime cómo te fue hoy con calma.', hint:'tell me how your day was' },
-          { id:'soc-22', lvl:2, es:'Háblame de lo que te preocupa por favor.', hint:'talk to me about what worries you' },
-          { id:'soc-23', lvl:2, es:'Ven siéntate conmigo un rato.', hint:'come sit with me' },
-          { id:'soc-24', lvl:2, es:'Cuéntame más sobre eso que mencionaste.', hint:'tell me more about that' },
-          { id:'soc-25', lvl:2, es:'Espera un momento déjame pensar.', hint:'wait let me think' },
-          { id:'soc-26', lvl:2, es:'Explícame otra vez no entendí bien.', hint:'explain again' },
-          { id:'soc-27', lvl:2, es:'Dame un minuto para terminar esto.', hint:'give me a minute' },
-          { id:'soc-28', lvl:2, es:'Ayúdame a entender lo que sientes.', hint:'help me understand' },
-          { id:'soc-29', lvl:2, es:'Mándame un mensaje cuando llegues.', hint:'text me when you arrive' },
-          { id:'soc-30', lvl:2, es:'Avísame si necesitas algo más.', hint:'let me know if you need anything' }
-        ],
-        health: [
-          // Level 0
-          { id:'hlt-01', lvl:0, es:'Me está costando dormir últimamente.', hint:'hard to sleep lately' },
-          { id:'hlt-02', lvl:0, es:'Tengo cita médica mañana.', hint:'doctor appointment tomorrow' },
-          { id:'hlt-03', lvl:0, es:'Me duele la cabeza un poco.', hint:'my head hurts a little' },
-          { id:'hlt-04', lvl:0, es:'Estoy tomando mi medicina todos los días.', hint:'taking my meds every day' },
-          { id:'hlt-05', lvl:0, es:'Me siento mejor que ayer.', hint:'feel better than yesterday' },
-          { id:'hlt-06', lvl:0, es:'Necesito agua por favor.', hint:'need water' },
-          { id:'hlt-07', lvl:0, es:'Estoy muy [cansada|cansade] hoy.', hint:'very tired today' },
-          { id:'hlt-08', lvl:0, es:'Quiero descansar un rato.', hint:'want to rest a while' },
-          { id:'hlt-09', lvl:0, es:'Me siento bien gracias.', hint:'feel fine thanks' },
-          { id:'hlt-10', lvl:0, es:'Tengo un poco de frío.', hint:'a little cold' },
-          // Level 1
-          { id:'hlt-11', lvl:1, es:'Me duele la cabeza pero estoy [tranquila|tranquile].', hint:'headache but calm' },
-          { id:'hlt-12', lvl:1, es:'Necesito hablar con el doctor sobre esto.', hint:'need to talk to doctor' },
-          { id:'hlt-13', lvl:1, es:'Me cuesta concentrarme cuando estoy así.', hint:'hard to concentrate' },
-          { id:'hlt-14', lvl:1, es:'Creo que necesito tomar un descanso.', hint:'think I need a break' },
-          { id:'hlt-15', lvl:1, es:'¿Puedes acompañarme a la cita?', hint:'can you come to appointment' },
-          { id:'hlt-16', lvl:1, es:'Me siento [ansiosa|ansiose] por la consulta.', hint:'anxious about appointment' },
-          { id:'hlt-17', lvl:1, es:'Gracias por cuidarme cuando estoy enferma.', hint:'thanks for taking care of me' },
-          { id:'hlt-18', lvl:1, es:'Voy a intentar dormir temprano esta noche.', hint:'try to sleep early' },
-          { id:'hlt-19', lvl:1, es:'¿Me puedes ayudar a recordar tomar mi medicina?', hint:'help me remember medicine' },
-          { id:'hlt-20', lvl:1, es:'Me preocupa este síntoma que tengo.', hint:'worried about this symptom' },
-          // Level 2
-          { id:'hlt-21', lvl:2, es:'Toma agua y respira hondo conmigo.', hint:'drink water and breathe deep' },
-          { id:'hlt-22', lvl:2, es:'Descansa un poco yo me encargo.', hint:'rest I will take care of it' },
-          { id:'hlt-23', lvl:2, es:'Avísame si te sientes peor porfa.', hint:'let me know if you feel worse' },
-          { id:'hlt-24', lvl:2, es:'Llama al doctor si no mejoras.', hint:'call the doctor if not better' },
-          { id:'hlt-25', lvl:2, es:'Acuéstate y cierra los ojos un rato.', hint:'lie down and close your eyes' },
-          { id:'hlt-26', lvl:2, es:'Tómate tu tiempo no hay prisa.', hint:'take your time no rush' },
-          { id:'hlt-27', lvl:2, es:'Cuídate mucho por favor.', hint:'take care of yourself' },
-          { id:'hlt-28', lvl:2, es:'Dime si necesitas algo más.', hint:'tell me if you need anything' },
-          { id:'hlt-29', lvl:2, es:'Intenta relajarte un poco.', hint:'try to relax' },
-          { id:'hlt-30', lvl:2, es:'Explícale al doctor cómo te sientes.', hint:'explain to doctor how you feel' }
-        ],
-        food: [
-          // Level 0
-          { id:'fod-01', lvl:0, es:'Se me antoja sopa y pan.', hint:'craving soup and bread' },
-          { id:'fod-02', lvl:0, es:'¿Quieres cocinar conmigo?', hint:'want to cook with me' },
-          { id:'fod-03', lvl:0, es:'Prefiero té sin azúcar.', hint:'tea without sugar' },
-          { id:'fod-04', lvl:0, es:'Vamos al mercado; necesito frutas frescas.', hint:'go to market need fresh fruit' },
-          { id:'fod-05', lvl:0, es:'Tengo mucha hambre hoy.', hint:'very hungry today' },
-          { id:'fod-06', lvl:0, es:'Quiero algo sencillo para cenar.', hint:'something simple for dinner' },
-          { id:'fod-07', lvl:0, es:'¿Hay tortillas?', hint:'are there tortillas' },
-          { id:'fod-08', lvl:0, es:'Me gusta el café con leche.', hint:'like coffee with milk' },
-          { id:'fod-09', lvl:0, es:'Prefiero agua natural.', hint:'prefer plain water' },
-          { id:'fod-10', lvl:0, es:'Esto está delicioso gracias.', hint:'this is delicious' },
-          // Level 1
-          { id:'fod-11', lvl:1, es:'¿Qué te gustaría comer esta noche?', hint:'what would you like to eat' },
-          { id:'fod-12', lvl:1, es:'Podemos hacer tacos si quieres.', hint:'we can make tacos' },
-          { id:'fod-13', lvl:1, es:'Necesitamos comprar más verduras.', hint:'need to buy more vegetables' },
-          { id:'fod-14', lvl:1, es:'¿Me ayudas a preparar la cena?', hint:'help me prepare dinner' },
-          { id:'fod-15', lvl:1, es:'Se me acabó el arroz lo siento.', hint:'I ran out of rice' },
-          { id:'fod-16', lvl:1, es:'Voy a hacer café ¿quieres?', hint:'going to make coffee want some' },
-          { id:'fod-17', lvl:1, es:'¿Te sobró comida del almuerzo?', hint:'do you have lunch leftovers' },
-          { id:'fod-18', lvl:1, es:'Podemos pedir pizza si estás [cansada|cansade].', hint:'can order pizza if tired' },
-          { id:'fod-19', lvl:1, es:'Me encanta cuando cocinas ese platillo.', hint:'love when you cook that dish' },
-          { id:'fod-20', lvl:1, es:'¿Qué ingredientes necesitamos?', hint:'what ingredients do we need' },
-          // Level 2
-          { id:'fod-21', lvl:2, es:'Pon la tetera y trae dos tazas porfa.', hint:'put kettle and bring cups' },
-          { id:'fod-22', lvl:2, es:'Corta la cebolla mientras yo hago la salsa.', hint:'cut the onion while I make sauce' },
-          { id:'fod-23', lvl:2, es:'Prueba esto y dime qué te parece.', hint:'try this tell me what you think' },
-          { id:'fod-24', lvl:2, es:'Calienta las tortillas por favor.', hint:'heat the tortillas' },
-          { id:'fod-25', lvl:2, es:'Saca el pollo del refrigerador.', hint:'take chicken from fridge' },
-          { id:'fod-26', lvl:2, es:'Agrega más sal si quieres.', hint:'add more salt if you want' },
-          { id:'fod-27', lvl:2, es:'Sírvete más hay suficiente.', hint:'serve yourself more' },
-          { id:'fod-28', lvl:2, es:'Guarda las sobras en el refri.', hint:'save leftovers in fridge' },
-          { id:'fod-29', lvl:2, es:'Pásame el jitomate porfa.', hint:'pass me the tomato' },
-          { id:'fod-30', lvl:2, es:'Prepara la mesa mientras termino.', hint:'set the table while I finish' }
+      
+      const SENTENCES = {
+        work: [
+          { id:'w1', lvl:0, es:'Buenos días. ¿En qué puedo ayudarle?', hint:'good morning how can I help' },
+          { id:'w2', lvl:0, es:'Un momento por favor.', hint:'one moment please' },
+          { id:'w3', lvl:1, es:'Bienvenidos a Carleton. Mi nombre es…', hint:'welcome to Carleton' },
+          { id:'w4', lvl:1, es:'¿Cómo va todo en la residencia?', hint:'how is everything in residence' },
+          { id:'w5', lvl:2, es:'Mándenme un mensaje si tienen preguntas.', hint:'send me a message' },
+          { id:'w6', lvl:0, es:'Estoy aquí para ayudar.', hint:'I am here to help' },
+          { id:'w7', lvl:1, es:'Tenemos muchos recursos para estudiantes.', hint:'we have many resources' },
+          { id:'w8', lvl:2, es:'Pasen por favor la oficina está abierta.', hint:'come in please' }
         ],
         family: [
-          // Level 0 - basics for in-laws
-          { id:'fam-01', lvl:0, es:'Buenos días. ¿Cómo están?', hint:'good morning how are you' },
-          { id:'fam-02', lvl:0, es:'Muchas gracias por todo.', hint:'thank you for everything' },
-          { id:'fam-03', lvl:0, es:'¿Necesitan algo?', hint:'do you need anything' },
-          { id:'fam-04', lvl:0, es:'La comida está deliciosa.', hint:'the food is delicious' },
-          { id:'fam-05', lvl:0, es:'Con permiso regreso pronto.', hint:'excuse me be back soon' },
-          { id:'fam-06', lvl:0, es:'¿Cómo estuvo su día?', hint:'how was your day' },
-          { id:'fam-07', lvl:0, es:'Nos vemos mañana.', hint:'see you tomorrow' },
-          { id:'fam-08', lvl:0, es:'Que tengan buena noche.', hint:'have a good night' },
-          { id:'fam-09', lvl:0, es:'Disculpe no entendí.', hint:'sorry I did not understand' },
-          { id:'fam-10', lvl:0, es:'¿Puedo ayudar con algo?', hint:'can I help with something' },
-          // Level 1
-          { id:'fam-11', lvl:1, es:'¿Cómo se sienten hoy?', hint:'how do you feel today' },
-          { id:'fam-12', lvl:1, es:'Me da mucho gusto verlos.', hint:'so happy to see you' },
-          { id:'fam-13', lvl:1, es:'¿Les gustaría tomar algo?', hint:'would you like something to drink' },
-          { id:'fam-14', lvl:1, es:'Gracias por recibirnos en su casa.', hint:'thanks for having us' },
-          { id:'fam-15', lvl:1, es:'¿Cómo ha estado el clima por aquí?', hint:'how has the weather been' },
-          { id:'fam-16', lvl:1, es:'Estoy practicando mi español cada día.', hint:'practicing my spanish every day' },
-          { id:'fam-17', lvl:1, es:'¿Me pueden contar más sobre eso?', hint:'can you tell me more' },
-          { id:'fam-18', lvl:1, es:'Me encanta pasar tiempo con la familia.', hint:'love spending time with family' },
-          { id:'fam-19', lvl:1, es:'¿Qué planes tienen para este fin de semana?', hint:'what plans for this weekend' },
-          { id:'fam-20', lvl:1, es:'Gracias por su paciencia conmigo.', hint:'thanks for your patience' },
-          // Level 2
-          { id:'fam-21', lvl:2, es:'Cuéntennos cómo estuvo su semana.', hint:'tell us about your week' },
-          { id:'fam-22', lvl:2, es:'Por favor sírvanse más comida.', hint:'please serve yourselves more food' },
-          { id:'fam-23', lvl:2, es:'Déjennos ayudar con los platos.', hint:'let us help with dishes' },
-          { id:'fam-24', lvl:2, es:'Mándenme fotos cuando puedan.', hint:'send me photos when you can' },
-          { id:'fam-25', lvl:2, es:'Avísenme si necesitan algo.', hint:'let me know if you need anything' },
-          { id:'fam-26', lvl:2, es:'Pasen están en su casa.', hint:'come in, make yourselves at home' },
-          { id:'fam-27', lvl:2, es:'Descansen ya hicieron mucho.', hint:'rest you have done a lot' },
-          { id:'fam-28', lvl:2, es:'Esperen les traigo algo para tomar.', hint:'wait I will bring you something to drink' },
-          { id:'fam-29', lvl:2, es:'Siéntense voy a servir la comida.', hint:'sit I will serve the food' },
-          { id:'fam-30', lvl:2, es:'Llámennos cuando lleguen a casa.', hint:'call us when you get home' }
+          { id:'f1', lvl:0, es:'Buenos días. ¿Cómo están?', hint:'good morning' },
+          { id:'f2', lvl:0, es:'La comida está deliciosa.', hint:'food is delicious' },
+          { id:'f3', lvl:1, es:'Me da mucho gusto verlos.', hint:'so happy to see you' },
+          { id:'f4', lvl:1, es:'Gracias por recibirnos en su casa.', hint:'thanks for having us' },
+          { id:'f5', lvl:2, es:'Cuéntennos cómo estuvo su semana.', hint:'tell us about your week' },
+          { id:'f6', lvl:0, es:'Muchas gracias por todo.', hint:'thank you for everything' },
+          { id:'f7', lvl:1, es:'Me encanta pasar tiempo con la familia.', hint:'love spending time with family' },
+          { id:'f8', lvl:2, es:'Sírvanse más hay suficiente.', hint:'serve yourselves more' }
         ],
-        work: [
-          // Level 0 - Basic professional phrases
-          { id:'wrk-01', lvl:0, es:'Buenos días. ¿En qué puedo ayudarle?', hint:'good morning how can I help' },
-          { id:'wrk-02', lvl:0, es:'Un momento por favor.', hint:'one moment please' },
-          { id:'wrk-03', lvl:0, es:'¿Tiene alguna pregunta?', hint:'do you have any questions' },
-          { id:'wrk-04', lvl:0, es:'Gracias por su tiempo.', hint:'thanks for your time' },
-          { id:'wrk-05', lvl:0, es:'Nos vemos pronto.', hint:'see you soon' },
-          { id:'wrk-06', lvl:0, es:'Con mucho gusto.', hint:'with pleasure / of course' },
-          { id:'wrk-07', lvl:0, es:'¿Cómo está hoy?', hint:'how are you today' },
-          { id:'wrk-08', lvl:0, es:'Estoy aquí para ayudar.', hint:'I am here to help' },
-          { id:'wrk-09', lvl:0, es:'¿Necesita algo más?', hint:'do you need anything else' },
-          { id:'wrk-10', lvl:0, es:'Que tenga buen día.', hint:'have a good day' },
-          // Level 1 - Admissions & Residence Life
-          { id:'wrk-11', lvl:1, es:'Bienvenidos a Carleton. Mi nombre es…', hint:'welcome to Carleton my name is' },
-          { id:'wrk-12', lvl:1, es:'¿Les gustaría conocer el campus?', hint:'would you like to see the campus' },
-          { id:'wrk-13', lvl:1, es:'Tenemos muchos recursos para estudiantes.', hint:'we have many resources for students' },
-          { id:'wrk-14', lvl:1, es:'¿Qué programas les interesan?', hint:'what programs interest you' },
-          { id:'wrk-15', lvl:1, es:'La fecha límite es en marzo.', hint:'the deadline is in march' },
-          { id:'wrk-16', lvl:1, es:'¿Cómo va todo en la residencia?', hint:'how is everything in the residence hall' },
-          { id:'wrk-17', lvl:1, es:'Si necesitan algo avísenme por favor.', hint:'if you need anything let me know' },
-          { id:'wrk-18', lvl:1, es:'Hay un evento esta noche en el salón.', hint:'there is an event tonight in the lounge' },
-          { id:'wrk-19', lvl:1, es:'¿Tienen preguntas sobre las reglas?', hint:'do you have questions about the rules' },
-          { id:'wrk-20', lvl:1, es:'Pueden llamarme si hay algún problema.', hint:'you can call me if there is a problem' },
-          { id:'wrk-21', lvl:1, es:'Estoy disponible para hablar cuando quieran.', hint:'I am available to talk whenever' },
-          { id:'wrk-22', lvl:1, es:'La oficina está abierta hasta las cinco.', hint:'the office is open until five' },
-          { id:'wrk-23', lvl:1, es:'¿Cómo les está yendo con las clases?', hint:'how are classes going' },
-          { id:'wrk-24', lvl:1, es:'Aquí está mi número si me necesitan.', hint:'here is my number if you need me' },
-          { id:'wrk-25', lvl:1, es:'Vamos a tener una reunión mañana.', hint:'we are going to have a meeting tomorrow' },
-          // Level 2 - Commands & Professional direction
-          { id:'wrk-26', lvl:2, es:'Pasen por favor la oficina está abierta.', hint:'come in please the office is open' },
-          { id:'wrk-27', lvl:2, es:'Llenen este formulario y devuélvanlo.', hint:'fill out this form and return it' },
-          { id:'wrk-28', lvl:2, es:'Revisen el correo para más información.', hint:'check email for more info' },
-          { id:'wrk-29', lvl:2, es:'Hablen con su advisor académico.', hint:'talk to your academic advisor' },
-          { id:'wrk-30', lvl:2, es:'Mándenme un mensaje si tienen preguntas.', hint:'send me a message if you have questions' },
-          { id:'wrk-31', lvl:2, es:'Vengan a las horas de oficina si necesitan ayuda.', hint:'come to office hours if you need help' },
-          { id:'wrk-32', lvl:2, es:'Respeten las horas de silencio por favor.', hint:'respect quiet hours please' },
-          { id:'wrk-33', lvl:2, es:'Avísenme inmediatamente si hay emergencia.', hint:'notify me immediately if emergency' },
-          { id:'wrk-34', lvl:2, es:'Comuníquense conmigo sobre cualquier problema.', hint:'communicate with me about any problem' },
-          { id:'wrk-35', lvl:2, es:'Lean las políticas de la residencia.', hint:'read the residence policies' }
+        food: [
+          { id:'fo1', lvl:0, es:'Se me antoja sopa y pan.', hint:'craving soup and bread' },
+          { id:'fo2', lvl:0, es:'Tengo mucha hambre hoy.', hint:'very hungry' },
+          { id:'fo3', lvl:1, es:'¿Qué te gustaría comer esta noche?', hint:'what would you like to eat' },
+          { id:'fo4', lvl:1, es:'Me encanta cuando cocinas ese platillo.', hint:'love when you cook that' },
+          { id:'fo5', lvl:2, es:'Prueba esto y dime qué te parece.', hint:'try this tell me what you think' },
+          { id:'fo6', lvl:0, es:'¿Quieres cocinar conmigo?', hint:'want to cook with me' },
+          { id:'fo7', lvl:1, es:'Podemos hacer tacos si quieres.', hint:'we can make tacos' },
+          { id:'fo8', lvl:2, es:'Corta la cebolla mientras yo hago la salsa.', hint:'cut the onion' }
+        ],
+        health: [
+          { id:'h1', lvl:0, es:'Me duele la cabeza un poco.', hint:'my head hurts a little' },
+          { id:'h2', lvl:0, es:'Estoy muy [cansada|cansade] hoy.', hint:'very tired today' },
+          { id:'h3', lvl:1, es:'Necesito hablar con el doctor sobre esto.', hint:'need to talk to doctor' },
+          { id:'h4', lvl:1, es:'Me siento [ansiosa|ansiose] por la consulta.', hint:'anxious about appointment' },
+          { id:'h5', lvl:2, es:'Toma agua y respira hondo conmigo.', hint:'drink water and breathe deep' },
+          { id:'h6', lvl:0, es:'Tengo cita médica mañana.', hint:'doctor appointment tomorrow' },
+          { id:'h7', lvl:1, es:'¿Puedes acompañarme a la cita?', hint:'can you come to appointment' },
+          { id:'h8', lvl:2, es:'Explícale al doctor cómo te sientes.', hint:'explain to doctor' }
         ]
       };
-      // EXPANDED VERB LAB (50+ verbs with context)
-      const VERB_LAB = [
-        // Level 0 - Present tense basics
-        { id:'vrb-01', inf:'ser',       lvl:0, sample:'Soy de Minnesota. ¿De dónde eres?' },
-        { id:'vrb-02', inf:'estar',     lvl:0, sample:'Estoy [tranquila|tranquile] hoy.' },
-        { id:'vrb-03', inf:'tener',     lvl:0, sample:'Tengo tiempo esta noche.' },
-        { id:'vrb-04', inf:'hacer',     lvl:0, sample:'Hago café todas las mañanas.' },
-        { id:'vrb-05', inf:'ir',        lvl:0, sample:'Voy al mercado más tarde.' },
-        { id:'vrb-06', inf:'venir',     lvl:0, sample:'Vengo de trabajar.' },
-        { id:'vrb-07', inf:'poder',     lvl:0, sample:'Puedo ayudarte con eso.' },
-        { id:'vrb-08', inf:'querer',    lvl:0, sample:'Quiero aprender más español.' },
-        { id:'vrb-09', inf:'saber',     lvl:0, sample:'No sé cocinar muy bien.' },
-        { id:'vrb-10', inf:'dar',       lvl:0, sample:'Te doy las gracias.' },
-        { id:'vrb-11', inf:'ver',       lvl:0, sample:'Veo una película contigo.' },
-        { id:'vrb-12', inf:'comer',     lvl:0, sample:'Como frutas cada día.' },
-        { id:'vrb-13', inf:'beber',     lvl:0, sample:'Bebo mucha agua.' },
-        { id:'vrb-14', inf:'vivir',     lvl:0, sample:'Vivo en Minnesota.' },
-        { id:'vrb-15', inf:'hablar',    lvl:0, sample:'Hablo español con mi familia.' },
-        // Level 1 - More complexity
-        { id:'vrb-16', inf:'decir',     lvl:1, sample:'No sé qué decir ahora.' },
-        { id:'vrb-17', inf:'poner',     lvl:1, sample:'Pongo la mesa para cenar.' },
-        { id:'vrb-18', inf:'necesitar', lvl:1, sample:'Necesito tu ayuda, porfa.' },
-        { id:'vrb-19', inf:'gustar',    lvl:1, sample:'Me gusta pasar tiempo contigo.' },
-        { id:'vrb-20', inf:'sentirse',  lvl:1, sample:'Me siento [animada|animade] hoy.' },
-        { id:'vrb-21', inf:'pensar',    lvl:1, sample:'Pienso mucho en mi familia.' },
-        { id:'vrb-22', inf:'pasar',     lvl:1, sample:'¿Qué pasa? ¿Estás bien?' },
-        { id:'vrb-23', inf:'tomar',     lvl:1, sample:'Tomo té en las noches.' },
-        { id:'vrb-24', inf:'llegar',    lvl:1, sample:'Llego tarde, perdón.' },
-        { id:'vrb-25', inf:'entender',  lvl:1, sample:'Entiendo un poco más cada día.' },
-        { id:'vrb-26', inf:'conocer',   lvl:1, sample:'Conozco a tus papás.' },
-        { id:'vrb-27', inf:'empezar',   lvl:1, sample:'Empiezo mi día con café.' },
-        { id:'vrb-28', inf:'encontrar', lvl:1, sample:'No encuentro mis llaves.' },
-        { id:'vrb-29', inf:'parecer',   lvl:1, sample:'Me parece una buena idea.' },
-        { id:'vrb-30', inf:'seguir',    lvl:1, sample:'Sigo practicando cada día.' },
-        { id:'vrb-31', inf:'preguntar', lvl:1, sample:'Te pregunto porque no estoy segura.' },
-        { id:'vrb-32', inf:'llamar',    lvl:1, sample:'Te llamo más tarde.' },
-        { id:'vrb-33', inf:'dejar',     lvl:1, sample:'Dejo las llaves aquí.' },
-        { id:'vrb-34', inf:'esperar',   lvl:1, sample:'Te espero en casa.' },
-        { id:'vrb-35', inf:'sentir',    lvl:1, sample:'Siento mucho llegar tarde.' },
-        // Level 2 - Commands (tú)
-        { id:'vrb-36', inf:'poner',     lvl:2, sample:'Pon la mesa, porfa.' },
-        { id:'vrb-37', inf:'decir',     lvl:2, sample:'Dime cómo te sientes.' },
-        { id:'vrb-38', inf:'hacer',     lvl:2, sample:'Haz lo que puedas, está bien.' },
-        { id:'vrb-39', inf:'venir',     lvl:2, sample:'Ven aquí un momento.' },
-        { id:'vrb-40', inf:'salir',     lvl:2, sample:'Sal a caminar conmigo.' },
-        { id:'vrb-41', inf:'tener',     lvl:2, sample:'Ten paciencia, por favor.' },
-        { id:'vrb-42', inf:'ir',        lvl:2, sample:'Ve despacio, con calma.' },
-        { id:'vrb-43', inf:'dar',       lvl:2, sample:'Dame un minuto para pensar.' },
-        { id:'vrb-44', inv:'ser',       lvl:2, sample:'Sé [honesta|honeste] conmigo.' },
-        { id:'vrb-45', inf:'traer',     lvl:2, sample:'Trae las tazas, porfa.' },
-        { id:'vrb-46', inf:'hablar',    lvl:2, sample:'Háblame de tu día.' },
-        { id:'vrb-47', inf:'esperar',   lvl:2, sample:'Espera un momento aquí.' },
-        { id:'vrb-48', inf:'escuchar',  lvl:2, sample:'Escucha esto que te quiero contar.' },
-        { id:'vrb-49', inf:'mirar',     lvl:2, sample:'Mira esto que encontré.' },
-        { id:'vrb-50', inf:'ayudar',    lvl:2, sample:'Ayúdame a entender.' }
+      
+      const CONVERSATIONS = {
+        work_tour: {
+          title: 'Campus Tour (Carleton)',
+          turns: [
+            { speaker: 'familia', text: 'Buenos días. ¿Usted trabaja aquí?', hint: 'Say yes, you work in admissions' },
+            { speaker: 'you', expected: 'Sí, trabajo en admisiones', flexible: true },
+            { speaker: 'familia', text: '¿Nos puede mostrar el campus?', hint: 'Say "of course, with pleasure"' },
+            { speaker: 'you', expected: 'Claro, con mucho gusto', flexible: true },
+            { speaker: 'familia', text: 'Gracias. ¿Cuántos estudiantes hay aquí?', hint: 'Say there are about 2000 students' },
+            { speaker: 'you', expected: 'Hay aproximadamente dos mil estudiantes', flexible: true }
+          ]
+        },
+        work_checkin: {
+          title: 'Residence Check-in (UMN)',
+          turns: [
+            { speaker: 'estudiante', text: 'Hola, soy nuevo aquí.', hint: 'Welcome them, say your name' },
+            { speaker: 'you', expected: 'Bienvenido, mi nombre es', flexible: true },
+            { speaker: 'estudiante', text: '¿Dónde está mi cuarto?', hint: 'Say "one moment, let me check"' },
+            { speaker: 'you', expected: 'Un momento, déjame revisar', flexible: true },
+            { speaker: 'estudiante', text: '¿Hay evento esta noche?', hint: 'Say yes, in the lounge at 7' },
+            { speaker: 'you', expected: 'Sí, en el salón a las siete', flexible: true }
+          ]
+        },
+        family_dinner: {
+          title: 'Dinner with Suegros',
+          turns: [
+            { speaker: 'suegra', text: 'Siéntense, por favor. ¿Quieren agua?', hint: 'Say yes please, thank you' },
+            { speaker: 'you', expected: 'Sí por favor, gracias', flexible: true },
+            { speaker: 'suegro', text: '¿Cómo les fue en el trabajo?', hint: 'Say it went well, it was busy' },
+            { speaker: 'you', expected: 'Nos fue bien, estuvo ocupado', flexible: true },
+            { speaker: 'suegra', text: 'La comida está lista. ¡Buen provecho!', hint: 'Thank them, say it smells delicious' },
+            { speaker: 'you', expected: 'Gracias, huele delicioso', flexible: true }
+          ]
+        }
+      };
+      
+      const PARTNER_PROMPTS = [
+        { id: 'p1', prompt: 'Pregúntale cómo estuvo su día', en: 'Ask how their day was' },
+        { id: 'p2', prompt: 'Invítala a cocinar algo juntos', en: 'Invite them to cook together' },
+        { id: 'p3', prompt: 'Dile algo que te hizo pensar en ella hoy', en: 'Tell them something that made you think of them today' },
+        { id: 'p4', prompt: 'Pregúntale si quiere salir a caminar', en: 'Ask if they want to go for a walk' },
+        { id: 'p5', prompt: 'Comparte algo gracioso que pasó en tu trabajo', en: 'Share something funny from work' }
       ];
-      const EMOTIONS = [
-        '[tranquila|tranquile]','[nerviosa|nerviose]','[ansiosa|ansiose]','[orgullosa|orgullose]','[emocionada|emocionade]',
-        '[frustrada|frustrade]','[confundida|confundide]','[agradecida|agradecide]','[agobiada|agobiade]','[animada|animade]',
-        '[feliz|feliz]','[triste|triste]','[preocupada|preocupade]','[relajada|relajade]','[estresada|estresade]',
-        '[contenta|contente]','[molesta|moleste]','[calmada|calmade]','[asustada|asustade]','[segura|segure]'
+      
+      const CULTURAL_TIPS = [
+        {
+          id: 'c1',
+          title: 'Usted vs. Tú en el trabajo',
+          content: 'En ambientes profesionales como admisiones, usa "usted" con familias hasta que te digan "tutéame". Con estudiantes puedes ser más casual con "tú". Con supervisores, generalmente "usted" hasta que haya más confianza.'
+        },
+        {
+          id: 'c2',
+          title: 'Saludos profesionales',
+          content: 'En contextos formales, un apretón de manos es apropiado. Con familias mexicanas en ambientes más relajados, puede haber beso en la mejilla entre mujeres. Observa lo que hacen los demás primero.'
+        },
+        {
+          id: 'c3',
+          title: 'Respeto en la residencia',
+          content: 'Al trabajar con estudiantes latinos, el respeto es fundamental. Usa "por favor" y "gracias" frecuentemente. Si necesitas dar instrucciones, hazlo con suavidad: "¿Me harías el favor de...?"'
+        },
+        {
+          id: 'c4',
+          title: 'Expresiones útiles',
+          content: '"Con permiso" (excuse me/pardon me) es esencial cuando interrumpes o te vas. "¿Mande?" (pardon?) cuando no entiendes. "Qué pena" (how embarrassing/sorry) cuando te disculpas suavemente.'
+        }
       ];
-      const LUNCH_PROMPTS = [
-        'Cuéntame cómo te sientes hoy con "me siento…". Pide un abrazo si lo necesitas.',
-        'Invítame a cocinar algo simple esta noche. Usa "¿Quieres…?"',
-        'Dime en dos frases cómo te fue en la mañana.',
-        'Pide silencio con cariño y propón una caminata mañana.',
-        'Di qué se te antoja para cenar y por qué.',
-        'Pide un consejo con "¿Qué me recomiendas…?"',
-        'Pregúntame sobre mi día usando "¿Cómo estuvo…?"',
-        'Comparte algo que te hizo feliz hoy.',
-        'Di algo que necesitas con "Necesito…"',
-        'Invítame a ver una película después de cenar.',
-        'Pregúntame si quiero acompañarte a algún lugar.',
-        'Dime algo que te preocupa y pide mi opinión.',
-        'Planea algo para este fin de semana juntos.',
-        'Agradéceme por algo específico de hoy.',
-        'Pide ayuda con algo usando "¿Me ayudas…?"',
-        'Cuéntame sobre un estudiante o residente que te hizo sonreír hoy.',
-        'Describe algo interesante que pasó en el trabajo.',
-        'Pregunta sobre mi trabajo usando "¿Cómo te fue con…?"',
-        'Comparte algo que aprendiste hoy en el trabajo.'
+      
+      const BADGES = [
+        { id: 'b1', name: 'First Day', emoji: '🌱', desc: 'Completaste tu primera sesión', req: 'sessions', count: 1 },
+        { id: 'b2', name: 'Week Warrior', emoji: '🔥', desc: '7 días consecutivos', req: 'streak', count: 7 },
+        { id: 'b3', name: 'Professional', emoji: '💼', desc: 'Dominaste 10 frases de trabajo', req: 'work', count: 10 },
+        { id: 'b4', name: 'Bilingual', emoji: '🗣️', desc: '30 días de práctica', req: 'streak', count: 30 },
+        { id: 'b5', name: 'Conversationalist', emoji: '💬', desc: 'Completaste 5 conversaciones', req: 'convos', count: 5 },
+        { id: 'b6', name: 'Journal Keeper', emoji: '📔', desc: '10 entradas de diario', req: 'journals', count: 10 }
       ];
-      const FOOD_WORDS_BANK = [
-        { lvl:0, w:'pollo' }, { lvl:0, w:'papas' }, { lvl:0, w:'pan' }, { lvl:0, w:'agua' },
-        { lvl:0, w:'leche' }, { lvl:0, w:'huevos' }, { lvl:0, w:'queso' }, { lvl:0, w:'frutas' },
-        { lvl:1, w:'arroz' }, { lvl:1, w:'tortilla' }, { lvl:1, w:'salsa' }, { lvl:1, w:'limón' },
-        { lvl:1, w:'frijoles' }, { lvl:1, w:'tomate' }, { lvl:1, w:'cebolla' }, { lvl:1, w:'ajo' },
-        { lvl:2, w:'aguacate' }, { lvl:2, w:'jitomate' }, { lvl:2, w:'cilantro' }, { lvl:2, w:'chile' }
+      
+      const VOICE_PROMPTS = [
+        '¿Cómo fue tu día hoy?',
+        'Describe algo que aprendiste hoy',
+        'Cuéntame sobre una conversación interesante',
+        '¿Cómo te sientes en este momento?',
+        'Algo que te hizo feliz hoy',
+        'Un desafío que enfrentaste',
+        'Planes para mañana'
       ];
-      // ---------------- Daily Plan Generator ----------------
-      function generateDayPlan(level, dateStr, track){
-        const lvl = Math.max(0, Math.min(2, Number(level||0)));
-        const rng = rngFromKey(`${dateStr}|lvl:${lvl}`);
-        const sentences = PRESENT_SENTENCES[track].filter(s=>s.lvl<=lvl);
-        const scenePick = sentences[Math.floor(rng()*sentences.length)] || sentences[0];
-        const verbs = VERB_LAB.filter(v=>v.lvl<=lvl);
-        const verbPick = verbs[Math.floor(rng()*verbs.length)] || verbs[0];
-        const emoPick = EMOTIONS[Math.floor(rng()*EMOTIONS.length)];
-        const words = FOOD_WORDS_BANK.filter(w=>w.lvl<=lvl).map(x=>x.w);
-        const snakeWords = sampleN(rng, words, 10);
-        const lunchPrompt = LUNCH_PROMPTS[Math.floor(rng()*LUNCH_PROMPTS.length)];
-        return { scenePick, verbPick, emoPick, snakeWords, lunchPrompt };
+      
+      // ---------------- Badge System ----------------
+      function useBadges(){
+        const [earned, setEarned] = useLocalStorage('stacie.badges', []);
+        const [sessions, ] = useLocalStorage('stacie.sessions', 0);
+        const [streak, ] = useLocalStorage('stacie.streak', 0);
+        const [recordings, ] = useLocalStorage('stacie.recordings', []);
+        const [journals, ] = useLocalStorage('stacie.journals', []);
+        
+        function checkBadges(){
+          const newBadges = [];
+          BADGES.forEach(badge => {
+            if(earned.includes(badge.id)) return;
+            let unlocked = false;
+            if(badge.req === 'sessions' && sessions >= badge.count) unlocked = true;
+            if(badge.req === 'streak' && streak >= badge.count) unlocked = true;
+            if(badge.req === 'work'){
+              const workPassed = recordings.filter(r => r.passed && r.phraseId?.startsWith('w')).length;
+              if(workPassed >= badge.count) unlocked = true;
+            }
+            if(badge.req === 'journals' && journals.length >= badge.count) unlocked = true;
+            if(unlocked) newBadges.push(badge.id);
+          });
+          if(newBadges.length > 0){
+            setEarned(prev => [...prev, ...newBadges]);
+            return newBadges;
+          }
+          return [];
+        }
+        
+        return { earned, checkBadges };
       }
-      // ---------------- Recording Playback Feature ----------------
-      function RecordingPlayback(){
-        const [recordings,setRecordings] = useLocalStorage('stacie.recordings', []);
-        const [playing,setPlaying] = useState(null);
+      
+      // ---------------- Weekly Report Analytics ----------------
+      function useWeeklyReport(){
+        const [recordings] = useLocalStorage('stacie.recordings', []);
         
-        function playRecording(idx){
-          const rec = recordings[idx];
-          if(!rec) return;
-          setPlaying(idx);
-          speak(rec.transcript);
-          setTimeout(()=>setPlaying(null), 2000);
+        function getWeeklyReport(){
+          const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+          const thisWeek = recordings.filter(r => r.timestamp >= weekAgo);
+          const lastWeek = recordings.filter(r => r.timestamp >= (weekAgo - (7 * 24 * 60 * 60 * 1000)) && r.timestamp < weekAgo);
+          
+          // Success rate
+          const thisWeekRate = thisWeek.length ? (thisWeek.filter(r=>r.passed).length / thisWeek.length) : 0;
+          const lastWeekRate = lastWeek.length ? (lastWeek.filter(r=>r.passed).length / lastWeek.length) : 0;
+          const improvement = thisWeekRate - lastWeekRate;
+          
+          // Most struggled phrases
+          const failedPhrases = thisWeek.filter(r => !r.passed);
+          const phraseCount = {};
+          failedPhrases.forEach(r => {
+            phraseCount[r.phraseId] = (phraseCount[r.phraseId] || 0) + 1;
+          });
+          const strugglingPhrases = Object.entries(phraseCount)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([id]) => id);
+          
+          // Track breakdown
+          const trackStats = {};
+          TRACKS.forEach(track => {
+            const trackRecs = thisWeek.filter(r => r.phraseId?.startsWith(track.key[0]));
+            const passed = trackRecs.filter(r => r.passed).length;
+            trackStats[track.key] = {
+              total: trackRecs.length,
+              passed,
+              rate: trackRecs.length ? passed / trackRecs.length : 0
+            };
+          });
+          
+          return {
+            thisWeekCount: thisWeek.length,
+            thisWeekRate,
+            improvement: Math.round(improvement * 100),
+            strugglingPhrases,
+            trackStats
+          };
         }
         
-        function deleteRecording(idx){
-          setRecordings(prev => prev.filter((_,i) => i !== idx));
-        }
+        return { getWeeklyReport };
+      }
+      
+      // ---------------- Main App ----------------
+      function App(){
+        const [tab, setTab] = useState('hoy');
+        const [level, setLevel] = useLocalStorage('stacie.level', 0);
+        const [inclusive, setInclusive] = useLocalStorage('stacie.inclusive', true);
+        const [streak, setStreak] = useLocalStorage('stacie.streak', 0);
+        const [lastDone, setLastDone] = useLocalStorage('stacie.lastDone', '');
+        const [sessions, setSessions] = useLocalStorage('stacie.sessions', 0);
+        const [recordings, setRecordings] = useLocalStorage('stacie.recordings', []);
+        const [journals, setJournals] = useLocalStorage('stacie.journals', []);
+        const badges = useBadges();
+        const [toast, setToast] = useState(null);
         
-        function clearAll(){
-          if(confirm('¿Borrar todas las grabaciones?')) setRecordings([]);
+        function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null), 3000); }
+        
+        function completeSession(){
+          const today = todayISO();
+          if(lastDone !== today){
+            if(lastDone === ydayISO()) setStreak(s => s+1);
+            else setStreak(1);
+            setLastDone(today);
+          }
+          setSessions(s => s+1);
+          const newBadges = badges.checkBadges();
+          if(newBadges.length > 0){
+            const badge = BADGES.find(b => b.id === newBadges[0]);
+            showToast(`🎉 ¡Nuevo logro! ${badge.emoji} ${badge.name}`);
+          }
         }
         
         return (
-          <div className="rounded-2xl bg-white p-4 shadow-soft border border-brand-100 relative">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-brand-900">Mis grabaciones</h3>
-              {recordings.length > 0 && (
-                <button onClick={clearAll} className="text-xs text-rose-600 underline">
-                  Borrar todo
-                </button>
-              )}
+          <div className="min-h-screen bg-gradient-to-b from-brand-50 to-white">
+            {/* Toast */}
+            {toast && (
+              <div className="fixed top-4 left-4 right-4 z-50 toast">
+                <div className="bg-brand-900 text-white px-4 py-3 rounded-xl shadow-lg text-center">
+                  {toast}
+                </div>
+              </div>
+            )}
+            
+            {/* Header - Always visible */}
+            <header className="bg-white border-b border-brand-200 px-4 py-3 sticky top-0 z-40 shadow-sm">
+              <div className="max-w-md mx-auto flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-bold text-brand-900">stacie <span className="text-xs text-blossom-600">v4</span></h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-brand-900 font-semibold">🔥 {streak}</div>
+                </div>
+              </div>
+            </header>
+            
+            {/* Main Content */}
+            <div className="main-content">
+              <div className="max-w-md mx-auto px-4 py-4">
+                {tab === 'hoy' && <HoyTab level={level} inclusive={inclusive} onComplete={completeSession} />}
+                {tab === 'practica' && <PracticaTab level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} onComplete={completeSession} />}
+                {tab === 'diario' && <DiarioTab journals={journals} setJournals={setJournals} inclusive={inclusive} />}
+                {tab === 'stats' && <StatsTab sessions={sessions} streak={streak} badges={badges} recordings={recordings} />}
+                {tab === 'mas' && <MasTab level={level} setLevel={setLevel} inclusive={inclusive} setInclusive={setInclusive} />}
+              </div>
             </div>
             
-            {recordings.length === 0 ? (
-              <p className="text-sm text-brand-700 text-center py-6">
-                Tus grabaciones aparecerán aquí. ¡Practica para empezar!
-              </p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {recordings.slice().reverse().map((rec, idx) => {
-                  const realIdx = recordings.length - 1 - idx;
-                  return (
-                    <div key={realIdx} className="p-3 bg-brand-50 rounded-xl border border-brand-100">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs text-brand-700 mb-1">
-                            {new Date(rec.timestamp).toLocaleDateString('es-MX')}
-                          </div>
-                          <div className="text-sm text-brand-900 break-words">
-                            {rec.transcript}
-                          </div>
-                          <div className={cx('text-xs mt-1', rec.passed?'text-emerald-600':'text-amber-600')}>
-                            {rec.passed?'✓ Bien':'⚠ Practicar más'}
-                          </div>
+            {/* Tab Bar */}
+            <div className="tab-bar">
+              <div className="max-w-md mx-auto flex items-center justify-around py-2">
+                <TabButton icon="🏠" label="Hoy" active={tab==='hoy'} onClick={()=>setTab('hoy')} />
+                <TabButton icon="📚" label="Práctica" active={tab==='practica'} onClick={()=>setTab('practica')} />
+                <TabButton icon="💬" label="Diario" active={tab==='diario'} onClick={()=>setTab('diario')} />
+                <TabButton icon="📊" label="Stats" active={tab==='stats'} onClick={()=>setTab('stats')} />
+                <TabButton icon="⚙️" label="Más" active={tab==='mas'} onClick={()=>setTab('mas')} />
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      function TabButton({ icon, label, active, onClick }){
+        return (
+          <button onClick={onClick} className={cx('flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors', active ? 'text-brand-900' : 'text-gray-400')}>
+            <span className="text-xl">{icon}</span>
+            <span className="text-xs font-medium">{label}</span>
+          </button>
+        );
+      }
+      
+      // ---------------- HOY TAB ----------------
+      function HoyTab({ level, inclusive, onComplete }){
+        const [selectedTrack, setSelectedTrack] = useState('work');
+        const trackData = TRACKS.find(t => t.key === selectedTrack);
+        const sentences = SENTENCES[selectedTrack].filter(s => s.lvl <= level);
+        const dailyPhrase = sentences[0];
+        
+        return (
+          <div className="space-y-4">
+            {/* Hero Card */}
+            <div className="hero-card text-white rounded-2xl p-6 shadow-lg">
+              <div className="text-sm opacity-90 mb-2">Desafío del día</div>
+              <div className="text-xl font-semibold mb-4">Práctica 3 frases de {trackData.name.toLowerCase()}</div>
+              <button onClick={onComplete} className="bg-white text-brand-900 px-4 py-2 rounded-xl font-semibold">
+                Empezar →
+              </button>
+            </div>
+            
+            {/* Quick Actions */}
+            <div>
+              <h2 className="text-sm font-semibold text-brand-800 mb-3">Acciones rápidas</h2>
+              <div className="grid grid-cols-3 gap-3">
+                <QuickAction icon="🎤" label="Diario" />
+                <QuickAction icon="🎲" label="Sorpréndeme" />
+                <QuickAction icon="💼" label="Trabajo" />
+              </div>
+            </div>
+            
+            {/* Daily Phrase */}
+            {dailyPhrase && (
+              <div className="bg-white rounded-2xl p-4 shadow-soft border border-brand-200">
+                <h3 className="font-semibold text-brand-900 mb-2">Frase del día</h3>
+                <p className="text-lg text-brand-900 mb-1">{flex(dailyPhrase.es, inclusive)}</p>
+                <p className="text-sm text-brand-700 mb-3">{dailyPhrase.hint}</p>
+                <div className="flex gap-2">
+                  <button onClick={()=>speak(flex(dailyPhrase.es, inclusive))} className="px-3 py-1.5 rounded-lg bg-brand-100 text-brand-900 text-sm">
+                    👂 Escuchar
+                  </button>
+                  <button onClick={()=>navigator.clipboard?.writeText(flex(dailyPhrase.es, inclusive))} className="px-3 py-1.5 rounded-lg bg-brand-100 text-brand-900 text-sm">
+                    📋 Copiar
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Partner Prompt */}
+            <div className="bg-blossom-100 rounded-2xl p-4 border border-blossom-600">
+              <h3 className="font-semibold text-brand-900 mb-2">💕 Para tu pareja</h3>
+              <p className="text-brand-900 mb-1">{PARTNER_PROMPTS[0].prompt}</p>
+              <p className="text-sm text-brand-700">({PARTNER_PROMPTS[0].en})</p>
+            </div>
+          </div>
+        );
+      }
+      
+      function QuickAction({ icon, label }){
+        return (
+          <button className="bg-white rounded-xl p-4 shadow-soft border border-brand-200 flex flex-col items-center gap-2 hover:bg-brand-50 transition-colors">
+            <span className="text-3xl">{icon}</span>
+            <span className="text-xs font-medium text-brand-900">{label}</span>
+          </button>
+        );
+      }
+      
+      // ---------------- PRACTICA TAB ----------------
+      function PracticaTab({ level, inclusive, recordings, setRecordings, onComplete }){
+        const [mode, setMode] = useState(null);
+        const [track, setTrack] = useState(null);
+        
+        if(!mode){
+          return (
+            <div className="space-y-3">
+              <h2 className="text-xl font-bold text-brand-900 mb-4">¿Qué quieres practicar?</h2>
+              
+              <ModeCard 
+                icon="🗣️" 
+                title="Conversación" 
+                desc="Simulaciones realistas"
+                time="10-15 min"
+                onClick={()=>setMode('conversation')}
+              />
+              
+              <ModeCard 
+                icon="⚡" 
+                title="Práctica rápida" 
+                desc="Una frase, ahora"
+                time="1 min"
+                onClick={()=>setMode('quick')}
+              />
+              
+              <ModeCard 
+                icon="🃏" 
+                title="Flashcards" 
+                desc="Repaso rápido"
+                time="5 min"
+                onClick={()=>setMode('flashcards')}
+              />
+              
+              <ModeCard 
+                icon="🏆" 
+                title="Modo desafío" 
+                desc="Contra el reloj"
+                time="3 min"
+                onClick={()=>setMode('challenge')}
+              />
+            </div>
+          );
+        }
+        
+        if(!track && mode !== 'conversation'){
+          return (
+            <div>
+              <button onClick={()=>setMode(null)} className="text-brand-700 mb-4">← Atrás</button>
+              <h2 className="text-xl font-bold text-brand-900 mb-4">Elige tema</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {TRACKS.map(t => (
+                  <button key={t.key} onClick={()=>setTrack(t.key)} className={cx('rounded-2xl p-6 text-white shadow-lg', t.color)}>
+                    <div className="text-4xl mb-2">{t.icon}</div>
+                    <div className="font-semibold">{t.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        
+        if(mode === 'conversation'){
+          return <ConversationMode inclusive={inclusive} onBack={()=>setMode(null)} onComplete={onComplete} />;
+        }
+        
+        if(mode === 'quick'){
+          return <QuickMode track={track} level={level} inclusive={inclusive} onBack={()=>{setMode(null); setTrack(null);}} recordings={recordings} setRecordings={setRecordings} />;
+        }
+        
+        if(mode === 'flashcards'){
+          return <FlashcardsMode track={track} level={level} inclusive={inclusive} onBack={()=>{setMode(null); setTrack(null);}} onComplete={onComplete} />;
+        }
+        
+        if(mode === 'challenge'){
+          return <ChallengeMode track={track} level={level} inclusive={inclusive} onBack={()=>{setMode(null); setTrack(null);}} onComplete={onComplete} />;
+        }
+        
+        return null;
+      }
+      
+      function ModeCard({ icon, title, desc, time, onClick }){
+        return (
+          <button onClick={onClick} className="bg-white rounded-2xl p-5 shadow-soft border border-brand-200 text-left hover:bg-brand-50 transition-colors">
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-4xl">{icon}</span>
+              <span className="text-xs text-brand-700 bg-brand-100 px-2 py-1 rounded-full">{time}</span>
+            </div>
+            <h3 className="font-bold text-brand-900 mb-1">{title}</h3>
+            <p className="text-sm text-brand-700">{desc}</p>
+          </button>
+        );
+      }
+      
+      // ---------------- Conversation Mode ----------------
+      function ConversationMode({ inclusive, onBack, onComplete }){
+        const [selected, setSelected] = useState(null);
+        const [turn, setTurn] = useState(0);
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState('');
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+        
+        if(!selected){
+          return (
+            <div>
+              <button onClick={onBack} className="text-brand-700 mb-4">← Atrás</button>
+              <h2 className="text-xl font-bold text-brand-900 mb-4">Elige conversación</h2>
+              <div className="space-y-3">
+                <ConvoCard title="Campus Tour" subtitle="Carleton Admissions" onClick={()=>setSelected('work_tour')} />
+                <ConvoCard title="Residence Check-in" subtitle="UMN Residence Life" onClick={()=>setSelected('work_checkin')} />
+                <ConvoCard title="Dinner with Suegros" subtitle="Family" onClick={()=>setSelected('family_dinner')} />
+              </div>
+            </div>
+          );
+        }
+        
+        const convo = CONVERSATIONS[selected];
+        const currentTurn = convo.turns[turn];
+        const done = turn >= convo.turns.length;
+        
+        if(done){
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold text-brand-900 mb-2">¡Conversación completa!</h2>
+              <p className="text-brand-700 mb-6">Completaste: {convo.title}</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={()=>{setSelected(null); setTurn(0);}} className="px-4 py-2 rounded-xl bg-brand-100 text-brand-900">
+                  Otra conversación
+                </button>
+                <button onClick={()=>{onComplete(); onBack();}} className="px-4 py-2 rounded-xl bg-brand-900 text-white">
+                  Terminar
+                </button>
+              </div>
+            </div>
+          );
+        }
+        
+        function handleRecord(){
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); rec.start(); setRecording(true); }
+          else {
+            rec.stop();
+            const { pass } = wordScore(flex(currentTurn.expected, inclusive), transcript);
+            if(pass) {
+              speak('¡Bien!');
+              setTimeout(()=>setTurn(t=>t+1), 1000);
+            } else {
+              speak('Casi, intenta de nuevo');
+            }
+          }
+        }
+        
+        return (
+          <div>
+            <button onClick={()=>{setSelected(null); setTurn(0);}} className="text-brand-700 mb-4">← Atrás</button>
+            <div className="bg-white rounded-2xl p-5 shadow-soft border border-brand-200">
+              <h3 className="font-semibold text-brand-900 mb-4">{convo.title}</h3>
+              
+              {currentTurn.speaker !== 'you' && (
+                <div className="mb-4 p-4 bg-brand-50 rounded-xl">
+                  <div className="text-xs text-brand-700 mb-1 uppercase">{currentTurn.speaker}</div>
+                  <p className="text-brand-900 mb-2">{currentTurn.text}</p>
+                  <button onClick={()=>speak(currentTurn.text)} className="text-sm text-brand-700">👂 Repetir</button>
+                </div>
+              )}
+              
+              {currentTurn.speaker === 'you' && (
+                <div className="mb-4">
+                  <div className="text-xs text-brand-700 mb-1">TU RESPUESTA:</div>
+                  <p className="text-sm text-brand-700 mb-3">Pista: {currentTurn.hint}</p>
+                  <button 
+                    onClick={handleRecord}
+                    className={cx('w-full py-3 rounded-xl text-white font-semibold', recording?'bg-rose-600':'bg-brand-900')}
+                  >
+                    {recording ? '⏹ Detener' : '🎤 Grabar respuesta'}
+                  </button>
+                  {transcript && (
+                    <div className="mt-3 p-3 bg-brand-50 rounded-lg text-sm">{transcript}</div>
+                  )}
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2 mt-4">
+                <div className="flex-1 h-2 bg-brand-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-brand-900" style={{width: `${(turn/convo.turns.length)*100}%`}} />
+                </div>
+                <span className="text-xs text-brand-700">{turn} / {convo.turns.length}</span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      function ConvoCard({ title, subtitle, onClick }){
+        return (
+          <button onClick={onClick} className="bg-white rounded-xl p-4 shadow-soft border border-brand-200 text-left hover:bg-brand-50 transition-colors w-full">
+            <h4 className="font-semibold text-brand-900">{title}</h4>
+            <p className="text-sm text-brand-700">{subtitle}</p>
+          </button>
+        );
+      }
+      
+      // ---------------- Quick Mode ----------------
+      function QuickMode({ track, level, inclusive, onBack, recordings, setRecordings }){
+        const sentences = SENTENCES[track].filter(s => s.lvl <= level);
+        const phrase = sentences[Math.floor(Math.random() * sentences.length)];
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState('');
+        const [result, setResult] = useState(null);
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+        
+        function handleRecord(){
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
+          else {
+            rec.stop();
+            const { pass } = wordScore(flex(phrase.es, inclusive), transcript);
+            setResult(pass);
+            setRecordings(prev => [...prev, { 
+              transcript, 
+              target: phrase.es, 
+              passed: pass, 
+              timestamp: Date.now(),
+              phraseId: phrase.id 
+            }]);
+            speak(pass ? '¡Perfecto!' : 'Casi');
+          }
+        }
+        
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 mb-4">← Atrás</button>
+            <div className="bg-white rounded-2xl p-6 shadow-soft border border-brand-200">
+              <h3 className="font-semibold text-brand-900 mb-4">Práctica rápida</h3>
+              <p className="text-xl text-brand-900 mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-brand-700 mb-4">{phrase.hint}</p>
+              
+              <div className="flex gap-2 mb-4">
+                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-4 py-2 rounded-xl bg-brand-100 text-brand-900">
+                  👂 Escuchar
+                </button>
+                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
+                  {recording ? '⏹ Detener' : '🎤 Grabar'}
+                </button>
+              </div>
+              
+              {transcript && (
+                <div className="p-3 bg-brand-50 rounded-lg mb-3">
+                  <div className="text-xs text-brand-700 mb-1">Tu respuesta:</div>
+                  <div className="text-sm">{transcript}</div>
+                </div>
+              )}
+              
+              {result !== null && (
+                <div className={cx('p-3 rounded-xl', result?'bg-emerald-100 text-emerald-900':'bg-amber-100 text-amber-900')}>
+                  {result ? '✓ ¡Bien!' : '◻ Sigue practicando'}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+      
+      // ---------------- Flashcards Mode ----------------
+      function FlashcardsMode({ track, level, inclusive, onBack, onComplete }){
+        const sentences = SENTENCES[track].filter(s => s.lvl <= level);
+        const [idx, setIdx] = useState(0);
+        const [showAnswer, setShowAnswer] = useState(false);
+        const phrase = sentences[idx];
+        
+        function next(){ 
+          if(idx >= sentences.length - 1){ onComplete(); onBack(); }
+          else { setIdx(i=>i+1); setShowAnswer(false); }
+        }
+        
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 mb-4">← Atrás</button>
+            <div className="bg-white rounded-2xl p-6 shadow-soft border border-brand-200 min-h-[300px] flex flex-col justify-between">
+              <div>
+                <div className="text-xs text-brand-700 mb-4">{idx+1} / {sentences.length}</div>
+                {!showAnswer ? (
+                  <div>
+                    <p className="text-sm text-brand-700 mb-2">English hint:</p>
+                    <p className="text-xl text-brand-900">{phrase.hint}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-2xl text-brand-900 mb-3">{flex(phrase.es, inclusive)}</p>
+                    <button onClick={()=>speak(flex(phrase.es, inclusive))} className="text-brand-700 text-sm">
+                      👂 Escuchar
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-3">
+                {!showAnswer ? (
+                  <button onClick={()=>setShowAnswer(true)} className="flex-1 py-3 rounded-xl bg-brand-900 text-white">
+                    Mostrar →
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={next} className="flex-1 py-3 rounded-xl bg-amber-600 text-white">
+                      Necesito practicar
+                    </button>
+                    <button onClick={next} className="flex-1 py-3 rounded-xl bg-emerald-600 text-white">
+                      ¡Lo sé!
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      // ---------------- Challenge Mode ----------------
+      function ChallengeMode({ track, level, inclusive, onBack, onComplete }){
+        const sentences = SENTENCES[track].filter(s => s.lvl <= level).slice(0, 5);
+        const [idx, setIdx] = useState(0);
+        const [timeLeft, setTimeLeft] = useState(60);
+        const [score, setScore] = useState(0);
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState('');
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+        
+        useEffect(()=>{
+          if(timeLeft <= 0) return;
+          const id = setInterval(()=>setTimeLeft(t=>t-1), 1000);
+          return ()=>clearInterval(id);
+        }, [timeLeft]);
+        
+        const phrase = sentences[idx];
+        const done = idx >= sentences.length || timeLeft <= 0;
+        
+        if(done){
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">{score >= 4 ? '🏆' : '💪'}</div>
+              <h2 className="text-2xl font-bold text-brand-900 mb-2">¡Desafío completo!</h2>
+              <p className="text-4xl font-bold text-brand-900 mb-4">{score} / 5</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-100 text-brand-900">Salir</button>
+                <button onClick={()=>{setIdx(0); setTimeLeft(60); setScore(0);}} className="px-4 py-2 rounded-xl bg-brand-900 text-white">
+                  Reintentar
+                </button>
+              </div>
+            </div>
+          );
+        }
+        
+        function handleRecord(){
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); rec.start(); setRecording(true); }
+          else {
+            rec.stop();
+            const { pass } = wordScore(flex(phrase.es, inclusive), transcript);
+            if(pass) {
+              setScore(s=>s+1);
+              speak('¡Bien!');
+              setTimeout(()=>setIdx(i=>i+1), 500);
+            } else {
+              speak('Intenta otra vez');
+            }
+          }
+        }
+        
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 mb-4">← Atrás</button>
+            <div className="bg-white rounded-2xl p-6 shadow-soft border border-brand-200">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-3xl font-bold text-brand-900">⏱️ {timeLeft}s</div>
+                <div className="text-xl font-bold text-brand-900">{score} / 5</div>
+              </div>
+              
+              <p className="text-xl text-brand-900 mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-brand-700 mb-4">{phrase.hint}</p>
+              
+              <button onClick={handleRecord} className={cx('w-full py-3 rounded-xl text-white font-semibold', recording?'bg-rose-600':'bg-brand-900')}>
+                {recording ? '⏹ Detener' : '🎤 Grabar'}
+              </button>
+              
+              {transcript && (
+                <div className="mt-3 p-3 bg-brand-50 rounded-lg text-sm">{transcript}</div>
+              )}
+            </div>
+          </div>
+        );
+      }
+      
+      // ---------------- DIARIO TAB ----------------
+      function DiarioTab({ journals, setJournals, inclusive }){
+        const [currentPrompt] = useState(VOICE_PROMPTS[Math.floor(Math.random()*VOICE_PROMPTS.length)]);
+        const audioRec = useAudioRecorder();
+        const speechRec = useSpeechRecognition({ 
+          onResult:(t)=>setTranscript(t), 
+          onEnd:()=>{}
+        });
+        const [transcript, setTranscript] = useState('');
+        
+        function handleRecord(){
+          if(!audioRec.recording){
+            setTranscript('');
+            audioRec.startRecording();
+            speechRec.start();
+          } else {
+            audioRec.stopRecording();
+            speechRec.stop();
+            if(transcript){
+              // Wait a bit for audioBlob to be set
+              setTimeout(()=>{
+                setJournals(prev => [...prev, { 
+                  text: transcript, 
+                  timestamp: Date.now(),
+                  hasAudio: true
+                }]);
+                setTranscript('');
+              }, 500);
+            }
+          }
+        }
+        
+        function deleteEntry(idx){
+          if(confirm('¿Borrar esta entrada?')) setJournals(prev => prev.filter((_,i)=>i!==idx));
+        }
+        
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-6 shadow-soft border border-brand-200">
+              <h2 className="text-xl font-bold text-brand-900 mb-2">Mi diario de voz 🎤</h2>
+              <p className="text-brand-700 mb-4">{currentPrompt}</p>
+              
+              <button 
+                onClick={handleRecord}
+                className={cx('w-full py-4 rounded-xl text-white font-semibold text-lg', audioRec.recording?'bg-rose-600':'bg-brand-900')}
+              >
+                {audioRec.recording ? '⏹ Detener grabación' : '🎤 Empezar a grabar'}
+              </button>
+              
+              {transcript && (
+                <div className="mt-4 p-4 bg-brand-50 rounded-xl">
+                  <div className="text-xs text-brand-700 mb-1">Transcripción:</div>
+                  <p className="text-brand-900">{transcript}</p>
+                </div>
+              )}
+              
+              <div className="mt-4">
+                <p className="text-xs text-brand-700 mb-2">Otros prompts:</p>
+                <div className="flex flex-wrap gap-2">
+                  {VOICE_PROMPTS.slice(0,3).map((p,i)=>(
+                    <button key={i} className="text-xs bg-brand-100 text-brand-900 px-2 py-1 rounded-full">
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-brand-900 mb-3">Entradas recientes</h3>
+              {journals.length === 0 ? (
+                <p className="text-center text-brand-700 py-8">No hay entradas todavía. ¡Empieza a grabar!</p>
+              ) : (
+                <div className="space-y-3">
+                  {journals.slice().reverse().map((j,idx)=>{
+                    const realIdx = journals.length - 1 - idx;
+                    return (
+                      <div key={realIdx} className="bg-white rounded-xl p-4 shadow-soft border border-brand-200">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs text-brand-700">{new Date(j.timestamp).toLocaleDateString('es-MX')}</span>
+                          <button onClick={()=>deleteEntry(realIdx)} className="text-rose-600 text-xs">🗑</button>
                         </div>
-                        <div className="flex gap-1 flex-shrink-0">
-                          <button 
-                            onClick={()=>playRecording(realIdx)}
-                            disabled={playing===realIdx}
-                            className="px-2 py-1 rounded-lg bg-brand-900 text-white text-xs disabled:opacity-50"
-                          >
-                            {playing===realIdx ? '⏸' : '▶'}
-                          </button>
-                          <button 
-                            onClick={()=>deleteRecording(realIdx)}
-                            className="px-2 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs"
-                          >
-                            🗑
-                          </button>
+                        <p className="text-brand-900 mb-2">{j.text}</p>
+                        <div className="flex gap-2">
+                          <button onClick={()=>speak(j.text)} className="text-sm text-brand-700">👂 Escuchar</button>
+                          {j.hasAudio && audioRec.audioBlob && (
+                            <button 
+                              onClick={()=>audioRec.downloadAudio(`journal-${j.timestamp}.webm`)} 
+                              className="text-sm text-blossom-600"
+                            >
+                              📥 Descargar audio
+                            </button>
+                          )}
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+      
+      // ---------------- STATS TAB with Progress Viz & Weekly Report ----------------
+      function StatsTab({ sessions, streak, badges, recordings }){
+        const weeklyReport = useWeeklyReport();
+        const report = weeklyReport.getWeeklyReport();
+        const masteredCount = recordings.filter(r => r.passed).length;
+        const needWorkCount = recordings.filter(r => !r.passed).length;
+        const [showReport, setShowReport] = useState(false);
+        
+        // Get last 7 days of practice for chart
+        const last7Days = Array.from({length: 7}, (_, i) => {
+          const date = daysAgo(6-i);
+          const count = recordings.filter(r => {
+            const rDate = new Date(r.timestamp).toISOString().slice(0,10);
+            return rDate === date;
+          }).length;
+          return { date: new Date(date).toLocaleDateString('es-MX', {weekday:'short'}), count };
+        });
+        const maxCount = Math.max(...last7Days.map(d=>d.count), 1);
+        
+        return (
+          <div className="space-y-4">
+            {/* Weekly Report Card */}
+            <div className="bg-gradient-to-br from-blossom-600 to-brand-900 text-white rounded-2xl p-6 shadow-lg">
+              <h2 className="text-xl font-bold mb-4">📈 Reporte Semanal</h2>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <div className="text-3xl font-bold">{report.thisWeekCount}</div>
+                  <div className="text-sm opacity-90">Prácticas esta semana</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold">{Math.round(report.thisWeekRate*100)}%</div>
+                  <div className="text-sm opacity-90">Tasa de éxito</div>
+                </div>
+              </div>
+              {report.improvement !== 0 && (
+                <div className="bg-white/20 rounded-xl p-3 mb-4">
+                  <div className="text-sm">Mejora vs. semana pasada:</div>
+                  <div className={cx('text-2xl font-bold', report.improvement>0?'text-emerald-200':'text-amber-200')}>
+                    {report.improvement>0?'+':''}{report.improvement}%
+                  </div>
+                </div>
+              )}
+              <button onClick={()=>setShowReport(!showReport)} className="text-sm underline opacity-90">
+                {showReport ? 'Ocultar detalles' : 'Ver detalles completos →'}
+              </button>
+            </div>
+            
+            {showReport && (
+              <div className="bg-white rounded-2xl p-5 shadow-soft border border-brand-200">
+                <h3 className="font-semibold text-brand-900 mb-3">Desglose por tema</h3>
+                <div className="space-y-3">
+                  {TRACKS.map(track => {
+                    const stats = report.trackStats[track.key];
+                    const rate = stats?.rate || 0;
+                    return (
+                      <div key={track.key}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-brand-900">{track.icon} {track.name}</span>
+                          <span className="text-xs text-brand-700">{Math.round(rate*100)}%</span>
+                        </div>
+                        <div className="h-2 bg-brand-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-brand-900" style={{width:`${rate*100}%`}}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* Progress Visualization */}
+            <div className="bg-white rounded-2xl p-5 shadow-soft border border-brand-200">
+              <h3 className="font-semibold text-brand-900 mb-4">Últimos 7 días</h3>
+              <div className="flex items-end justify-between gap-2 h-32">
+                {last7Days.map((day, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="flex-1 w-full flex items-end">
+                      <div 
+                        className="w-full bg-brand-900 rounded-t"
+                        style={{height: `${(day.count/maxCount)*100}%`, minHeight: day.count>0?'8px':'0'}}
+                      />
+                    </div>
+                    <div className="text-xs text-brand-700">{day.date}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Overall Stats */}
+            <div className="bg-white rounded-2xl p-6 shadow-soft border border-brand-200">
+              <h2 className="text-xl font-bold text-brand-900 mb-4">Tu progreso total</h2>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-3xl font-bold text-brand-900">{sessions}</div>
+                  <div className="text-xs text-brand-700">Sesiones</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-emerald-600">{masteredCount}</div>
+                  <div className="text-xs text-brand-700">Dominadas</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-amber-600">{needWorkCount}</div>
+                  <div className="text-xs text-brand-700">Practicar</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Streak */}
+            <div className="bg-white rounded-2xl p-6 shadow-soft border border-brand-200">
+              <h3 className="font-semibold text-brand-900 mb-4">Racha actual</h3>
+              <div className="flex items-center gap-4">
+                <div className="text-6xl">🔥</div>
+                <div>
+                  <div className="text-4xl font-bold text-brand-900">{streak}</div>
+                  <div className="text-sm text-brand-700">días consecutivos</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Badges */}
+            <div className="bg-white rounded-2xl p-6 shadow-soft border border-brand-200">
+              <h3 className="font-semibold text-brand-900 mb-4">Logros</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {BADGES.map(badge => {
+                  const earned = badges.earned.includes(badge.id);
+                  return (
+                    <div key={badge.id} className={cx('p-4 rounded-xl text-center', earned?'bg-blossom-100 badge-earned':'bg-gray-100 opacity-50')}>
+                      <div className="text-4xl mb-2">{badge.emoji}</div>
+                      <div className="text-xs font-semibold text-brand-900">{badge.name}</div>
                     </div>
                   );
                 })}
               </div>
-            )}
-            <div className="absolute -top-2 -right-2 text-blossom-400">✿</div>
-          </div>
-        );
-      }
-      // ---------------- UI components ----------------
-      const Card = ({ children, className }) => (
-        <div className={cx('relative rounded-2xl shadow-soft p-4 sm:p-6 bg-white border border-brand-100', className)}>
-          <div className="absolute -top-2 -left-2 text-blossom-300 select-none">✿</div>
-          {children}
-        </div>
-      );
-      const SectionTitle = ({ children }) => (
-        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-brand-900">{children}</h2>
-      );
-      const TargetSentence = ({ text, bad, bigText, inclusive }) => {
-        const t = flex(text, inclusive);
-        const parts = t.split(/(\s+)/);
-        return (
-          <p className={cx('font-medium text-brand-900', bigText?'text-2xl':'text-xl')}>
-            {parts.map((w,i)=>{
-              const clean = stripDiacritics(w.toLowerCase());
-              const isBad = bad?.some(b=>b===clean);
-              return <span key={i} className={isBad?'bg-blossom-100 rounded px-1':''}>{w}</span>
-            })}
-          </p>
-        );
-      };
-      // ---------------- Review Mode ----------------
-      function ReviewMode({ weakItems, onClose, onComplete, inclusive }){
-        const [idx,setIdx]=useState(0);
-        const [recording,setRecording]=useState(false);
-        const [transcript,setTranscript]=useState('');
-        const [passed,setPassed]=useState(null);
-        const [badWords,setBadWords]=useState([]);
-        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
-        if (!weakItems.length) return null;
-        const item = weakItems[idx];
-        const text = flex(item.es || item.sample, inclusive);
-        const done = idx >= weakItems.length - 1;
-        function handleRecord(){
-          if(!rec.supported) return;
-          if(!recording){ setTranscript(''); setPassed(null); rec.start(); setRecording(true); }
-          else {
-            rec.stop();
-            const { pass, badWords } = wordScore(text, transcript);
-            setPassed(pass); setBadWords(badWords);
-            if (pass) speak('¡Bien hecho!');
-            else speak('Casi, intenta de nuevo.');
-          }
-        }
-        function next(){
-          if (done) { onComplete(); }
-          else { setIdx(i=>i+1); setTranscript(''); setPassed(null); setBadWords([]); }
-        }
-        return (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 border border-brand-100">
-              <h3 className="text-xl font-semibold mb-3 text-brand-900">Modo de repaso</h3>
-              <p className="text-sm text-brand-700 mb-4">Revisando {idx+1} de {weakItems.length}</p>
-              <TargetSentence text={text} bad={badWords} bigText={false} inclusive={inclusive}/>
-              {item.hint && <p className="text-sm text-brand-700 mt-2">Pista: {item.hint}</p>}
-              <div className="flex items-center gap-2 mt-4">
-                <button onClick={()=>speak(text)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶</button>
-                <button onClick={handleRecord} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
-                  {recording?'Detener':'Grabar'}
-                </button>
-              </div>
-              {transcript && (
-                <div className="mt-3 p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
-              )}
-              {passed!==null && (
-                <div className={cx('mt-3 px-3 py-2 rounded-xl inline-block', passed?'bg-emerald-100 text-emerald-900':'bg-amber-100 text-amber-900')}>
-                  {passed?'✔ Bien':'◻ Necesita trabajo'}
-                </div>
-              )}
-              <div className="flex justify-between mt-4">
-                <button onClick={onClose} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Salir</button>
-                <button onClick={next} className="px-3 py-2 rounded-xl bg-brand-900 text-white">
-                  {done?'Terminar':'Siguiente'}
-                </button>
-              </div>
             </div>
           </div>
         );
       }
-      // ---------------- Main App ----------------
-      function App(){
-        // settings
-        const [bigText,setBigText] = useLocalStorage('stacie.bigText', true);
-        const [goalMinutes,setGoalMinutes] = useLocalStorage('stacie.goal', 10);
-        const [inclusive,setInclusive] = useLocalStorage('stacie.inclusive', true);
-        const [selectedTrack,setSelectedTrack] = useLocalStorage('stacie.track','work');
-        // level (default to 0)
-        const [level,setLevel] = useLocalStorage('stacie.level', 0);
-        // progress / streak
-        const [streak,setStreak] = useLocalStorage('stacie.streak', 0);
-        const [lastDone,setLastDone] = useLocalStorage('stacie.lastDone', '');
-        const [sessionStarted,setSessionStarted] = useState(false);
-        const [sessionSeconds,setSessionSeconds] = useState(0);
-        const goalSeconds = Math.max(5, goalMinutes)*60;
-        // recordings
-        const [recordings,setRecordings] = useLocalStorage('stacie.recordings', []);
-        // spaced repetition
-        const sr = useSpacedRepetition();
-        const [showReview,setShowReview] = useState(false);
-        // speech recog
-        const [recording,setRecording] = useState(false);
-        const [transcript,setTranscript] = useState('');
-        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
-        // flow
-        const [step,setStep] = useState(0);
-        const [passed,setPassed] = useState(null);
-        const [badWords,setBadWords] = useState([]);
-        // daily content
-        const [dayPlan,setDayPlan] = useState(null);
-        // build daily plan
-        useEffect(()=>{
-          const plan = generateDayPlan(level, todayISO(), selectedTrack);
-          setDayPlan(plan);
-        },[level,selectedTrack]);
-        // timer
-        useEffect(()=>{
-          if(!sessionStarted) return;
-          const id=setInterval(()=>setSessionSeconds(s=>s+1),1000);
-          return ()=>clearInterval(id);
-        },[sessionStarted]);
-        // finish session
-        useEffect(()=>{
-          if (sessionSeconds>=goalSeconds && sessionStarted){
-            const today=todayISO();
-            if (lastDone!==today){
-              if (lastDone===ydayISO()) setStreak(s=>s+1);
-              else setStreak(1);
-              setLastDone(today);
-              // level-up rule
-              try{
-                const current=Number(level??0);
-                if ((streak+1)>=7 && current<2){ setLevel(current+1); }
-              }catch{}
-            }
-            setSessionStarted(false);
-            setStep(4);
-            speak('¡Sesión completa!');
-          }
-        },[sessionSeconds,goalSeconds,sessionStarted,lastDone]);
-        const encouragement = useMemo(()=>flex(ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)], inclusive),[]);
-        if (!dayPlan) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
-        const scene = dayPlan.scenePick;
-        const verb = dayPlan.verbPick;
-        const emotion = flex(dayPlan.emoPick, inclusive);
-        const lunchCard = dayPlan.lunchPrompt;
-        const sceneText = flex(scene.es || '', inclusive);
-        const verbText = flex(verb.sample || '', inclusive);
-        // actions
-        function startSession(){ setSessionSeconds(0); setStep(0); setSessionStarted(true); speak('Empezamos. Hoy va a ir muy bien.'); }
-        function nextStep(){ setTranscript(''); setPassed(null); setBadWords([]); setStep(s=>Math.min(4,s+1)); }
-        function prevStep(){ setStep(s=>Math.max(0,s-1)); }
-        function handleRecord(target, itemId){
-          if(!rec.supported) return;
-          if(!recording){ setTranscript(''); setPassed(null); rec.start(); setRecording(true); }
-          else {
-            rec.stop();
-            const { pass, badWords } = wordScore(target, transcript);
-            setPassed(pass); setBadWords(badWords);
-            sr.recordAttempt(itemId, pass);
-            // Save recording
-            setRecordings(prev => [...prev, {
-              transcript,
-              target,
-              passed: pass,
-              timestamp: Date.now()
-            }]);
-            if (pass) speak('¡Bien hecho!');
-            else speak('Casi, intenta de nuevo.');
-          }
-        }
-        function markManual(itemId){ setPassed(true); setBadWords([]); sr.recordAttempt(itemId, true); }
-        // Get weak items for review
-        const allItems = [...Object.values(PRESENT_SENTENCES).flat(), ...VERB_LAB];
-        const weakItems = sr.getWeakItems(allItems, 10);
-        const stats = sr.getStats();
-        const Stepper = () => (
-          <div className="flex items-center gap-2 mb-3">
-            {[0,1,2,3].map(i=>(
-              <div key={i} className={cx('h-2 flex-1 rounded-full', i<=step?'bg-brand-900/90':'bg-brand-900/15')}/>
-            ))}
-          </div>
-        );
-        return (
-          <div className="min-h-screen w-full">
-            {showReview && (
-              <ReviewMode 
-                weakItems={weakItems} 
-                onClose={()=>setShowReview(false)}
-                onComplete={()=>{ setShowReview(false); speak('¡Buen repaso!'); }}
-                inclusive={inclusive}
-              />
-            )}
-            <div className="relative max-w-md mx-auto px-4 py-6 sm:py-8">
-              <header className="mb-5 flex items-center justify-between relative z-10">
-                <div>
-                  <h1 className={cx('font-bold text-brand-900', bigText?'text-3xl':'text-2xl')}>stacie <span className="text-blossom-600 text-base">v3</span></h1>
-                  <p className={cx('text-brand-700', bigText?'text-base':'text-sm')}>práctica profesional en español</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-brand-900 font-semibold">🔥 {streak}</div>
-                  <div className="text-brand-700 text-xs">racha</div>
-                </div>
-              </header>
-              {/* Stats Card */}
-              <Card className="mb-4">
-                <SectionTitle>Tu progreso</SectionTitle>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-brand-900">{stats.total}</div>
-                    <div className="text-xs text-brand-700">practicadas</div>
+      
+      // ---------------- MAS TAB ----------------
+      function MasTab({ level, setLevel, inclusive, setInclusive }){
+        const [showTips, setShowTips] = useState(false);
+        
+        if(showTips){
+          return (
+            <div>
+              <button onClick={()=>setShowTips(false)} className="text-brand-700 mb-4">← Atrás</button>
+              <h2 className="text-xl font-bold text-brand-900 mb-4">Tips culturales</h2>
+              <div className="space-y-3">
+                {CULTURAL_TIPS.map(tip => (
+                  <div key={tip.id} className="bg-white rounded-xl p-4 shadow-soft border border-brand-200">
+                    <h3 className="font-semibold text-brand-900 mb-2">{tip.title}</h3>
+                    <p className="text-sm text-brand-700">{tip.content}</p>
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold text-emerald-600">{stats.mastered}</div>
-                    <div className="text-xs text-brand-700">dominadas</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-amber-600">{stats.struggling}</div>
-                    <div className="text-xs text-brand-700">repasar</div>
-                  </div>
-                </div>
-                {weakItems.length > 0 && (
-                  <button onClick={()=>setShowReview(true)} className="mt-3 w-full px-3 py-2 rounded-xl bg-amber-600 text-white">
-                    Modo repaso ({weakItems.length} frases)
-                  </button>
-                )}
-              </Card>
-              {/* Lunch partner prompt */}
-              <Card className="mb-4">
-                <SectionTitle>Tarjeta del almuerzo</SectionTitle>
-                <p className={cx(bigText?'text-lg':'text-base','mb-2 text-brand-900')}>{lunchCard}</p>
-                <div className="flex gap-2">
-                  <button onClick={()=>navigator.clipboard?.writeText(lunchCard)} className="px-3 py-2 rounded-xl bg-brand-900 text-white text-sm">Copiar</button>
-                  <button onClick={()=>speak(lunchCard)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900 text-sm">Escuchar</button>
-                </div>
-              </Card>
-              {/* Track chooser */}
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {TRACKS.slice(0,4).map(t=>(
-                  <button key={t.key} onClick={()=>setSelectedTrack(t.key)}
-                          className={cx('rounded-2xl py-3 text-white text-sm font-semibold shadow', t.color, selectedTrack===t.key?'opacity-100':'opacity-75')}>
-                    {t.name}
-                  </button>
                 ))}
               </div>
-              {/* Work track - featured */}
-              <button 
-                onClick={()=>setSelectedTrack('work')}
-                className={cx('w-full rounded-2xl py-3 text-white text-sm font-semibold shadow mb-4 relative', 'bg-blossom-600', selectedTrack==='work'?'opacity-100':'opacity-75')}>
-                💼 Trabajo / Profesional
-                <span className="absolute top-1 right-2 text-xs bg-white/20 px-2 py-0.5 rounded-full">nuevo</span>
-              </button>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-soft border border-brand-200">
+              <h2 className="text-xl font-bold text-brand-900 mb-4">Ajustes</h2>
               
-              {/* Quick Professional Phrases */}
-              {selectedTrack === 'work' && (
-                <Card className="mb-4">
-                  <SectionTitle>Frases rápidas - Trabajo</SectionTitle>
-                  <div className="space-y-2">
-                    <button onClick={()=>speak('¿En qué puedo ayudarle?')} className="w-full text-left px-3 py-2 rounded-lg bg-brand-50 hover:bg-brand-100 text-sm">
-                      <span className="text-brand-900">¿En qué puedo ayudarle?</span>
-                      <span className="text-brand-700 text-xs ml-2">- How can I help you?</span>
-                    </button>
-                    <button onClick={()=>speak('Un momento por favor')} className="w-full text-left px-3 py-2 rounded-lg bg-brand-50 hover:bg-brand-100 text-sm">
-                      <span className="text-brand-900">Un momento por favor</span>
-                      <span className="text-brand-700 text-xs ml-2">- One moment please</span>
-                    </button>
-                    <button onClick={()=>speak('Si necesita algo, avíseme')} className="w-full text-left px-3 py-2 rounded-lg bg-brand-50 hover:bg-brand-100 text-sm">
-                      <span className="text-brand-900">Si necesita algo, avíseme</span>
-                      <span className="text-brand-700 text-xs ml-2">- If you need anything, let me know</span>
-                    </button>
-                    <button onClick={()=>speak('Estoy aquí para ayudar')} className="w-full text-left px-3 py-2 rounded-lg bg-brand-50 hover:bg-brand-100 text-sm">
-                      <span className="text-brand-900">Estoy aquí para ayudar</span>
-                      <span className="text-brand-700 text-xs ml-2">- I'm here to help</span>
-                    </button>
-                  </div>
-                </Card>
-              )}
-              
-              <Card className="mb-4">
-                <Stepper/>
-                {/* Warm start */}
-                {step===0 && (
-                  <div>
-                    <SectionTitle>Bienvenida</SectionTitle>
-                    <p className={cx(bigText?'text-lg':'text-base','mb-3 text-brand-900')}>{encouragement}</p>
-                    <p className={cx(bigText?'text-base':'text-sm','text-brand-700 mb-3')}>
-                      Sesión meta: {goalMinutes} min · Nivel: {level}
-                    </p>
-                    <div className="flex gap-2">
-                      <button onClick={startSession} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Empezar</button>
-                      <button onClick={()=>speak('Hola, hoy va suave y corto. Tú puedes.')} className="px-4 py-2 rounded-xl bg-brand-100 text-brand-900">Escuchar</button>
-                    </div>
-                  </div>
-                )}
-                {/* Verb Lab */}
-                {step===1 && (
-                  <div>
-                    <SectionTitle>Laboratorio de verbos</SectionTitle>
-                    <p className="text-brand-700 text-sm mb-2">Presente · {verb.inf}</p>
-                    <TargetSentence text={verbText} bad={badWords} bigText={bigText} inclusive={inclusive}/>
-                    <div className="flex items-center gap-2 mt-3 flex-wrap">
-                      <button onClick={()=>speak(verbText)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶</button>
-                      <button onClick={()=>handleRecord(verbText, verb.id)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
-                        {recording?'Detener':'Grabar'}
-                      </button>
-                      {!rec.supported && (
-                        <button onClick={()=>markManual(verb.id)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>
-                      )}
-                    </div>
-                    {transcript && (
-                      <div className="mt-3">
-                        <div className="text-xs text-brand-700 mb-1">Transcripción</div>
-                        <div className="p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
-                      </div>
-                    )}
-                    {passed!==null && (
-                      <div className={cx('mt-3 px-3 py-2 rounded-xl inline-block', passed?'bg-emerald-100 text-emerald-900':'bg-amber-100 text-amber-900')}>
-                        {passed?'✔ Bien':'◻ Necesita trabajo'}{!passed && badWords.length>0?` · Palabras: ${badWords.join(', ')}`:''}
-                      </div>
-                    )}
-                    <div className="mt-4 flex justify-between">
-                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Atrás</button>
-                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Siguiente</button>
-                    </div>
-                  </div>
-                )}
-                {/* Scene */}
-                {step===2 && (
-                  <div>
-                    <SectionTitle>Escena: {TRACKS.find(t=>t.key===selectedTrack)?.name}</SectionTitle>
-                    <TargetSentence text={sceneText} bad={badWords} bigText={bigText} inclusive={inclusive}/>
-                    <p className="text-brand-700 text-sm mt-2">Pista: {scene.hint}</p>
-                    <div className="flex items-center gap-2 mt-3 flex-wrap">
-                      <button onClick={()=>speak(sceneText)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶</button>
-                      <button onClick={()=>handleRecord(sceneText, scene.id)} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
-                        {recording?'Detener':'Decir'}
-                      </button>
-                      {!rec.supported && (
-                        <button onClick={()=>markManual(scene.id)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Dije esto</button>
-                      )}
-                    </div>
-                    {transcript && (
-                      <div className="mt-3">
-                        <div className="text-xs text-brand-700 mb-1">Transcripción</div>
-                        <div className="p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
-                      </div>
-                    )}
-                    {passed!==null && (
-                      <div className={cx('mt-3 px-3 py-2 rounded-xl inline-block', passed?'bg-emerald-100 text-emerald-900':'bg-amber-100 text-amber-900')}>
-                        {passed?'✔ Bien':'◻ Necesita trabajo'}{!passed && badWords.length>0?` · Palabras: ${badWords.join(', ')}`:''}
-                      </div>
-                    )}
-                    <div className="mt-4 flex justify-between">
-                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Atrás</button>
-                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Siguiente</button>
-                    </div>
-                  </div>
-                )}
-                {/* Emotions */}
-                {step===3 && (
-                  <div>
-                    <SectionTitle>Hablar de emociones</SectionTitle>
-                    <p className={cx(bigText?'text-lg':'text-base','mb-2 text-brand-900')}>
-                      Di: <span className="font-semibold">Me siento {emotion}</span>
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {EMOTIONS.slice(0,10).map((e,i)=>(
-                        <button key={i} onClick={()=>speak(flex(e,inclusive))} className="px-3 py-1.5 rounded-full bg-brand-100 text-sm text-brand-900">
-                          {flex(e,inclusive)}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <button onClick={()=>speak(`Me siento ${emotion}`)} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">▶</button>
-                      <button onClick={()=>handleRecord(`Me siento ${emotion}`, 'emotion')} className={cx('px-3 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
-                        {recording?'Detener':'Decir'}
-                      </button>
-                    </div>
-                    {transcript && (
-                      <div className="mt-3 p-2 bg-brand-50 rounded-md text-sm text-brand-900">{transcript}</div>
-                    )}
-                    <div className="mt-4 flex justify-between">
-                      <button onClick={prevStep} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Atrás</button>
-                      <button onClick={nextStep} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Terminar</button>
-                    </div>
-                  </div>
-                )}
-                {/* Close */}
-                {step===4 && (
-                  <div>
-                    <SectionTitle>Cierre</SectionTitle>
-                    <p className={cx(bigText?'text-lg':'text-base','mb-2 text-brand-900')}>
-                      {lastDone===todayISO()?'¡Sesión completa!':'Sesión guardada.'} {encouragement}
-                    </p>
-                    <div className="flex gap-2">
-                      <button onClick={()=>{ setStep(1); setSessionStarted(true); }} className="px-3 py-2 rounded-xl bg-brand-100 text-brand-900">Otra ronda</button>
-                      <button onClick={()=>{ setSessionStarted(false); setStep(0); }} className="px-3 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
-                    </div>
-                  </div>
-                )}
-              </Card>
-              {/* Session progress */}
-              {sessionStarted && (
-                <Card className="mb-4">
-                  <SectionTitle>Progreso</SectionTitle>
-                  <div className="h-2 w-full bg-brand-100 rounded-full overflow-hidden mb-2">
-                    <div className="h-full bg-brand-900" style={{ width: `${Math.min(100,(sessionSeconds/goalSeconds)*100)}%` }} />
-                  </div>
-                  <div className="text-sm text-brand-800">
-                    {Math.floor(sessionSeconds/60)}:{String(sessionSeconds%60).padStart(2,'0')} / {goalMinutes}:00
-                  </div>
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    <button onClick={()=>setStep(1)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Verb Lab</button>
-                    <button onClick={()=>setStep(2)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Escena</button>
-                    <button onClick={()=>setStep(3)} className="px-3 py-2 rounded-xl bg-white border border-brand-200">Emociones</button>
-                  </div>
-                </Card>
-              )}
-              {/* Recording Playback */}
-              <RecordingPlayback />
-              {/* Settings */}
-              <Card className="mt-4 mb-24">
-                <SectionTitle>Ajustes</SectionTitle>
-                <div className="flex items-center justify-between py-2 border-b border-brand-100">
-                  <span>Texto grande</span>
-                  <button onClick={()=>setBigText(v=>!v)} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">{bigText?'Sí':'No'}</button>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-brand-100">
-                  <span>Lenguaje inclusivo (e)</span>
-                  <button onClick={()=>setInclusive(v=>!v)} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">{inclusive?'Sí':'No'}</button>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-brand-100">
-                  <span>Nivel actual</span>
-                  <select value={level} onChange={e=>setLevel(parseInt(e.target.value))} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-brand-200">
+                  <span className="text-brand-900">Nivel</span>
+                  <select value={level} onChange={e=>setLevel(parseInt(e.target.value))} className="px-3 py-1.5 rounded-lg bg-brand-100 text-brand-900">
                     <option value={0}>0 - Principiante</option>
                     <option value={1}>1 - Intermedio</option>
                     <option value={2}>2 - Avanzado</option>
                   </select>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-brand-100">
-                  <span>Meta diaria</span>
-                  <select value={goalMinutes} onChange={e=>setGoalMinutes(parseInt(e.target.value))} className="px-3 py-1.5 rounded-xl bg-brand-100 text-brand-900">
-                    {[5,8,10,15,20].map(m=><option key={m} value={m}>{m} min</option>)}
-                  </select>
+                
+                <div className="flex items-center justify-between py-2 border-b border-brand-200">
+                  <span className="text-brand-900">Lenguaje inclusivo</span>
+                  <button onClick={()=>setInclusive(v=>!v)} className="px-3 py-1.5 rounded-lg bg-brand-100 text-brand-900">
+                    {inclusive ? 'Sí' : 'No'}
+                  </button>
                 </div>
-                <div className="flex items-center justify-between py-2">
-                  <span>Reiniciar racha</span>
-                  <button onClick={()=>{ setStreak(0); setLastDone(''); }} className="px-3 py-1.5 rounded-xl bg-rose-600 text-white">Reiniciar</button>
-                </div>
-              </Card>
-              <footer className="text-center text-xs text-brand-700 pb-10">
-                hecho con cariño · méxico (tú) · v3.0
-              </footer>
+              </div>
+            </div>
+            
+            <button onClick={()=>setShowTips(true)} className="w-full bg-blossom-600 text-white py-3 rounded-xl font-semibold">
+              📚 Tips culturales
+            </button>
+            
+            <div className="text-center text-xs text-brand-700 py-4">
+              hecho con cariño · v4.0 completo
             </div>
           </div>
         );
       }
+      
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
     </script>
