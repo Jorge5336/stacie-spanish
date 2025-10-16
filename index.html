@@ -1203,7 +1203,7 @@
         );
       }
       
-     <!-- START: Enhanced PracticaTab with all features -->
+     /* START: Enhanced PracticaTab with all features */
       // ---------------- PRACTICA TAB with Everything ----------------
       function PracticaTab({ level, inclusive, recordings, setRecordings, playlists, setPlaylists, confidenceHistory, setConfidenceHistory, onComplete, showToast }){
         const [mode, setMode] = useState(null); // 'quick', 'structured', 'search', 'playlist', 'library', 'suegros'
@@ -1791,9 +1791,9 @@
           </div>
         );
       }
-<!-- END: Enhanced PracticaTab -->
+/* END: Enhanced PracticaTab */
 
-<!-- START: All Cat Games from v6 -->
+/* START: All Cat Games from v6 */
       // ---------------- GATOS TAB - All 4 Games ----------------
       function GatosTab({ catGamesPlayed, setCatGamesPlayed, showToast, badges }){
         const [selectedGame, setSelectedGame] = useState(null);
@@ -2180,9 +2180,9 @@
           </div>
         );
       }
-<!-- END: All Cat Games -->
+/* END: All Cat Games */
 
-<!-- START: Enhanced StatsTab with confidence tracking -->
+/* START: Enhanced StatsTab with confidence tracking */
       // ---------------- STATS TAB with Everything ----------------
       function StatsTab({ sessions, streak, badges, recordings, confidenceHistory, conversations }){
         const [view, setView] = useState('overview'); // 'overview', 'confidence', 'tracks', 'timeline'
@@ -2463,9 +2463,9 @@
           </div>
         );
       }
-<!-- END: Enhanced StatsTab -->
+/* END: Enhanced StatsTab */
 
-<!-- START: Enhanced MasTab with better journal -->
+/* START: Enhanced MasTab with better journal */
       // ---------------- MAS TAB with Voice Journal ----------------
       function MasTab({ level, setLevel, inclusive, setInclusive, darkMode, setDarkMode, journals, setJournals, showToast }){
         const [tab, setTab] = useState('settings'); // 'settings', 'journal', 'tips', 'about'
@@ -2720,7 +2720,6 @@
           </div>
         );
       }
-<
       
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
