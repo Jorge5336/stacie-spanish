@@ -209,7 +209,7 @@
       // ---------------- CAT PERSONALITIES ----------------
       const CATS = {
         otis: { name: 'Otis', emoji: '🐱', color: '#f59e0b', game: 'Speed Challenge', personality: 'competitive' },
-        doom: { name: 'Doom', emoji: '🐈', color: '#8b5cf6', game: 'Memory Match', personality: 'affectionate' },
+        doom: { name: 'DOOM', emoji: '🐈', color: '#8b5cf6', game: 'Memory Match', personality: 'affectionate' },
         jules: { name: 'Jules', emoji: '🐾', color: '#ec4899', game: 'Truth Meter', personality: 'independent' },
         lassie: { name: 'Lassie', emoji: '😸', color: '#10b981', game: 'Phrase Collector', personality: 'protective' },
         mia: { name: 'Mia', emoji: '💙', color: '#3b82f6', personality: 'supportive' }
@@ -226,435 +226,484 @@
         { key:'food', name:'Comida', icon:'🌶️', color:'bg-orange-600' }
       ];
       
-      // ---------------- EXPANDED CONTENT LIBRARY ----------------
-      const SENTENCES = {
-        work: [
-          // Residence Hall Basics
-          { id:'w1', lvl:0, es:'Hola, bienvenide. ¿Cómo te llamas?', hint:'welcome what is your name', tags:['greeting'] },
-          { id:'w2', lvl:0, es:'¿Cómo va todo en tu cuarto?', hint:'how is everything in your room', tags:['checkin'] },
-          { id:'w3', lvl:0, es:'Estoy aquí para ayudar.', hint:'here to help', tags:['support'] },
-          { id:'w4', lvl:1, es:'¿Necesitas algo? Avísame porfa.', hint:'need anything let me know', tags:['support'] },
-          { id:'w5', lvl:1, es:'Hay un evento esta noche en el salón.', hint:'event tonight in lounge', tags:['events'] },
-          { id:'w6', lvl:1, es:'¿Cómo te va con las clases?', hint:'how are classes', tags:['rapport'] },
-          { id:'w7', lvl:2, es:'Si hay problema, comunícate conmigo.', hint:'if problem communicate with me', tags:['boundaries'] },
-          { id:'w8', lvl:2, es:'Respeten las horas de silencio porfa.', hint:'respect quiet hours please', tags:['rules'] },
-          // Carleton-specific
-          { id:'w9', lvl:0, es:'¿Te fue bien en el tour hoy?', hint:'tour go well today', tags:['work','carleton'] },
-          { id:'w10', lvl:1, es:'Las familias siempre preguntan sobre el clima.', hint:'families always ask about weather', tags:['work','minnesota'] },
-          { id:'w11', lvl:1, es:'El Arb es mi parte favorita del campus.', hint:'arb is my favorite part', tags:['work','carleton'] },
-          { id:'w12', lvl:2, es:'Cuéntales sobre las opciones de comida.', hint:'tell them about food options', tags:['work','tours'] },
-        ],
-        
-        mia: [
-          // Daily Check-ins
-          { id:'m1', lvl:0, es:'¿Cómo te fue hoy?', hint:'how was your day', tags:['checkin'] },
-          { id:'m2', lvl:0, es:'Cuéntame de tu día en Carleton.', hint:'tell me about your day at Carleton', tags:['interest'] },
-          { id:'m3', lvl:0, es:'¿Quieres cocinar juntes esta noche?', hint:'cook together tonight', tags:['plans'] },
-          { id:'m4', lvl:1, es:'¿Hubo tours interesantes hoy?', hint:'interesting tours today', tags:['work'] },
-          { id:'m5', lvl:1, es:'Te guardé la última concha. Soy un amor.', hint:'saved you the last pastry', tags:['sweet'] },
-          { id:'m6', lvl:1, es:'¿Quieres que hagamos algo especial este finde?', hint:'do something special weekend', tags:['plans'] },
-          { id:'m7', lvl:1, es:'Eres [increíble|increíble]. Gracias por todo.', hint:'you are amazing thanks for everything', tags:['appreciation'] },
-          { id:'m8', lvl:2, es:'Te ves [cansada|cansade]. ¿Necesitas descansar?', hint:'you look tired need to rest', tags:['care'] },
-          // Emotional Support
-          { id:'m9', lvl:0, es:'Te extraño cuando no estás.', hint:'miss you when not here', tags:['love'] },
-          { id:'m10', lvl:1, es:'Me encanta cómo te ríes.', hint:'love how you laugh', tags:['compliment'] },
-          { id:'m11', lvl:1, es:'Eres mi persona favorita.', hint:'you are my favorite person', tags:['love'] },
-          { id:'m12', lvl:2, es:'Platícame qué te preocupa.', hint:'tell me what worries you', tags:['support'] },
-        ],
-        
-        family: [
-          // Basic Greetings
-          { id:'f1', lvl:0, es:'Buenos días. ¿Cómo están?', hint:'good morning how are you', tags:['greeting'] },
-          { id:'f2', lvl:0, es:'La comida está deliciosa.', hint:'food is delicious', tags:['compliment'] },
-          { id:'f3', lvl:0, es:'Disculpe, ¿mande? No entendí.', hint:'pardon what did not understand', tags:['clarification'] },
-          { id:'f4', lvl:1, es:'Me da mucho gusto verlos.', hint:'happy to see you', tags:['warmth'] },
-          { id:'f5', lvl:1, es:'Gracias por recibirnos.', hint:'thanks for having us', tags:['gratitude'] },
-          { id:'f6', lvl:1, es:'Practico mi español cada día.', hint:'practice Spanish every day', tags:['effort'] },
-          { id:'f7', lvl:2, es:'Cuéntennos de su semana.', hint:'tell us about your week', tags:['conversation'] },
-          { id:'f8', lvl:2, es:'Déjennos ayudar con los platos.', hint:'let us help with dishes', tags:['helping'] },
-          // Extended Family
-          { id:'f9', lvl:1, es:'¿Cómo está la familia en México?', hint:'how is family in Mexico', tags:['extended'] },
-          { id:'f10', lvl:1, es:'Me gustaría conocer a todos.', hint:'would like to meet everyone', tags:['interest'] },
-          { id:'f11', lvl:2, es:'Espero que podamos visitarlos pronto.', hint:'hope we can visit soon', tags:['future'] },
-        ],
-        
-        suegros: [
-          // Meeting Parents
-          { id:'s1', lvl:0, es:'Mucho gusto en conocerlos.', hint:'nice to meet you', tags:['first_meeting'] },
-          { id:'s2', lvl:0, es:'Mia me ha hablado mucho de ustedes.', hint:'Mia has told me a lot about you', tags:['connection'] },
-          { id:'s3', lvl:0, es:'Su casa es muy bonita.', hint:'your house is very pretty', tags:['compliment'] },
-          { id:'s4', lvl:1, es:'¿Puedo ayudar con algo?', hint:'can I help with something', tags:['helpful'] },
-          { id:'s5', lvl:1, es:'Me encanta la comida mexicana.', hint:'love Mexican food', tags:['food'] },
-          { id:'s6', lvl:1, es:'Mia y yo estamos muy [contentas|contentes].', hint:'Mia and I are very happy', tags:['relationship'] },
-          { id:'s7', lvl:2, es:'Trabajo en una residencia universitaria.', hint:'work in university residence', tags:['job'] },
-          { id:'s8', lvl:2, es:'Aprecio mucho su hospitalidad.', hint:'appreciate your hospitality', tags:['formal'] },
-          // Cultural Bridge
-          { id:'s9', lvl:1, es:'En Minnesota hace mucho frío.', hint:'Minnesota very cold', tags:['minnesota'] },
-          { id:'s10', lvl:1, es:'Me enseñan mucho sobre México.', hint:'teach me about Mexico', tags:['learning'] },
-          { id:'s11', lvl:2, es:'Es importante para mí hablar español.', hint:'important for me to speak Spanish', tags:['commitment'] },
-          { id:'s12', lvl:2, es:'Quiero que nuestros hijos sean bilingües.', hint:'want our children bilingual', tags:['future'] },
-        ],
-        
-        vida: [
-          // Morning Routines
-          { id:'v1', lvl:0, es:'Buenos días, mi amor. ¿Dormiste bien?', hint:'good morning sleep well', tags:['morning','mia'] },
-          { id:'v2', lvl:0, es:'Voy a hacer café. ¿Quieres?', hint:'making coffee want some', tags:['morning','coffee'] },
-          { id:'v3', lvl:0, es:'¿A qué hora sales hoy?', hint:'what time leave today', tags:['morning','schedule'] },
-          { id:'v4', lvl:1, es:'Tengo que salir tempranito para el trabajo.', hint:'leave early for work', tags:['morning','work'] },
-          { id:'v5', lvl:1, es:'¿Desayunamos juntes?', hint:'breakfast together', tags:['morning','meal'] },
-          // Evening Routines
-          { id:'v6', lvl:0, es:'¿Qué se te antoja para cenar?', hint:'what want for dinner', tags:['evening','food'] },
-          { id:'v7', lvl:0, es:'Ya llegué. ¿Cómo estás?', hint:'arrived how are you', tags:['evening','arrival'] },
-          { id:'v8', lvl:1, es:'Estoy [cansade|cansade]. ¿Pedimos comida?', hint:'tired order food', tags:['evening','tired'] },
-          { id:'v9', lvl:1, es:'Vamos a ver algo en Netflix y descansar.', hint:'watch Netflix and rest', tags:['evening','relax'] },
-          { id:'v10', lvl:2, es:'Prepara tú la cena mientras yo lavo.', hint:'you make dinner while I wash', tags:['evening','chores'] },
-          // Weekend
-          { id:'v11', lvl:0, es:'Es sábado. Podemos dormir tantito más.', hint:'Saturday sleep more', tags:['weekend','sleep'] },
-          { id:'v12', lvl:1, es:'Vamos al Arb si hace buen clima.', hint:'go to Arb if good weather', tags:['weekend','minnesota'] },
-          { id:'v13', lvl:1, es:'¿Qué tal un brunch y luego el mercado?', hint:'brunch then market', tags:['weekend','plans'] },
-          { id:'v14', lvl:2, es:'Invitemos a amigos a cenar.', hint:'invite friends for dinner', tags:['weekend','social'] },
-          // Minnesota Life
-          { id:'v15', lvl:0, es:'Hace un frío de la chingada afuera.', hint:'freezing cold outside', tags:['winter','minnesota'] },
-          { id:'v16', lvl:1, es:'Si hace frío, hacemos té y nos quedamos.', hint:'if cold make tea and stay', tags:['winter','cozy'] },
-          { id:'v17', lvl:1, es:'¿Traes tu chamarra buena? Hace frío.', hint:'have good jacket cold', tags:['winter','care'] },
-          { id:'v18', lvl:1, es:'La nieve está bonita pero qué flojera.', hint:'snow pretty but what laziness', tags:['winter','minnesota'] },
-          // Errands & Shopping
-          { id:'v19', lvl:0, es:'Necesitamos ir al súper.', hint:'need to go to store', tags:['errands','shopping'] },
-          { id:'v20', lvl:1, es:'¿Me acompañas a Target?', hint:'come with me to Target', tags:['errands','shopping'] },
-          { id:'v21', lvl:1, es:'Hay que comprar papel de baño.', hint:'need to buy toilet paper', tags:['errands','necessities'] },
-          { id:'v22', lvl:2, es:'Revisa qué hace falta en la cocina.', hint:'check what needed in kitchen', tags:['errands','planning'] },
-        ],
-        
-        health: [
-          // Basic Health
-          { id:'h1', lvl:0, es:'Me duele la cabeza.', hint:'head hurts', tags:['pain'] },
-          { id:'h2', lvl:0, es:'¿Tienes medicina?', hint:'have medicine', tags:['medication'] },
-          { id:'h3', lvl:0, es:'Me siento mal.', hint:'feel bad', tags:['sick'] },
-          { id:'h4', lvl:1, es:'Creo que tengo fiebre.', hint:'think I have fever', tags:['symptoms'] },
-          { id:'h5', lvl:1, es:'Necesito descansar.', hint:'need to rest', tags:['recovery'] },
-          // Emotions
-          { id:'h6', lvl:0, es:'Estoy [feliz|feliz].', hint:'I am happy', tags:['emotions','positive'] },
-          { id:'h7', lvl:0, es:'Me siento [triste|triste].', hint:'feel sad', tags:['emotions','negative'] },
-          { id:'h8', lvl:1, es:'Estoy [estresade|estresade] por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
-          { id:'h9', lvl:1, es:'Me siento [orgullose|orgullose] de ti.', hint:'feel proud of you', tags:['emotions','pride'] },
-          { id:'h10', lvl:2, es:'Necesito hablar de algo que me molesta.', hint:'need to talk about something bothering', tags:['emotions','communication'] },
-        ],
-        
-        food: [
-          // Coffee Orders
-          { id:'fo1', lvl:0, es:'Un café, por favor.', hint:'coffee please', tags:['coffee','order'] },
-          { id:'fo2', lvl:0, es:'Un oat milk latte, no muy caliente.', hint:'oat milk latte not too hot', tags:['coffee','specific'] },
-          { id:'fo3', lvl:1, es:'¿Tienen descafeinado?', hint:'have decaf', tags:['coffee','question'] },
-          // Restaurant
-          { id:'fo4', lvl:0, es:'Mesa para dos, por favor.', hint:'table for two please', tags:['restaurant'] },
-          { id:'fo5', lvl:0, es:'La cuenta, por favor.', hint:'check please', tags:['restaurant'] },
-          { id:'fo6', lvl:1, es:'Para llevar, por favor. Sin cilantro.', hint:'to go no cilantro', tags:['takeout'] },
-          { id:'fo7', lvl:1, es:'¿Qué me recomienda?', hint:'what do you recommend', tags:['restaurant','question'] },
-          { id:'fo8', lvl:2, es:'¿Tienen opciones vegetarianas?', hint:'have vegetarian options', tags:['restaurant','dietary'] },
-          // Mexican Food
-          { id:'fo9', lvl:0, es:'Dos tacos de carnitas, porfa.', hint:'two carnitas tacos please', tags:['mexican'] },
-          { id:'fo10', lvl:1, es:'Con todo menos cebolla.', hint:'with everything except onion', tags:['mexican','preference'] },
-          { id:'fo11', lvl:1, es:'¿Pica mucho?', hint:'is it very spicy', tags:['mexican','spice'] },
-          { id:'fo12', lvl:2, es:'Me gustan las tortillas de maíz más.', hint:'prefer corn tortillas', tags:['mexican','preference'] },
-        ]
-      };
-      
-      const ALL_SENTENCES = Object.values(SENTENCES).flat();
-      
-      // ---------------- LUNCH CARDS ----------------
-      const LUNCH_CARDS = [
-        { id:'lc1', es:'Cuéntale a Mia sobre tu día en español.', en:'Tell Mia about your day in Spanish.' },
-        { id:'lc2', es:'Pregúntale qué se le antoja para cenar.', en:'Ask what she craves for dinner.' },
-        { id:'lc3', es:'Dile algo bonito usando "me encanta..."', en:'Say something nice using "me encanta..."' },
-        { id:'lc4', es:'Invítala a cocinar juntes esta noche.', en:'Invite her to cook together tonight.' },
-        { id:'lc5', es:'Pregunta: "¿Cómo te sientes hoy?"', en:'Ask: "How do you feel today?"' },
-        { id:'lc6', es:'Practica: "Estoy [orgullose|orgullose] de ti."', en:'Practice: "I\'m proud of you."' },
-        { id:'lc7', es:'Sugiere planes para el fin de semana.', en:'Suggest weekend plans.' },
-        { id:'lc8', es:'Habla del clima en español.', en:'Talk about the weather in Spanish.' },
-        { id:'lc9', es:'Pide ayuda con algo usando "¿Me ayudas...?"', en:'Ask for help using "¿Me ayudas...?"' },
-        { id:'lc10', es:'Comparte qué aprendiste hoy.', en:'Share what you learned today.' },
-        { id:'lc11', es:'Pregunta sobre su familia en México.', en:'Ask about her family in Mexico.' },
-        { id:'lc12', es:'Dile tres cosas por las que estás [agradecide|agradecide].', en:'Tell three things you\'re grateful for.' },
-        { id:'lc13', es:'Practica ordenar café en español.', en:'Practice ordering coffee in Spanish.' },
-        { id:'lc14', es:'Describe tu comida favorita mexicana.', en:'Describe your favorite Mexican food.' },
-        { id:'lc15', es:'Habla de tus metas en español.', en:'Talk about your goals in Spanish.' },
-      ];
-      
-      // ---------------- ENCOURAGEMENTS ----------------
-      const ENCOURAGEMENTS = [
-        // Otis (competitive)
-        { cat: 'otis', text: 'MIAU MIAU... digo, excelente. Aunque yo lo hubiera hecho mejor. 😼' },
-        { cat: 'otis', text: '*se estira todo lo largo* Sí sí, bien. ¿Ya terminaste? 🐱' },
-        { cat: 'otis', text: 'Aceptable. Para ser humana. *bosteza* 🐱' },
-        // Doom (affectionate)
-        { cat: 'doom', text: 'Eso estuvo de lujo. Te mando un abrazo grande (como yo). 🐈💕' },
-        { cat: 'doom', text: 'Le echaste salsita. Pica rico. 🌶️🐈' },
-        { cat: 'doom', text: '*ronroneo intenso* Bien hecho, Stacie. 🐈' },
-        // Jules (independent)
-        { cat: 'jules', text: 'Quedó chido. Ahora déjame en paz, necesito mi espacio. 🐾' },
-        { cat: 'jules', text: 'Respeto. Hoy te ganaste tu espacio. 👏🐾' },
-        { cat: 'jules', text: 'No está mal. *se va a su rincón* 🐾' },
-        // Lassie (protective)
-        { cat: 'lassie', text: 'Te cuido siempre. Poquito a poquito es camino. 😸' },
-        { cat: 'lassie', text: 'Estoy [orgullosa|orgullose]. Yo vigilo. 🛡️😸' },
-        { cat: 'lassie', text: 'Bien, Stacie. Aquí estoy si necesitas. 😸' },
-        // Mia (supportive)
-        { cat: 'mia', text: 'Mi amor, qué [orgullose|orgullose] estoy. Eres increíble. 💙' },
-        { cat: 'mia', text: 'Te amo. Cada día mejor. 💙' },
-        { cat: 'mia', text: 'Eso es, mi vida. Sigue así. 💙' },
-      ];
-      
-      // ---------------- CONVERSATIONS ----------------
-      const CONVERSATIONS = {
-        suegros_dinner: {
-          name: 'Cena con los suegros',
-          start: {
-            them: 'Buenas noches, Stacie. ¿Cómo estás?',
-            responses: [
-              { text: 'Muy bien, gracias. ¿Y ustedes?', confidence: 5, next: 'good_response' },
-              { text: 'Bien, gracias.', confidence: 3, next: 'short_response' },
-              { text: 'Estoy bien. La comida huele deliciosa.', confidence: 4, next: 'food_compliment' }
-            ]
-          },
-          good_response: {
-            them: 'Muy bien también. ¿Cómo te fue en el trabajo?',
-            responses: [
-              { text: 'Bien, tuve muchos tours hoy.', confidence: 4, next: 'work_talk' },
-              { text: 'Un poco cansada, pero bien.', confidence: 3, next: 'tired' },
-              { text: 'Muy bien. Los estudiantes están emocionados.', confidence: 5, next: 'students' }
-            ]
-          },
-          short_response: {
-            them: 'Qué bueno. Pásale, ya casi está la cena.',
-            responses: [
-              { text: 'Gracias. ¿Puedo ayudar con algo?', confidence: 5, next: 'helpful' },
-              { text: 'Gracias, huele muy rico.', confidence: 4, next: 'food_compliment' }
-            ]
-          },
-          food_compliment: {
-            them: 'Gracias, es mole de la abuela. ¿Te gusta la comida mexicana?',
-            responses: [
-              { text: 'Me encanta. Mia me ha enseñado mucho.', confidence: 5, next: 'end_good' },
-              { text: 'Sí, mucho. Especialmente el mole.', confidence: 4, next: 'end_good' },
-              { text: 'Sí, pero todavía estoy aprendiendo sobre los picantes.', confidence: 4, next: 'end_good' }
-            ]
-          },
-          work_talk: {
-            them: 'Qué bueno. Mia nos cuenta que trabajas muy duro.',
-            responses: [
-              { text: 'Me gusta mucho mi trabajo.', confidence: 4, next: 'end_good' },
-              { text: 'Sí, pero vale la pena. Me encanta Carleton.', confidence: 5, next: 'end_good' }
-            ]
-          },
-          tired: {
-            them: 'Descansa. La cena te va a dar energía.',
-            responses: [
-              { text: 'Gracias, son muy amables.', confidence: 5, next: 'end_good' },
-              { text: 'Sí, necesito la comida de casa.', confidence: 4, next: 'end_good' }
-            ]
-          },
-          students: {
-            them: '¡Qué padre! ¿De dónde vienen los estudiantes?',
-            responses: [
-              { text: 'De todo el país, y algunos internacionales.', confidence: 5, next: 'end_good' },
-              { text: 'De muchos lugares. Es muy diverso.', confidence: 4, next: 'end_good' }
-            ]
-          },
-          helpful: {
-            them: 'No te preocupes, ya está todo. Mejor platícanos de tu semana.',
-            responses: [
-              { text: 'Fue buena. Mia y yo fuimos al Arb el sábado.', confidence: 5, next: 'end_good' },
-              { text: 'Muy ocupada, pero productiva.', confidence: 4, next: 'end_good' }
-            ]
-          },
-          end_good: {
-            them: '¡Qué bien! Vamos a cenar.',
-            complete: true,
-            feedback: '¡Excelente conversación! Los suegros están impresionados.'
-          }
-        },
-        
-        morning_routine: {
-          name: 'Rutina de la mañana',
-          start: {
-            them: 'Buenos días, mi amor.',
-            responses: [
-              { text: 'Buenos días. ¿Dormiste bien?', confidence: 5, next: 'sleep_well' },
-              { text: 'Hola, mi vida. ¿Café?', confidence: 4, next: 'coffee' },
-              { text: 'Buenos días. ¿Qué hora es?', confidence: 3, next: 'time' }
-            ]
-          },
-          sleep_well: {
-            them: 'Sí, muy bien. ¿Y tú?',
-            responses: [
-              { text: 'También. Soñé contigo.', confidence: 5, next: 'sweet' },
-              { text: 'Más o menos. Los gatos me despertaron.', confidence: 4, next: 'cats' },
-              { text: 'Bien, pero necesito café.', confidence: 3, next: 'coffee' }
-            ]
-          },
-          coffee: {
-            them: 'Yo hago el café. ¿El de siempre?',
-            responses: [
-              { text: 'Sí, porfa. Oat milk latte.', confidence: 5, next: 'breakfast' },
-              { text: 'Sí, gracias mi amor.', confidence: 4, next: 'breakfast' },
-              { text: 'Mejor té hoy, gracias.', confidence: 3, next: 'breakfast' }
-            ]
-          },
-          time: {
-            them: 'Las siete y media. ¿Tienes que salir temprano?',
-            responses: [
-              { text: 'Sí, tengo tours a las nueve.', confidence: 4, next: 'work' },
-              { text: 'No, hoy empiezo tarde.', confidence: 4, next: 'late_start' },
-              { text: 'Un poco. ¿Desayunamos juntes?', confidence: 5, next: 'breakfast' }
-            ]
-          },
-          sweet: {
-            them: 'Ay, qué linde. Te amo.',
-            responses: [
-              { text: 'Y yo a ti. ¿Qué haces hoy?', confidence: 5, next: 'day_plans' },
-              { text: 'Te amo más. ¿Desayunamos?', confidence: 5, next: 'breakfast' }
-            ]
-          },
-          cats: {
-            them: 'Jaja, Otis seguro. Es un despertador peludo.',
-            responses: [
-              { text: 'Necesita su desayuno a las 6 AM exactas.', confidence: 5, next: 'breakfast' },
-              { text: 'Sí, muy puntual el señor.', confidence: 4, next: 'breakfast' }
-            ]
-          },
-          work: {
-            them: '¿Cuántos tours tienes hoy?',
-            responses: [
-              { text: 'Tres, y una reunión después.', confidence: 5, next: 'end_good' },
-              { text: 'Varios. Va a ser un día largo.', confidence: 4, next: 'end_good' }
-            ]
-          },
-          late_start: {
-            them: 'Qué bueno. Entonces podemos desayunar con calma.',
-            responses: [
-              { text: 'Sí, me encanta. ¿Qué hacemos?', confidence: 5, next: 'end_good' },
-              { text: 'Perfecto. Hagamos pancakes.', confidence: 5, next: 'end_good' }
-            ]
-          },
-          breakfast: {
-            them: '¿Qué se te antoja?',
-            responses: [
-              { text: 'Lo que sea está bien. ¿Hay fruta?', confidence: 4, next: 'end_good' },
-              { text: 'Huevitos con tortilla.', confidence: 5, next: 'end_good' },
-              { text: 'Algo rápido, tengo que salir.', confidence: 3, next: 'end_good' }
-            ]
-          },
-          day_plans: {
-            them: 'Trabajo desde casa hoy. ¿Nos vemos para almorzar?',
-            responses: [
-              { text: 'Sí, ¿a la una está bien?', confidence: 5, next: 'end_good' },
-              { text: 'Me encantaría. Te texto cuando salga.', confidence: 5, next: 'end_good' }
-            ]
-          },
-          end_good: {
-            them: 'Perfecto. Ten un buen día, mi amor.',
-            complete: true,
-            feedback: '¡Conversación natural y fluida! Mia está feliz.'
-          }
-        },
-        
-        panic_situations: {
-          name: 'Situaciones de pánico',
-          start: {
-            them: '[Hablan muy rápido y no entiendes nada]',
-            responses: [
-              { text: 'Disculpe, ¿puede repetir más despacio?', confidence: 5, next: 'slower' },
-              { text: 'Perdón, no entendí. ¿Mande?', confidence: 4, next: 'repeat' },
-              { text: 'Lo siento, mi español no es perfecto.', confidence: 3, next: 'understanding' }
-            ]
-          },
-          slower: {
-            them: '[Repiten más lento]',
-            responses: [
-              { text: 'Ah, sí. Entiendo. Gracias.', confidence: 4, next: 'end_good' },
-              { text: 'Gracias por su paciencia.', confidence: 5, next: 'end_good' },
-              { text: 'Creo que sí. ¿Es sobre [topic]?', confidence: 3, next: 'clarify' }
-            ]
-          },
-          repeat: {
-            them: '[Repiten la pregunta]',
-            responses: [
-              { text: 'Ah, ya. Déjeme pensar...', confidence: 4, next: 'thinking' },
-              { text: 'Gracias. Sí, entiendo.', confidence: 4, next: 'end_good' },
-              { text: 'Una vez más, por favor.', confidence: 3, next: 'third_time' }
-            ]
-          },
-          understanding: {
-            them: 'No te preocupes, está bien.',
-            responses: [
-              { text: 'Gracias. Estoy aprendiendo.', confidence: 5, next: 'end_good' },
-              { text: 'Practico todos los días.', confidence: 4, next: 'end_good' }
-            ]
-          },
-          clarify: {
-            them: '[Confirman o corrigen]',
-            responses: [
-              { text: 'Ah, okay. Entiendo ahora.', confidence: 4, next: 'end_good' },
-              { text: 'Gracias por explicar.', confidence: 5, next: 'end_good' }
-            ]
-          },
-          thinking: {
-            them: '[Esperan tu respuesta]',
-            responses: [
-              { text: '[Das tu mejor respuesta]', confidence: 3, next: 'end_okay' },
-              { text: 'No estoy segura, pero creo que...', confidence: 4, next: 'end_okay' }
-            ]
-          },
-          third_time: {
-            them: '[Repiten muy despacio]',
-            responses: [
-              { text: 'Ya, gracias. Muy amable.', confidence: 4, next: 'end_good' },
-              { text: 'Sí, ahora sí entendí.', confidence: 4, next: 'end_good' }
-            ]
-          },
-          end_good: {
-            them: '[Continúa la conversación normal]',
-            complete: true,
-            feedback: '¡Bien manejado! Pediste ayuda con confianza.'
-          },
-          end_okay: {
-            them: '[Aceptan tu respuesta]',
-            complete: true,
-            feedback: 'Lo resolviste. Con práctica será más fácil.'
-          }
-        }
-      };
-      
-      // ---------------- PANIC PHRASES ----------------
-      const PANIC_PHRASES = [
-        { es: 'Disculpe, no entendí.', hint: 'Sorry, I didn\'t understand' },
-        { es: '¿Puede repetir, por favor?', hint: 'Can you repeat please?' },
-        { es: '¿Puede hablar más despacio?', hint: 'Can you speak slower?' },
-        { es: 'Mi español está mejorando.', hint: 'My Spanish is improving' },
-        { es: '¿Mande? (polite "what?")', hint: 'Pardon? (polite)' },
-        { es: 'Un momento, por favor.', hint: 'One moment please' },
-        { es: '¿Cómo se dice...?', hint: 'How do you say...?' },
-        { es: 'Gracias por su paciencia.', hint: 'Thanks for your patience' },
-        { es: 'Estoy aprendiendo.', hint: 'I\'m learning' },
-        { es: '¿Me puede ayudar?', hint: 'Can you help me?' }
-      ];
-      
-      // ---------------- BADGES ----------------
-      const BADGES = [
-        // Original food-based
-        { id: 'b1', name: 'Tamal sin pasita', emoji: '🫔', desc: '10 correctas seguidas', req: 'streak_correct', count: 10 },
-        { id: 'b2', name: 'Taquere de confianza', emoji: '🌮', desc: '7 días consecutivos', req: 'streak', count: 7 },
-        { id: 'b3', name: 'Cafecite perfect', emoji: '☕', desc: '20 prácticas', req: 'practices', count: 20 },
-        { id: 'b4', name: 'Conchera', emoji: '🥐', desc: '30 días streak', req: 'streak', count: 30 },
-        { id: 'b5', name: 'Masa que reposa', emoji: '🫓', desc: '10 diarios', req: 'journals', count: 10 },
-        // Cat-based
-        { id: 'b6', name: 'Gato favorito', emoji: '😻', desc: 'Juega con cada gato', req: 'cat_games', count: 4 },
-        { id: 'b7', name: 'Ronroneo constante', emoji: '🐈', desc: '50 frases dominadas', req: 'mastered', count: 50 },
-        // Confidence-based (NEW)
-        { id: 'b8', name: 'Voz segura', emoji: '🎤', desc: 'Confidence promedio > 4', req: 'confidence', count: 4 },
-        { id: 'b9', name: 'Sin miedo', emoji: '💪', desc: '10 conversaciones completas', req: 'conversations', count: 10 },
-        { id: 'b10', name: 'Bilingüe en proceso', emoji: '🌟', desc: '100 recordings', req: 'recordings', count: 100 },
-      ];
+  // ---------------- EXPANDED CONTENT LIBRARY ----------------
+// 1) Keep your original sentences as a base:
+const SENTENCES_BASE = {
+  work: [
+    // Residence Hall Basics
+    { id:'w1', lvl:0, es:'Hola, bienvenido. ¿Cómo te llamas?', hint:'welcome what is your name', tags:['greeting'] },
+    { id:'w2', lvl:0, es:'¿Cómo va todo en tu cuarto?', hint:'how is everything in your room', tags:['checkin'] },
+    { id:'w3', lvl:0, es:'Estoy aquí para ayudar.', hint:'here to help', tags:['support'] },
+    { id:'w4', lvl:1, es:'¿Necesitas algo? Avísame porfa.', hint:'need anything let me know', tags:['support'] },
+    { id:'w5', lvl:1, es:'Hay un evento esta noche en el salón.', hint:'event tonight in lounge', tags:['events'] },
+    { id:'w6', lvl:1, es:'¿Cómo te va con las clases?', hint:'how are classes', tags:['rapport'] },
+    { id:'w7', lvl:2, es:'Si hay problema, comunícate conmigo.', hint:'if problem communicate with me', tags:['boundaries'] },
+    { id:'w8', lvl:2, es:'Respeten las horas de silencio porfa.', hint:'respect quiet hours please', tags:['rules'] },
+    // Carleton-specific
+    { id:'w9', lvl:0, es:'¿Te fue bien en el tour hoy?', hint:'tour go well today', tags:['work','carleton'] },
+    { id:'w10', lvl:1, es:'Las familias siempre preguntan sobre el clima.', hint:'families always ask about weather', tags:['work','minnesota'] },
+    { id:'w11', lvl:1, es:'El Arb es mi parte favorita del campus.', hint:'arb is my favorite part', tags:['work','carleton'] },
+    { id:'w12', lvl:2, es:'Cuéntales sobre las opciones de comida.', hint:'tell them about food options', tags:['work','tours'] },
+  ],
+  
+  mia: [
+    // Daily Check-ins
+    { id:'m1', lvl:0, es:'¿Cómo te fue hoy?', hint:'how was your day', tags:['checkin'] },
+    { id:'m2', lvl:0, es:'Cuéntame de tu día en Carleton.', hint:'tell me about your day at Carleton', tags:['interest'] },
+    { id:'m3', lvl:0, es:'¿Quieres cocinar juntos esta noche?', hint:'cook together tonight', tags:['plans'] },
+    { id:'m4', lvl:1, es:'¿Hubo tours interesantes hoy?', hint:'interesting tours today', tags:['work'] },
+    { id:'m5', lvl:1, es:'Te guardé la última concha.', hint:'saved you the last pastry', tags:['sweet'] },
+    { id:'m6', lvl:1, es:'¿Quieres que hagamos algo especial este finde?', hint:'do something special weekend', tags:['plans'] },
+    { id:'m7', lvl:1, es:'Eres [increíble|increíble]. Gracias por todo.', hint:'you are amazing thanks for everything', tags:['appreciation'] },
+    { id:'m8', lvl:2, es:'Te ves [cansada|cansado]. ¿Necesitas descansar?', hint:'you look tired need to rest', tags:['care'] },
+    // Emotional Support
+    { id:'m9', lvl:0, es:'Te extraño cuando no estás.', hint:'miss you when not here', tags:['love'] },
+    { id:'m10', lvl:1, es:'Me encanta cómo te ríes.', hint:'love how you laugh', tags:['compliment'] },
+    { id:'m11', lvl:1, es:'Eres mi persona favorita.', hint:'you are my favorite person', tags:['love'] },
+    { id:'m12', lvl:2, es:'Platícame qué te preocupa.', hint:'tell me what worries you', tags:['support'] },
+  ],
+  
+  family: [
+    // Basic Greetings
+    { id:'f1', lvl:0, es:'Buenos días. ¿Cómo están?', hint:'good morning how are you', tags:['greeting'] },
+    { id:'f2', lvl:0, es:'La comida está deliciosa.', hint:'food is delicious', tags:['compliment'] },
+    { id:'f3', lvl:0, es:'Disculpe, ¿mande? No entendí.', hint:'pardon what did not understand', tags:['clarification'] },
+    { id:'f4', lvl:1, es:'Me da mucho gusto verlos.', hint:'happy to see you', tags:['warmth'] },
+    { id:'f5', lvl:1, es:'Gracias por recibirnos.', hint:'thanks for having us', tags:['gratitude'] },
+    { id:'f6', lvl:1, es:'Practico mi español cada día.', hint:'practice Spanish every day', tags:['effort'] },
+    { id:'f7', lvl:2, es:'Cuéntennos de su semana.', hint:'tell us about your week', tags:['conversation'] },
+    { id:'f8', lvl:2, es:'Déjennos ayudar con los platos.', hint:'let us help with dishes', tags:['helping'] },
+    // Extended Family
+    { id:'f9', lvl:1, es:'¿Cómo está la familia en México?', hint:'how is family in Mexico', tags:['extended'] },
+    { id:'f10', lvl:1, es:'Me gustaría conocer a todos.', hint:'would like to meet everyone', tags:['interest'] },
+    { id:'f11', lvl:2, es:'Espero que podamos visitarlos pronto.', hint:'hope we can visit soon', tags:['future'] },
+  ],
+  
+  suegros: [
+    // Meeting Parents
+    { id:'s1', lvl:0, es:'Mucho gusto en conocerlos.', hint:'nice to meet you', tags:['first_meeting'] },
+    { id:'s2', lvl:0, es:'Jorge me ha hablado mucho de ustedes.', hint:' told me a lot about you', tags:['connection'] },
+    { id:'s3', lvl:0, es:'Su casa es muy bonita.', hint:'your house is very pretty', tags:['compliment'] },
+    { id:'s4', lvl:1, es:'¿Puedo ayudar con algo?', hint:'can I help with something', tags:['helpful'] },
+    { id:'s5', lvl:1, es:'Me encanta la comida mexicana.', hint:'love Mexican food', tags:['food'] },
+    { id:'s6', lvl:1, es:'Mia y yo estamos muy [contentas|contentes].', hint:'Mia and I are very happy', tags:['relationship'] },
+    { id:'s7', lvl:2, es:'Trabajo en una residencia universitaria.', hint:'work in university residence', tags:['job'] },
+    { id:'s8', lvl:2, es:'Aprecio mucho su hospitalidad.', hint:'appreciate your hospitality', tags:['formal'] },
+    // Cultural Bridge
+    { id:'s9', lvl:1, es:'En Minnesota hace mucho frío.', hint:'Minnesota very cold', tags:['minnesota'] },
+    { id:'s10', lvl:1, es:'Me enseñan mucho sobre México.', hint:'you teach me about Mexico', tags:['learning'] },
+    { id:'s11', lvl:2, es:'Es importante para mí hablar español.', hint:'important for me to speak Spanish', tags:['commitment'] },
+    { id:'s12', lvl:2, es:'Quiero que nuestros hijos sean bilingües.', hint:'want our children bilingual', tags:['future'] },
+  ],
+  
+  vida: [
+    // Morning Routines
+    { id:'v1', lvl:0, es:'Buenos días, mi amor. ¿Dormiste bien?', hint:'good morning sleep well', tags:['morning','mia'] },
+    { id:'v2', lvl:0, es:'Voy a hacer café. ¿Quieres?', hint:'making coffee want some', tags:['morning','coffee'] },
+    { id:'v3', lvl:0, es:'¿A qué hora sales hoy?', hint:'what time leave today', tags:['morning','schedule'] },
+    { id:'v4', lvl:1, es:'Tengo que salir tempranito para el trabajo.', hint:'leave early for work', tags:['morning','work'] },
+    { id:'v5', lvl:1, es:'¿Desayunamos juntos?', hint:'breakfast together', tags:['morning','meal'] },
+    // Evening Routines
+    { id:'v6', lvl:0, es:'¿Qué se te antoja para cenar?', hint:'what want for dinner', tags:['evening','food'] },
+    { id:'v7', lvl:0, es:'Ya llegué. ¿Cómo estás?', hint:'arrived how are you', tags:['evening','arrival'] },
+    { id:'v8', lvl:1, es:'Estoy [cansada|cansado]. ¿Pedimos comida?', hint:'tired order food', tags:['evening','tired'] },
+    { id:'v9', lvl:1, es:'Vamos a ver algo en Netflix y descansar.', hint:'watch Netflix and rest', tags:['evening','relax'] },
+    { id:'v10', lvl:2, es:'Prepara tú la cena mientras yo lavo.', hint:'you make dinner while I wash', tags:['evening','chores'] },
+    // Weekend
+    { id:'v11', lvl:0, es:'Es sábado. Podemos dormir tantito más.', hint:'Saturday sleep more', tags:['weekend','sleep'] },
+    { id:'v12', lvl:1, es:'Vamos al Arb si hace buen clima.', hint:'go to Arb if good weather', tags:['weekend','minnesota'] },
+    { id:'v13', lvl:1, es:'¿Qué tal un brunch y luego el mercado?', hint:'brunch then market', tags:['weekend','plans'] },
+    { id:'v14', lvl:2, es:'Invitemos a amigos a cenar.', hint:'invite friends for dinner', tags:['weekend','social'] },
+    // Minnesota Life
+    { id:'v15', lvl:0, es:'Hace un mucho frio afuera.', hint:'freezing cold outside', tags:['winter','minnesota'] },
+    { id:'v16', lvl:1, es:'Si hace frío, hacemos té y nos quedamos.', hint:'if cold make tea and stay', tags:['winter','cozy'] },
+    { id:'v17', lvl:1, es:'¿Traes tu chamarra buena? Hace frío.', hint:'have good jacket cold', tags:['winter','care'] },
+    { id:'v18', lvl:1, es:'La nieve está bonita pero qué flojera.', hint:'snow pretty but what laziness', tags:['winter','minnesota'] },
+    // Errands & Shopping
+    { id:'v19', lvl:0, es:'Necesitamos ir al súper.', hint:'need to go to store', tags:['errands','shopping'] },
+    { id:'v20', lvl:1, es:'¿Me acompañas a Target?', hint:'come with me to Target', tags:['errands','shopping'] },
+    { id:'v21', lvl:1, es:'Hay que comprar papel de baño.', hint:'need to buy toilet paper', tags:['errands','necessities'] },
+    { id:'v22', lvl:2, es:'Revisa qué hace falta en la cocina.', hint:'check what needed in kitchen', tags:['errands','planning'] },
+  ],
+  
+  health: [
+    // Basic Health
+    { id:'h1', lvl:0, es:'Me duele la cabeza.', hint:'head hurts', tags:['pain'] },
+    { id:'h2', lvl:0, es:'¿Tienes medicina?', hint:'have medicine', tags:['medication'] },
+    { id:'h3', lvl:0, es:'Me siento mal.', hint:'feel bad', tags:['sick'] },
+    { id:'h4', lvl:1, es:'Creo que tengo fiebre.', hint:'think I have fever', tags:['symptoms'] },
+    { id:'h5', lvl:1, es:'Necesito descansar.', hint:'need to rest', tags:['recovery'] },
+    // Emotions
+    { id:'h6', lvl:0, es:'Estoy feliz.', hint:'I am happy', tags:['emotions','positive'] },
+    { id:'h7', lvl:0, es:'Me siento triste.', hint:'feel sad', tags:['emotions','negative'] },
+    { id:'h8', lvl:1, es:'Estoy estrasada por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
+    { id:'h9', lvl:1, es:'Me siento orgullosa de ti.', hint:'feel proud of you', tags:['emotions','pride'] },
+    { id:'h10', lvl:2, es:'Necesito hablar de algo que me molesta.', hint:'need to talk about something bothering', tags:['emotions','communication'] },
+  ],
+  
+  food: [
+    // Coffee Orders
+    { id:'fo1', lvl:0, es:'Un café, por favor.', hint:'coffee please', tags:['coffee','order'] },
+    { id:'fo2', lvl:0, es:'Un oat milk latte, no muy caliente.', hint:'oat milk latte not too hot', tags:['coffee','specific'] },
+    { id:'fo3', lvl:1, es:'¿Tienen descafeinado?', hint:'have decaf', tags:['coffee','question'] },
+    // Restaurant
+    { id:'fo4', lvl:0, es:'Mesa para dos, por favor.', hint:'table for two please', tags:['restaurant'] },
+    { id:'fo5', lvl:0, es:'La cuenta, por favor.', hint:'check please', tags:['restaurant'] },
+    { id:'fo6', lvl:1, es:'Para llevar, por favor. Sin cilantro.', hint:'to go no cilantro', tags:['takeout'] },
+    { id:'fo7', lvl:1, es:'¿Qué me recomienda?', hint:'what do you recommend', tags:['restaurant','question'] },
+    { id:'fo8', lvl:2, es:'¿Tienen opciones vegetarianas?', hint:'have vegetarian options', tags:['restaurant','dietary'] },
+    // Mexican Food
+    { id:'fo9', lvl:0, es:'Dos tacos de carnitas, porfa.', hint:'two carnitas tacos please', tags:['mexican'] },
+    { id:'fo10', lvl:1, es:'Con todo menos cebolla.', hint:'with everything except onion', tags:['mexican','preference'] },
+    { id:'fo11', lvl:1, es:'¿Pica mucho?', hint:'is it very spicy', tags:['mexican','spice'] },
+    { id:'fo12', lvl:2, es:'Me gustan las tortillas de maíz más.', hint:'prefer corn tortillas', tags:['mexican','preference'] },
+  ]
+};
+
+// 2) Variant engine: creates ~2 extra natural variants per phrase (≈3× total)
+function makeVariants(s) {
+  const variants = [s];
+
+  // Politeness / discourse tweak
+  const politeMap = [
+    ['porfa', 'por favor'],
+    ['por favor', 'porfa'],
+  ];
+  let v1 = s.es;
+  for (const [a, b] of politeMap) {
+    if (v1.includes(a)) { v1 = v1.replace(a, b); }
+  }
+  if (v1 === s.es) {
+    // softener if nothing changed
+    v1 = s.es.endsWith('?') ? s.es.replace('?', ', ¿sí?') : s.es + ', ¿sí?';
+  }
+  variants.push({ ...s, id: s.id + 'a', es: v1 });
+
+  // Time/tense/context tweak
+  let v2 = s.es;
+  const action = /\b(cenar|cocinar|desayunar|hacer|salir|ir|practicar|ver|comprar|invitemos|vamos)\b/i.test(v2);
+  if (action) {
+    v2 = v2.includes('hoy') ? v2.replace(/\bhoy\b/i, 'ahorita') : (v2.endsWith('.') ? v2.replace(/\.$/, ' ahorita.') : v2 + ' ahorita');
+  } else if (v2.endsWith('?')) {
+    v2 = v2.replace('?', ' un momento?');
+  } else {
+    v2 = v2 + ' tantito.';
+  }
+  variants.push({ ...s, id: s.id + 'b', es: v2 });
+
+  // De-dup
+  const seen = new Set();
+  return variants.filter(p => {
+    const key = p.es.trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// 3) Build the expanded SENTENCES object (~3× per category)
+const SENTENCES = Object.fromEntries(
+  Object.entries(SENTENCES_BASE).map(([key, arr]) => [key, arr.flatMap(makeVariants)])
+);
+
+// 4) Keep the rollup
+const ALL_SENTENCES = Object.values(SENTENCES).flat();
+
+// ---------------- LUNCH CARDS ----------------
+const LUNCH_CARDS = [
+  { id:'lc1', es:'Cuéntale a Mia sobre tu día en español.', en:'Tell Mia about your day in Spanish.' },
+  { id:'lc2', es:'Pregúntale qué se le antoja para cenar.', en:'Ask what she craves for dinner.' },
+  { id:'lc3', es:'Dile algo bonito usando "me encanta..."', en:'Say something nice using "me encanta..."' },
+  { id:'lc4', es:'Invítala a cocinar juntes esta noche.', en:'Invite her to cook together tonight.' },
+  { id:'lc5', es:'Pregunta: "¿Cómo te sientes hoy?"', en:'Ask: "How do you feel today?"' },
+  { id:'lc6', es:'Practica: "Estoy [orgullose|orgullose] de ti."', en:'Practice: "I\'m proud of you."' },
+  { id:'lc7', es:'Sugiere planes para el fin de semana.', en:'Suggest weekend plans.' },
+  { id:'lc8', es:'Habla del clima en español.', en:'Talk about the weather in Spanish.' },
+  { id:'lc9', es:'Pide ayuda con algo usando "¿Me ayudas...?"', en:'Ask for help using "¿Me ayudas...?"' },
+  { id:'lc10', es:'Comparte qué aprendiste hoy.', en:'Share what you learned today.' },
+  { id:'lc11', es:'Pregunta sobre su familia en México.', en:'Ask about her family in Mexico.' },
+  { id:'lc12', es:'Dile tres cosas por las que estás [agradecide|agradecide].', en:'Tell three things you\'re grateful for.' },
+  { id:'lc13', es:'Practica ordenar café en español.', en:'Practice ordering coffee in Spanish.' },
+  { id:'lc14', es:'Describe tu comida favorita mexicana.', en:'Describe your favorite Mexican food.' },
+  { id:'lc15', es:'Habla de tus metas en español.', en:'Talk about your goals in Spanish.' },
+];
+
+// ---------------- ENCOURAGEMENTS ----------------
+const ENCOURAGEMENTS = [
+  // Otis (competitive)
+  { cat: 'otis', text: 'MIAU MIAU... digo, excelente. Aunque yo lo hubiera hecho mejor. 😼' },
+  { cat: 'otis', text: '*se estira todo lo largo* Sí sí, bien. ¿Ya terminaste? 🐱' },
+  { cat: 'otis', text: 'Aceptable. Para ser humana. *bosteza* 🐱' },
+  // Doom (affectionate)
+  { cat: 'doom', text: 'Eso estuvo de lujo. Te mando un abrazo grande (como yo). 🐈💕' },
+  { cat: 'doom', text: 'Le echaste salsita. Pica rico. 🌶️🐈' },
+  { cat: 'doom', text: '*ronroneo intenso* Bien hecho, Stacie. 🐈' },
+  // Jules (independent)
+  { cat: 'jules', text: 'Quedó chido. Ahora déjame en paz, necesito mi espacio. 🐾' },
+  { cat: 'jules', text: 'Respeto. Hoy te ganaste tu espacio. 👏🐾' },
+  { cat: 'jules', text: 'No está mal. *se va a su rincón* 🐾' },
+  // Lassie (protective)
+  { cat: 'lassie', text: 'Te cuido siempre. Poquito a poquito es camino. 😸' },
+  { cat: 'lassie', text: 'Estoy [orgullosa|orgullose]. Yo vigilo. 🛡️😸' },
+  { cat: 'lassie', text: 'Bien, Stacie. Aquí estoy si necesitas. 😸' },
+  // Mia (supportive)
+  { cat: 'mia', text: 'Mi amor, qué [orgullose|orgullose] estoy. Eres increíble. 💙' },
+  { cat: 'mia', text: 'Te amo. Cada día mejor. 💙' },
+  { cat: 'mia', text: 'Eso es, mi vida. Sigue así. 💙' },
+];
+
+// ---------------- CONVERSATIONS ----------------
+const CONVERSATIONS = {
+  suegros_dinner: {
+    name: 'Cena con los suegros',
+    start: {
+      them: 'Buenas noches, Stacie. ¿Cómo estás?',
+      responses: [
+        { text: 'Muy bien, gracias. ¿Y ustedes?', confidence: 5, next: 'good_response' },
+        { text: 'Bien, gracias.', confidence: 3, next: 'short_response' },
+        { text: 'Estoy bien. La comida huele deliciosa.', confidence: 4, next: 'food_compliment' }
+      ]
+    },
+    good_response: {
+      them: 'Muy bien también. ¿Cómo te fue en el trabajo?',
+      responses: [
+        { text: 'Bien, tuve muchos tours hoy.', confidence: 4, next: 'work_talk' },
+        { text: 'Un poco cansada, pero bien.', confidence: 3, next: 'tired' },
+        { text: 'Muy bien. Los estudiantes están emocionados.', confidence: 5, next: 'students' }
+      ]
+    },
+    short_response: {
+      them: 'Qué bueno. Pásale, ya casi está la cena.',
+      responses: [
+        { text: 'Gracias. ¿Puedo ayudar con algo?', confidence: 5, next: 'helpful' },
+        { text: 'Gracias, huele muy rico.', confidence: 4, next: 'food_compliment' }
+      ]
+    },
+    food_compliment: {
+      them: 'Gracias, es mole de la abuela. ¿Te gusta la comida mexicana?',
+      responses: [
+        { text: 'Me encanta. Mia me ha enseñado mucho.', confidence: 5, next: 'end_good' },
+        { text: 'Sí, mucho. Especialmente el mole.', confidence: 4, next: 'end_good' },
+        { text: 'Sí, pero todavía estoy aprendiendo sobre los picantes.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    work_talk: {
+      them: 'Qué bueno. Mia nos cuenta que trabajas muy duro.',
+      responses: [
+        { text: 'Me gusta mucho mi trabajo.', confidence: 4, next: 'end_good' },
+        { text: 'Sí, pero vale la pena. Me encanta Carleton.', confidence: 5, next: 'end_good' }
+      ]
+    },
+    tired: {
+      them: 'Descansa. La cena te va a dar energía.',
+      responses: [
+        { text: 'Gracias, son muy amables.', confidence: 5, next: 'end_good' },
+        { text: 'Sí, necesito la comida de casa.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    students: {
+      them: '¡Qué padre! ¿De dónde vienen los estudiantes?',
+      responses: [
+        { text: 'De todo el país, y algunos internacionales.', confidence: 5, next: 'end_good' },
+        { text: 'De muchos lugares. Es muy diverso.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    helpful: {
+      them: 'No te preocupes, ya está todo. Mejor platícanos de tu semana.',
+      responses: [
+        { text: 'Fue buena. Mia y yo fuimos al Arb el sábado.', confidence: 5, next: 'end_good' },
+        { text: 'Muy ocupada, pero productiva.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    end_good: {
+      them: '¡Qué bien! Vamos a cenar.',
+      complete: true,
+      feedback: '¡Excelente conversación! Los suegros están impresionados.'
+    }
+  },
+  
+  morning_routine: {
+    name: 'Rutina de la mañana',
+    start: {
+      them: 'Buenos días, mi amor.',
+      responses: [
+        { text: 'Buenos días. ¿Dormiste bien?', confidence: 5, next: 'sleep_well' },
+        { text: 'Hola, mi vida. ¿Café?', confidence: 4, next: 'coffee' },
+        { text: 'Buenos días. ¿Qué hora es?', confidence: 3, next: 'time' }
+      ]
+    },
+    sleep_well: {
+      them: 'Sí, muy bien. ¿Y tú?',
+      responses: [
+        { text: 'También. Soñé contigo.', confidence: 5, next: 'sweet' },
+        { text: 'Más o menos. Los gatos me despertaron.', confidence: 4, next: 'cats' },
+        { text: 'Bien, pero necesito café.', confidence: 3, next: 'coffee' }
+      ]
+    },
+    coffee: {
+      them: 'Yo hago el café. ¿El de siempre?',
+      responses: [
+        { text: 'Sí, porfa. Oat milk latte.', confidence: 5, next: 'breakfast' },
+        { text: 'Sí, gracias mi amor.', confidence: 4, next: 'breakfast' },
+        { text: 'Mejor té hoy, gracias.', confidence: 3, next: 'breakfast' }
+      ]
+    },
+    time: {
+      them: 'Las siete y media. ¿Tienes que salir temprano?',
+      responses: [
+        { text: 'Sí, tengo tours a las nueve.', confidence: 4, next: 'work' },
+        { text: 'No, hoy empiezo tarde.', confidence: 4, next: 'late_start' },
+        { text: 'Un poco. ¿Desayunamos juntes?', confidence: 5, next: 'breakfast' }
+      ]
+    },
+    sweet: {
+      them: 'Ay, qué linde. Te amo.',
+      responses: [
+        { text: 'Y yo a ti. ¿Qué haces hoy?', confidence: 5, next: 'day_plans' },
+        { text: 'Te amo más. ¿Desayunamos?', confidence: 5, next: 'breakfast' }
+      ]
+    },
+    cats: {
+      them: 'Jaja, Otis seguro. Es un despertador peludo.',
+      responses: [
+        { text: 'Necesita su desayuno a las 6 AM exactas.', confidence: 5, next: 'breakfast' },
+        { text: 'Sí, muy puntual el señor.', confidence: 4, next: 'breakfast' }
+      ]
+    },
+    work: {
+      them: '¿Cuántos tours tienes hoy?',
+      responses: [
+        { text: 'Tres, y una reunión después.', confidence: 5, next: 'end_good' },
+        { text: 'Varios. Va a ser un día largo.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    late_start: {
+      them: 'Qué bueno. Entonces podemos desayunar con calma.',
+      responses: [
+        { text: 'Sí, me encanta. ¿Qué hacemos?', confidence: 5, next: 'end_good' },
+        { text: 'Perfecto. Hagamos pancakes.', confidence: 5, next: 'end_good' }
+      ]
+    },
+    breakfast: {
+      them: '¿Qué se te antoja?',
+      responses: [
+        { text: 'Lo que sea está bien. ¿Hay fruta?', confidence: 4, next: 'end_good' },
+        { text: 'Huevitos con tortilla.', confidence: 5, next: 'end_good' },
+        { text: 'Algo rápido, tengo que salir.', confidence: 3, next: 'end_good' }
+      ]
+    },
+    day_plans: {
+      them: 'Trabajo desde casa hoy. ¿Nos vemos para almorzar?',
+      responses: [
+        { text: 'Sí, ¿a la una está bien?', confidence: 5, next: 'end_good' },
+        { text: 'Me encantaría. Te texto cuando salga.', confidence: 5, next: 'end_good' }
+      ]
+    },
+    end_good: {
+      them: 'Perfecto. Ten un buen día, mi amor.',
+      complete: true,
+      feedback: '¡Conversación natural y fluida! Mia está feliz.'
+    }
+  },
+  
+  panic_situations: {
+    name: 'Situaciones de pánico',
+    start: {
+      them: '[Hablan muy rápido y no entiendes nada]',
+      responses: [
+        { text: 'Disculpe, ¿puede repetir más despacio?', confidence: 5, next: 'slower' },
+        { text: 'Perdón, no entendí. ¿Mande?', confidence: 4, next: 'repeat' },
+        { text: 'Lo siento, mi español no es perfecto.', confidence: 3, next: 'understanding' }
+      ]
+    },
+    slower: {
+      them: '[Repiten más lento]',
+      responses: [
+        { text: 'Ah, sí. Entiendo. Gracias.', confidence: 4, next: 'end_good' },
+        { text: 'Gracias por su paciencia.', confidence: 5, next: 'end_good' },
+        { text: 'Creo que sí. ¿Es sobre [topic]?', confidence: 3, next: 'clarify' }
+      ]
+    },
+    repeat: {
+      them: '[Repiten la pregunta]',
+      responses: [
+        { text: 'Ah, ya. Déjeme pensar...', confidence: 4, next: 'thinking' },
+        { text: 'Gracias. Sí, entiendo.', confidence: 4, next: 'end_good' },
+        { text: 'Una vez más, por favor.', confidence: 3, next: 'third_time' }
+      ]
+    },
+    understanding: {
+      them: 'No te preocupes, está bien.',
+      responses: [
+        { text: 'Gracias. Estoy aprendiendo.', confidence: 5, next: 'end_good' },
+        { text: 'Practico todos los días.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    clarify: {
+      them: '[Confirman o corrigen]',
+      responses: [
+        { text: 'Ah, okay. Entiendo ahora.', confidence: 4, next: 'end_good' },
+        { text: 'Gracias por explicar.', confidence: 5, next: 'end_good' }
+      ]
+    },
+    thinking: {
+      them: '[Esperan tu respuesta]',
+      responses: [
+        { text: '[Das tu mejor respuesta]', confidence: 3, next: 'end_okay' },
+        { text: 'No estoy segura, pero creo que...', confidence: 4, next: 'end_okay' }
+      ]
+    },
+    third_time: {
+      them: '[Repiten muy despacio]',
+      responses: [
+        { text: 'Ya, gracias. Muy amable.', confidence: 4, next: 'end_good' },
+        { text: 'Sí, ahora sí entendí.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    end_good: {
+      them: '[Continúa la conversación normal]',
+      complete: true,
+      feedback: '¡Bien manejado! Pediste ayuda con confianza.'
+    },
+    end_okay: {
+      them: '[Aceptan tu respuesta]',
+      complete: true,
+      feedback: 'Lo resolviste. Con práctica será más fácil.'
+    }
+  }
+};
+
+// ---------------- PANIC PHRASES ----------------
+const PANIC_PHRASES = [
+  { es: 'Disculpe, no entendí.', hint: 'Sorry, I didn\'t understand' },
+  { es: '¿Puede repetir, por favor?', hint: 'Can you repeat please?' },
+  { es: '¿Puede hablar más despacio?', hint: 'Can you speak slower?' },
+  { es: 'Mi español está mejorando.', hint: 'My Spanish is improving' },
+  { es: '¿Mande? (polite "what?")', hint: 'Pardon? (polite)' },
+  { es: 'Un momento, por favor.', hint: 'One moment please' },
+  { es: '¿Cómo se dice...?', hint: 'How do you say...?' },
+  { es: 'Gracias por su paciencia.', hint: 'Thanks for your patience' },
+  { es: 'Estoy aprendiendo.', hint: 'I\'m learning' },
+  { es: '¿Me puede ayudar?', hint: 'Can you help me?' }
+];
+
+// ---------------- BADGES ----------------
+const BADGES = [
+  // Original food-based
+  { id: 'b1', name: 'Tamal sin pasita', emoji: '🫔', desc: '10 correctas seguidas', req: 'streak_correct', count: 10 },
+  { id: 'b2', name: 'Taquere de confianza', emoji: '🌮', desc: '7 días consecutivos', req: 'streak', count: 7 },
+  { id: 'b3', name: 'Cafecite perfect', emoji: '☕', desc: '20 prácticas', req: 'practices', count: 20 },
+  { id: 'b4', name: 'Conchera', emoji: '🥐', desc: '30 días streak', req: 'streak', count: 30 },
+  { id: 'b5', name: 'Masa que reposa', emoji: '🫓', desc: '10 diarios', req: 'journals', count: 10 },
+  // Cat-based
+  { id: 'b6', name: 'Gato favorito', emoji: '😻', desc: 'Juega con cada gato', req: 'cat_games', count: 4 },
+  { id: 'b7', name: 'Ronroneo constante', emoji: '🐈', desc: '50 frases dominadas', req: 'mastered', count: 50 },
+  // Confidence-based (NEW)
+  { id: 'b8', name: 'Voz segura', emoji: '🎤', desc: 'Confidence promedio > 4', req: 'confidence', count: 4 },
+  { id: 'b9', name: 'Sin miedo', emoji: '💪', desc: '10 conversaciones completas', req: 'conversations', count: 10 },
+  { id: 'b10', name: 'Bilingüe en proceso', emoji: '🌟', desc: '100 recordings', req: 'recordings', count: 100 },
+];
+
       
       // ---------------- Context-Aware Content ----------------
       function getContextualContent() {
