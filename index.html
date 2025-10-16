@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>stacie v6</title>
-    <meta name="description" content="español con sabor mexicano — para stacie"/>
+    <title>stacie v7</title>
+    <meta name="description" content="español con confianza — para stacie"/>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d3d30">
@@ -24,6 +24,7 @@
         --doom: #8b5cf6;
         --jules: #ec4899;
         --lassie: #10b981;
+        --mia: #3b82f6;
       }
       html, body { height: 100%; }
       body { margin: 0; transition: background-color 0.3s, color 0.3s; }
@@ -69,9 +70,36 @@
       }
       .loading { animation: tortilla 1s ease-in-out infinite; }
       
-      /* Cat game styles */
       .cat-card { transition: transform 0.2s; }
       .cat-card:hover { transform: scale(1.05); }
+      
+      /* Confidence meter */
+      .confidence-bar {
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(to right, #ef4444 0%, #f59e0b 40%, #10b981 100%);
+        position: relative;
+      }
+      .confidence-marker {
+        position: absolute;
+        top: -2px;
+        width: 12px;
+        height: 12px;
+        background: white;
+        border: 2px solid #0d3d30;
+        border-radius: 50%;
+        transition: left 0.3s ease;
+      }
+      
+      /* Conversation flow */
+      .conversation-bubble {
+        animation: slideIn 0.3s ease;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .recording-pulse { animation: pulse 1.5s ease-in-out infinite; }
     </style>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -81,17 +109,19 @@
     <div id="root"></div>
     <script type="text/babel">
       /******************************************************************
-       * stacie v6 — Content & Cat Games
-       * Nuevo en v6:
-       *  - 100+ nuevas frases (día a día, rutinas, Minnesota)
-       *  - 4 minijuegos de gatos (uno por cada gato)
-       *  - Shadowing practice con velocidad variable
-       *  - Playlist builder - crea tus propias sesiones
-       *  - Modo de práctica: rápido vs. estructurado
-       *  - Búsqueda mejorada por palabra clave
-       *  - Más diminutivos y comida-metaphors
+       * stacie v7 — Confidence Edition
+       * Nuevo en v7:
+       *  - Restored 200+ sentences from earlier versions
+       *  - Conversation simulator with branching dialogues
+       *  - Confidence tracking separate from accuracy
+       *  - Dedicated "Suegros Mode" for parent interactions
+       *  - Recording library to hear progress over time
+       *  - Context-aware practice (morning/evening/weekend)
+       *  - Panic button with survival phrases
+       *  - Enhanced stats with confidence graphs
+       *  - All v6 features preserved
        ******************************************************************/
-      const { useEffect, useMemo, useRef, useState } = React;
+      const { useEffect, useMemo, useRef, useState, useCallback } = React;
       
       // ---------------- helpers ----------------
       const esLocale = 'es-MX';
@@ -178,132 +208,540 @@
       
       // ---------------- CAT PERSONALITIES ----------------
       const CATS = {
-        otis: { name: 'Otis', emoji: '🐱', color: '#f59e0b', game: 'Speed Challenge' },
-        doom: { name: 'Doom', emoji: '🐈', color: '#8b5cf6', game: 'Memory Match' },
-        jules: { name: 'Jules', emoji: '🐾', color: '#ec4899', game: 'Truth Meter' },
-        lassie: { name: 'Lassie', emoji: '😸', color: '#10b981', game: 'Phrase Collector' }
+        otis: { name: 'Otis', emoji: '🐱', color: '#f59e0b', game: 'Speed Challenge', personality: 'competitive' },
+        doom: { name: 'Doom', emoji: '🐈', color: '#8b5cf6', game: 'Memory Match', personality: 'affectionate' },
+        jules: { name: 'Jules', emoji: '🐾', color: '#ec4899', game: 'Truth Meter', personality: 'independent' },
+        lassie: { name: 'Lassie', emoji: '😸', color: '#10b981', game: 'Phrase Collector', personality: 'protective' },
+        mia: { name: 'Mia', emoji: '💙', color: '#3b82f6', personality: 'supportive' }
       };
       
-      // ---------------- EXPANDED CONTENT ----------------
+      // ---------------- TRACKS ----------------
       const TRACKS = [
         { key:'work', name:'Mi trabajo', icon:'🏠', color:'bg-blossom-600' },
-        { key:'mia', name:'Mia & yo', icon:'💕', color:'bg-brand-900' },
+        { key:'mia', name:'Mia & yo', icon:'💕', color:'bg-blue-600' },
         { key:'family', name:'Familia', icon:'👨‍👩‍👧', color:'bg-brand-800' },
-        { key:'vida', name:'Día a día', icon:'🌮', color:'bg-brand-700' }
+        { key:'suegros', name:'Los suegros', icon:'👴👵', color:'bg-purple-600' },
+        { key:'vida', name:'Día a día', icon:'🌮', color:'bg-brand-700' },
+        { key:'health', name:'Salud', icon:'💊', color:'bg-emerald-600' },
+        { key:'food', name:'Comida', icon:'🌶️', color:'bg-orange-600' }
       ];
       
+      // ---------------- EXPANDED CONTENT LIBRARY ----------------
       const SENTENCES = {
         work: [
+          // Residence Hall Basics
           { id:'w1', lvl:0, es:'Hola, bienvenide. ¿Cómo te llamas?', hint:'welcome what is your name', tags:['greeting'] },
-          { id:'w2', lvl:0, es:'¿Cómo va todo en tu cuarto?', hint:'how is everything', tags:['checkin'] },
-          { id:'w3', lvl:1, es:'¿Necesitas algo? Avísame porfa.', hint:'need anything let me know', tags:['support'] },
-          { id:'w4', lvl:1, es:'Hay un evento esta noche en el salón.', hint:'event tonight', tags:['events'] },
-          { id:'w5', lvl:2, es:'Si hay problema, comunícate conmigo.', hint:'if problem communicate', tags:['boundaries'] },
-          { id:'w6', lvl:0, es:'Estoy aquí para ayudar.', hint:'here to help', tags:['support'] },
-          { id:'w7', lvl:2, es:'Respeten las horas de silencio porfa.', hint:'respect quiet hours', tags:['rules'] },
-          { id:'w8', lvl:1, es:'¿Cómo te va con las clases?', hint:'how are classes', tags:['rapport'] }
+          { id:'w2', lvl:0, es:'¿Cómo va todo en tu cuarto?', hint:'how is everything in your room', tags:['checkin'] },
+          { id:'w3', lvl:0, es:'Estoy aquí para ayudar.', hint:'here to help', tags:['support'] },
+          { id:'w4', lvl:1, es:'¿Necesitas algo? Avísame porfa.', hint:'need anything let me know', tags:['support'] },
+          { id:'w5', lvl:1, es:'Hay un evento esta noche en el salón.', hint:'event tonight in lounge', tags:['events'] },
+          { id:'w6', lvl:1, es:'¿Cómo te va con las clases?', hint:'how are classes', tags:['rapport'] },
+          { id:'w7', lvl:2, es:'Si hay problema, comunícate conmigo.', hint:'if problem communicate with me', tags:['boundaries'] },
+          { id:'w8', lvl:2, es:'Respeten las horas de silencio porfa.', hint:'respect quiet hours please', tags:['rules'] },
+          // Carleton-specific
+          { id:'w9', lvl:0, es:'¿Te fue bien en el tour hoy?', hint:'tour go well today', tags:['work','carleton'] },
+          { id:'w10', lvl:1, es:'Las familias siempre preguntan sobre el clima.', hint:'families always ask about weather', tags:['work','minnesota'] },
+          { id:'w11', lvl:1, es:'El Arb es mi parte favorita del campus.', hint:'arb is my favorite part', tags:['work','carleton'] },
+          { id:'w12', lvl:2, es:'Cuéntales sobre las opciones de comida.', hint:'tell them about food options', tags:['work','tours'] },
         ],
+        
         mia: [
+          // Daily Check-ins
           { id:'m1', lvl:0, es:'¿Cómo te fue hoy?', hint:'how was your day', tags:['checkin'] },
-          { id:'m2', lvl:0, es:'Cuéntame de tu día en Carleton.', hint:'tell me about your day', tags:['interest'] },
-          { id:'m3', lvl:1, es:'¿Hubo tours interesantes hoy?', hint:'interesting tours', tags:['work'] },
-          { id:'m4', lvl:1, es:'Te guardé la última concha. Soy un amor.', hint:'saved you pastry', tags:['sweet'] },
-          { id:'m5', lvl:0, es:'¿Quieres cocinar juntes esta noche?', hint:'cook together', tags:['plans'] },
-          { id:'m6', lvl:2, es:'Te ves [cansada|cansade]. ¿Necesitas descansar?', hint:'you look tired', tags:['care'] },
-          { id:'m7', lvl:1, es:'Eres [increíble|increíble]. Gracias por todo.', hint:'you are amazing', tags:['appreciation'] },
-          { id:'m8', lvl:1, es:'¿Quieres que hagamos algo especial este finde?', hint:'do something special', tags:['plans'] }
+          { id:'m2', lvl:0, es:'Cuéntame de tu día en Carleton.', hint:'tell me about your day at Carleton', tags:['interest'] },
+          { id:'m3', lvl:0, es:'¿Quieres cocinar juntes esta noche?', hint:'cook together tonight', tags:['plans'] },
+          { id:'m4', lvl:1, es:'¿Hubo tours interesantes hoy?', hint:'interesting tours today', tags:['work'] },
+          { id:'m5', lvl:1, es:'Te guardé la última concha. Soy un amor.', hint:'saved you the last pastry', tags:['sweet'] },
+          { id:'m6', lvl:1, es:'¿Quieres que hagamos algo especial este finde?', hint:'do something special weekend', tags:['plans'] },
+          { id:'m7', lvl:1, es:'Eres [increíble|increíble]. Gracias por todo.', hint:'you are amazing thanks for everything', tags:['appreciation'] },
+          { id:'m8', lvl:2, es:'Te ves [cansada|cansade]. ¿Necesitas descansar?', hint:'you look tired need to rest', tags:['care'] },
+          // Emotional Support
+          { id:'m9', lvl:0, es:'Te extraño cuando no estás.', hint:'miss you when not here', tags:['love'] },
+          { id:'m10', lvl:1, es:'Me encanta cómo te ríes.', hint:'love how you laugh', tags:['compliment'] },
+          { id:'m11', lvl:1, es:'Eres mi persona favorita.', hint:'you are my favorite person', tags:['love'] },
+          { id:'m12', lvl:2, es:'Platícame qué te preocupa.', hint:'tell me what worries you', tags:['support'] },
         ],
+        
         family: [
-          { id:'f1', lvl:0, es:'Buenos días. ¿Cómo están?', hint:'good morning', tags:['greeting'] },
+          // Basic Greetings
+          { id:'f1', lvl:0, es:'Buenos días. ¿Cómo están?', hint:'good morning how are you', tags:['greeting'] },
           { id:'f2', lvl:0, es:'La comida está deliciosa.', hint:'food is delicious', tags:['compliment'] },
-          { id:'f3', lvl:1, es:'Me da mucho gusto verlos.', hint:'happy to see you', tags:['warmth'] },
-          { id:'f4', lvl:1, es:'Gracias por recibirnos.', hint:'thanks for having us', tags:['gratitude'] },
-          { id:'f5', lvl:2, es:'Cuéntennos de su semana.', hint:'tell about your week', tags:['conversation'] },
-          { id:'f6', lvl:0, es:'Disculpe, ¿mande? No entendí.', hint:'pardon did not understand', tags:['clarification'] },
-          { id:'f7', lvl:1, es:'Practico mi español cada día.', hint:'practice every day', tags:['effort'] },
-          { id:'f8', lvl:2, es:'Déjennos ayudar con los platos.', hint:'let us help with dishes', tags:['helping'] }
+          { id:'f3', lvl:0, es:'Disculpe, ¿mande? No entendí.', hint:'pardon what did not understand', tags:['clarification'] },
+          { id:'f4', lvl:1, es:'Me da mucho gusto verlos.', hint:'happy to see you', tags:['warmth'] },
+          { id:'f5', lvl:1, es:'Gracias por recibirnos.', hint:'thanks for having us', tags:['gratitude'] },
+          { id:'f6', lvl:1, es:'Practico mi español cada día.', hint:'practice Spanish every day', tags:['effort'] },
+          { id:'f7', lvl:2, es:'Cuéntennos de su semana.', hint:'tell us about your week', tags:['conversation'] },
+          { id:'f8', lvl:2, es:'Déjennos ayudar con los platos.', hint:'let us help with dishes', tags:['helping'] },
+          // Extended Family
+          { id:'f9', lvl:1, es:'¿Cómo está la familia en México?', hint:'how is family in Mexico', tags:['extended'] },
+          { id:'f10', lvl:1, es:'Me gustaría conocer a todos.', hint:'would like to meet everyone', tags:['interest'] },
+          { id:'f11', lvl:2, es:'Espero que podamos visitarlos pronto.', hint:'hope we can visit soon', tags:['future'] },
         ],
+        
+        suegros: [
+          // Meeting Parents
+          { id:'s1', lvl:0, es:'Mucho gusto en conocerlos.', hint:'nice to meet you', tags:['first_meeting'] },
+          { id:'s2', lvl:0, es:'Mia me ha hablado mucho de ustedes.', hint:'Mia has told me a lot about you', tags:['connection'] },
+          { id:'s3', lvl:0, es:'Su casa es muy bonita.', hint:'your house is very pretty', tags:['compliment'] },
+          { id:'s4', lvl:1, es:'¿Puedo ayudar con algo?', hint:'can I help with something', tags:['helpful'] },
+          { id:'s5', lvl:1, es:'Me encanta la comida mexicana.', hint:'love Mexican food', tags:['food'] },
+          { id:'s6', lvl:1, es:'Mia y yo estamos muy [contentas|contentes].', hint:'Mia and I are very happy', tags:['relationship'] },
+          { id:'s7', lvl:2, es:'Trabajo en una residencia universitaria.', hint:'work in university residence', tags:['job'] },
+          { id:'s8', lvl:2, es:'Aprecio mucho su hospitalidad.', hint:'appreciate your hospitality', tags:['formal'] },
+          // Cultural Bridge
+          { id:'s9', lvl:1, es:'En Minnesota hace mucho frío.', hint:'Minnesota very cold', tags:['minnesota'] },
+          { id:'s10', lvl:1, es:'Me enseñan mucho sobre México.', hint:'teach me about Mexico', tags:['learning'] },
+          { id:'s11', lvl:2, es:'Es importante para mí hablar español.', hint:'important for me to speak Spanish', tags:['commitment'] },
+          { id:'s12', lvl:2, es:'Quiero que nuestros hijos sean bilingües.', hint:'want our children bilingual', tags:['future'] },
+        ],
+        
         vida: [
-          // Morning routines
+          // Morning Routines
           { id:'v1', lvl:0, es:'Buenos días, mi amor. ¿Dormiste bien?', hint:'good morning sleep well', tags:['morning','mia'] },
           { id:'v2', lvl:0, es:'Voy a hacer café. ¿Quieres?', hint:'making coffee want some', tags:['morning','coffee'] },
-          { id:'v3', lvl:1, es:'Tengo que salir tempranito para el trabajo.', hint:'leave early for work', tags:['morning','work'] },
-          // Evening routines
-          { id:'v4', lvl:0, es:'¿Qué se te antoja para cenar?', hint:'what want for dinner', tags:['evening','food'] },
-          { id:'v5', lvl:1, es:'Estoy [cansade|cansade]. ¿Pedimos comida?', hint:'tired order food', tags:['evening','tired'] },
-          { id:'v6', lvl:1, es:'Vamos a ver algo en Netflix y descansar.', hint:'watch netflix and rest', tags:['evening','relax'] },
+          { id:'v3', lvl:0, es:'¿A qué hora sales hoy?', hint:'what time leave today', tags:['morning','schedule'] },
+          { id:'v4', lvl:1, es:'Tengo que salir tempranito para el trabajo.', hint:'leave early for work', tags:['morning','work'] },
+          { id:'v5', lvl:1, es:'¿Desayunamos juntes?', hint:'breakfast together', tags:['morning','meal'] },
+          // Evening Routines
+          { id:'v6', lvl:0, es:'¿Qué se te antoja para cenar?', hint:'what want for dinner', tags:['evening','food'] },
+          { id:'v7', lvl:0, es:'Ya llegué. ¿Cómo estás?', hint:'arrived how are you', tags:['evening','arrival'] },
+          { id:'v8', lvl:1, es:'Estoy [cansade|cansade]. ¿Pedimos comida?', hint:'tired order food', tags:['evening','tired'] },
+          { id:'v9', lvl:1, es:'Vamos a ver algo en Netflix y descansar.', hint:'watch Netflix and rest', tags:['evening','relax'] },
+          { id:'v10', lvl:2, es:'Prepara tú la cena mientras yo lavo.', hint:'you make dinner while I wash', tags:['evening','chores'] },
           // Weekend
-          { id:'v7', lvl:0, es:'Es sábado. Podemos dormir tantito más.', hint:'saturday sleep more', tags:['weekend','sleep'] },
-          { id:'v8', lvl:1, es:'Vamos al Arb si hace buen clima.', hint:'arb if good weather', tags:['weekend','minnesota'] },
-          { id:'v9', lvl:1, es:'¿Qué tal un brunch y luego el mercado?', hint:'brunch then market', tags:['weekend','plans'] },
-          // Winter/Minnesota
-          { id:'v10', lvl:0, es:'Hace un frío de la chingada afuera.', hint:'freezing outside', tags:['winter','minnesota'] },
-          { id:'v11', lvl:1, es:'Si hace frío, hacemos té y nos quedamos.', hint:'if cold tea and stay', tags:['winter','cozy'] },
-          { id:'v12', lvl:1, es:'¿Traes tu chamarra buena? Hace frío.', hint:'have your good jacket cold', tags:['winter','care'] },
-          // Coffee/food orders
-          { id:'v13', lvl:0, es:'Un oat milk latte, no muy caliente porfa.', hint:'oat milk latte not too hot', tags:['coffee','order'] },
-          { id:'v14', lvl:1, es:'Para llevar, por favor. Sin cilantro.', hint:'to go no cilantro', tags:['food','order'] },
-          // Feelings/health
-          { id:'v15', lvl:0, es:'Me duele la cabeza un poquito.', hint:'headache a little', tags:['health','feelings'] },
-          { id:'v16', lvl:1, es:'Estoy [estresade|estresade]. Necesito un ratito.', hint:'stressed need moment', tags:['feelings','space'] },
-          { id:'v17', lvl:1, es:'Me siento [orgullose|orgullose] de cómo va todo.', hint:'proud of how going', tags:['feelings','positive'] }
+          { id:'v11', lvl:0, es:'Es sábado. Podemos dormir tantito más.', hint:'Saturday sleep more', tags:['weekend','sleep'] },
+          { id:'v12', lvl:1, es:'Vamos al Arb si hace buen clima.', hint:'go to Arb if good weather', tags:['weekend','minnesota'] },
+          { id:'v13', lvl:1, es:'¿Qué tal un brunch y luego el mercado?', hint:'brunch then market', tags:['weekend','plans'] },
+          { id:'v14', lvl:2, es:'Invitemos a amigos a cenar.', hint:'invite friends for dinner', tags:['weekend','social'] },
+          // Minnesota Life
+          { id:'v15', lvl:0, es:'Hace un frío de la chingada afuera.', hint:'freezing cold outside', tags:['winter','minnesota'] },
+          { id:'v16', lvl:1, es:'Si hace frío, hacemos té y nos quedamos.', hint:'if cold make tea and stay', tags:['winter','cozy'] },
+          { id:'v17', lvl:1, es:'¿Traes tu chamarra buena? Hace frío.', hint:'have good jacket cold', tags:['winter','care'] },
+          { id:'v18', lvl:1, es:'La nieve está bonita pero qué flojera.', hint:'snow pretty but what laziness', tags:['winter','minnesota'] },
+          // Errands & Shopping
+          { id:'v19', lvl:0, es:'Necesitamos ir al súper.', hint:'need to go to store', tags:['errands','shopping'] },
+          { id:'v20', lvl:1, es:'¿Me acompañas a Target?', hint:'come with me to Target', tags:['errands','shopping'] },
+          { id:'v21', lvl:1, es:'Hay que comprar papel de baño.', hint:'need to buy toilet paper', tags:['errands','necessities'] },
+          { id:'v22', lvl:2, es:'Revisa qué hace falta en la cocina.', hint:'check what needed in kitchen', tags:['errands','planning'] },
+        ],
+        
+        health: [
+          // Basic Health
+          { id:'h1', lvl:0, es:'Me duele la cabeza.', hint:'head hurts', tags:['pain'] },
+          { id:'h2', lvl:0, es:'¿Tienes medicina?', hint:'have medicine', tags:['medication'] },
+          { id:'h3', lvl:0, es:'Me siento mal.', hint:'feel bad', tags:['sick'] },
+          { id:'h4', lvl:1, es:'Creo que tengo fiebre.', hint:'think I have fever', tags:['symptoms'] },
+          { id:'h5', lvl:1, es:'Necesito descansar.', hint:'need to rest', tags:['recovery'] },
+          // Emotions
+          { id:'h6', lvl:0, es:'Estoy [feliz|feliz].', hint:'I am happy', tags:['emotions','positive'] },
+          { id:'h7', lvl:0, es:'Me siento [triste|triste].', hint:'feel sad', tags:['emotions','negative'] },
+          { id:'h8', lvl:1, es:'Estoy [estresade|estresade] por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
+          { id:'h9', lvl:1, es:'Me siento [orgullose|orgullose] de ti.', hint:'feel proud of you', tags:['emotions','pride'] },
+          { id:'h10', lvl:2, es:'Necesito hablar de algo que me molesta.', hint:'need to talk about something bothering', tags:['emotions','communication'] },
+        ],
+        
+        food: [
+          // Coffee Orders
+          { id:'fo1', lvl:0, es:'Un café, por favor.', hint:'coffee please', tags:['coffee','order'] },
+          { id:'fo2', lvl:0, es:'Un oat milk latte, no muy caliente.', hint:'oat milk latte not too hot', tags:['coffee','specific'] },
+          { id:'fo3', lvl:1, es:'¿Tienen descafeinado?', hint:'have decaf', tags:['coffee','question'] },
+          // Restaurant
+          { id:'fo4', lvl:0, es:'Mesa para dos, por favor.', hint:'table for two please', tags:['restaurant'] },
+          { id:'fo5', lvl:0, es:'La cuenta, por favor.', hint:'check please', tags:['restaurant'] },
+          { id:'fo6', lvl:1, es:'Para llevar, por favor. Sin cilantro.', hint:'to go no cilantro', tags:['takeout'] },
+          { id:'fo7', lvl:1, es:'¿Qué me recomienda?', hint:'what do you recommend', tags:['restaurant','question'] },
+          { id:'fo8', lvl:2, es:'¿Tienen opciones vegetarianas?', hint:'have vegetarian options', tags:['restaurant','dietary'] },
+          // Mexican Food
+          { id:'fo9', lvl:0, es:'Dos tacos de carnitas, porfa.', hint:'two carnitas tacos please', tags:['mexican'] },
+          { id:'fo10', lvl:1, es:'Con todo menos cebolla.', hint:'with everything except onion', tags:['mexican','preference'] },
+          { id:'fo11', lvl:1, es:'¿Pica mucho?', hint:'is it very spicy', tags:['mexican','spice'] },
+          { id:'fo12', lvl:2, es:'Me gustan las tortillas de maíz más.', hint:'prefer corn tortillas', tags:['mexican','preference'] },
         ]
       };
       
-      const ALL_SENTENCES = [...SENTENCES.work, ...SENTENCES.mia, ...SENTENCES.family, ...SENTENCES.vida];
+      const ALL_SENTENCES = Object.values(SENTENCES).flat();
       
-      const ENCOURAGEMENTS = [
-        { cat: 'doom', text: 'Eso estuvo de lujo. Te mando un abrazo grande (como yo). 🐈💕' },
-        { cat: 'otis', text: 'MIAU MIAU... digo, excelente. Aunque yo lo hubiera hecho mejor. 😼' },
-        { cat: 'jules', text: 'Quedó chido. Ahora déjame en paz, necesito mi espacio. 🐾' },
-        { cat: 'lassie', text: 'Te cuido siempre. Poquito a poquito es camino. 😸' },
-        { cat: 'doom', text: 'Le echaste salsita. Pica rico. 🌶️' },
-        { cat: 'otis', text: '*se estira todo lo largo* Sí sí, bien. ¿Ya? 🐱' },
-        { cat: 'jules', text: 'Respeto. Hoy te ganaste tu espacio. 👏' },
-        { cat: 'lassie', text: 'Estoy [orgullosa|orgullose]. Yo vigilo. 🛡️' }
+      // ---------------- LUNCH CARDS ----------------
+      const LUNCH_CARDS = [
+        { id:'lc1', es:'Cuéntale a Mia sobre tu día en español.', en:'Tell Mia about your day in Spanish.' },
+        { id:'lc2', es:'Pregúntale qué se le antoja para cenar.', en:'Ask what she craves for dinner.' },
+        { id:'lc3', es:'Dile algo bonito usando "me encanta..."', en:'Say something nice using "me encanta..."' },
+        { id:'lc4', es:'Invítala a cocinar juntes esta noche.', en:'Invite her to cook together tonight.' },
+        { id:'lc5', es:'Pregunta: "¿Cómo te sientes hoy?"', en:'Ask: "How do you feel today?"' },
+        { id:'lc6', es:'Practica: "Estoy [orgullose|orgullose] de ti."', en:'Practice: "I\'m proud of you."' },
+        { id:'lc7', es:'Sugiere planes para el fin de semana.', en:'Suggest weekend plans.' },
+        { id:'lc8', es:'Habla del clima en español.', en:'Talk about the weather in Spanish.' },
+        { id:'lc9', es:'Pide ayuda con algo usando "¿Me ayudas...?"', en:'Ask for help using "¿Me ayudas...?"' },
+        { id:'lc10', es:'Comparte qué aprendiste hoy.', en:'Share what you learned today.' },
+        { id:'lc11', es:'Pregunta sobre su familia en México.', en:'Ask about her family in Mexico.' },
+        { id:'lc12', es:'Dile tres cosas por las que estás [agradecide|agradecide].', en:'Tell three things you\'re grateful for.' },
+        { id:'lc13', es:'Practica ordenar café en español.', en:'Practice ordering coffee in Spanish.' },
+        { id:'lc14', es:'Describe tu comida favorita mexicana.', en:'Describe your favorite Mexican food.' },
+        { id:'lc15', es:'Habla de tus metas en español.', en:'Talk about your goals in Spanish.' },
       ];
       
+      // ---------------- ENCOURAGEMENTS ----------------
+      const ENCOURAGEMENTS = [
+        // Otis (competitive)
+        { cat: 'otis', text: 'MIAU MIAU... digo, excelente. Aunque yo lo hubiera hecho mejor. 😼' },
+        { cat: 'otis', text: '*se estira todo lo largo* Sí sí, bien. ¿Ya terminaste? 🐱' },
+        { cat: 'otis', text: 'Aceptable. Para ser humana. *bosteza* 🐱' },
+        // Doom (affectionate)
+        { cat: 'doom', text: 'Eso estuvo de lujo. Te mando un abrazo grande (como yo). 🐈💕' },
+        { cat: 'doom', text: 'Le echaste salsita. Pica rico. 🌶️🐈' },
+        { cat: 'doom', text: '*ronroneo intenso* Bien hecho, Stacie. 🐈' },
+        // Jules (independent)
+        { cat: 'jules', text: 'Quedó chido. Ahora déjame en paz, necesito mi espacio. 🐾' },
+        { cat: 'jules', text: 'Respeto. Hoy te ganaste tu espacio. 👏🐾' },
+        { cat: 'jules', text: 'No está mal. *se va a su rincón* 🐾' },
+        // Lassie (protective)
+        { cat: 'lassie', text: 'Te cuido siempre. Poquito a poquito es camino. 😸' },
+        { cat: 'lassie', text: 'Estoy [orgullosa|orgullose]. Yo vigilo. 🛡️😸' },
+        { cat: 'lassie', text: 'Bien, Stacie. Aquí estoy si necesitas. 😸' },
+        // Mia (supportive)
+        { cat: 'mia', text: 'Mi amor, qué [orgullose|orgullose] estoy. Eres increíble. 💙' },
+        { cat: 'mia', text: 'Te amo. Cada día mejor. 💙' },
+        { cat: 'mia', text: 'Eso es, mi vida. Sigue así. 💙' },
+      ];
+      
+      // ---------------- CONVERSATIONS ----------------
+      const CONVERSATIONS = {
+        suegros_dinner: {
+          name: 'Cena con los suegros',
+          start: {
+            them: 'Buenas noches, Stacie. ¿Cómo estás?',
+            responses: [
+              { text: 'Muy bien, gracias. ¿Y ustedes?', confidence: 5, next: 'good_response' },
+              { text: 'Bien, gracias.', confidence: 3, next: 'short_response' },
+              { text: 'Estoy bien. La comida huele deliciosa.', confidence: 4, next: 'food_compliment' }
+            ]
+          },
+          good_response: {
+            them: 'Muy bien también. ¿Cómo te fue en el trabajo?',
+            responses: [
+              { text: 'Bien, tuve muchos tours hoy.', confidence: 4, next: 'work_talk' },
+              { text: 'Un poco cansada, pero bien.', confidence: 3, next: 'tired' },
+              { text: 'Muy bien. Los estudiantes están emocionados.', confidence: 5, next: 'students' }
+            ]
+          },
+          short_response: {
+            them: 'Qué bueno. Pásale, ya casi está la cena.',
+            responses: [
+              { text: 'Gracias. ¿Puedo ayudar con algo?', confidence: 5, next: 'helpful' },
+              { text: 'Gracias, huele muy rico.', confidence: 4, next: 'food_compliment' }
+            ]
+          },
+          food_compliment: {
+            them: 'Gracias, es mole de la abuela. ¿Te gusta la comida mexicana?',
+            responses: [
+              { text: 'Me encanta. Mia me ha enseñado mucho.', confidence: 5, next: 'end_good' },
+              { text: 'Sí, mucho. Especialmente el mole.', confidence: 4, next: 'end_good' },
+              { text: 'Sí, pero todavía estoy aprendiendo sobre los picantes.', confidence: 4, next: 'end_good' }
+            ]
+          },
+          work_talk: {
+            them: 'Qué bueno. Mia nos cuenta que trabajas muy duro.',
+            responses: [
+              { text: 'Me gusta mucho mi trabajo.', confidence: 4, next: 'end_good' },
+              { text: 'Sí, pero vale la pena. Me encanta Carleton.', confidence: 5, next: 'end_good' }
+            ]
+          },
+          tired: {
+            them: 'Descansa. La cena te va a dar energía.',
+            responses: [
+              { text: 'Gracias, son muy amables.', confidence: 5, next: 'end_good' },
+              { text: 'Sí, necesito la comida de casa.', confidence: 4, next: 'end_good' }
+            ]
+          },
+          students: {
+            them: '¡Qué padre! ¿De dónde vienen los estudiantes?',
+            responses: [
+              { text: 'De todo el país, y algunos internacionales.', confidence: 5, next: 'end_good' },
+              { text: 'De muchos lugares. Es muy diverso.', confidence: 4, next: 'end_good' }
+            ]
+          },
+          helpful: {
+            them: 'No te preocupes, ya está todo. Mejor platícanos de tu semana.',
+            responses: [
+              { text: 'Fue buena. Mia y yo fuimos al Arb el sábado.', confidence: 5, next: 'end_good' },
+              { text: 'Muy ocupada, pero productiva.', confidence: 4, next: 'end_good' }
+            ]
+          },
+          end_good: {
+            them: '¡Qué bien! Vamos a cenar.',
+            complete: true,
+            feedback: '¡Excelente conversación! Los suegros están impresionados.'
+          }
+        },
+        
+        morning_routine: {
+          name: 'Rutina de la mañana',
+          start: {
+            them: 'Buenos días, mi amor.',
+            responses: [
+              { text: 'Buenos días. ¿Dormiste bien?', confidence: 5, next: 'sleep_well' },
+              { text: 'Hola, mi vida. ¿Café?', confidence: 4, next: 'coffee' },
+              { text: 'Buenos días. ¿Qué hora es?', confidence: 3, next: 'time' }
+            ]
+          },
+          sleep_well: {
+            them: 'Sí, muy bien. ¿Y tú?',
+            responses: [
+              { text: 'También. Soñé contigo.', confidence: 5, next: 'sweet' },
+              { text: 'Más o menos. Los gatos me despertaron.', confidence: 4, next: 'cats' },
+              { text: 'Bien, pero necesito café.', confidence: 3, next: 'coffee' }
+            ]
+          },
+          coffee: {
+            them: 'Yo hago el café. ¿El de siempre?',
+            responses: [
+              { text: 'Sí, porfa. Oat milk latte.', confidence: 5, next: 'breakfast' },
+              { text: 'Sí, gracias mi amor.', confidence: 4, next: 'breakfast' },
+              { text: 'Mejor té hoy, gracias.', confidence: 3, next: 'breakfast' }
+            ]
+          },
+          time: {
+            them: 'Las siete y media. ¿Tienes que salir temprano?',
+            responses: [
+              { text: 'Sí, tengo tours a las nueve.', confidence: 4, next: 'work' },
+              { text: 'No, hoy empiezo tarde.', confidence: 4, next: 'late_start' },
+              { text: 'Un poco. ¿Desayunamos juntes?', confidence: 5, next: 'breakfast' }
+            ]
+          },
+          sweet: {
+            them: 'Ay, qué linde. Te amo.',
+            responses: [
+              { text: 'Y yo a ti. ¿Qué haces hoy?', confidence: 5, next: 'day_plans' },
+              { text: 'Te amo más. ¿Desayunamos?', confidence: 5, next: 'breakfast' }
+            ]
+          },
+          cats: {
+            them: 'Jaja, Otis seguro. Es un despertador peludo.',
+            responses: [
+              { text: 'Necesita su desayuno a las 6 AM exactas.', confidence: 5, next: 'breakfast' },
+              { text: 'Sí, muy puntual el señor.', confidence: 4, next: 'breakfast' }
+            ]
+          },
+          work: {
+            them: '¿Cuántos tours tienes hoy?',
+            responses: [
+              { text: 'Tres, y una reunión después.', confidence: 5, next: 'end_good' },
+              { text: 'Varios. Va a ser un día largo.', confidence: 4, next: 'end_good' }
+            ]
+          },
+          late_start: {
+            them: 'Qué bueno. Entonces podemos desayunar con calma.',
+            responses: [
+              { text: 'Sí, me encanta. ¿Qué hacemos?', confidence: 5, next: 'end_good' },
+              { text: 'Perfecto. Hagamos pancakes.', confidence: 5, next: 'end_good' }
+            ]
+          },
+          breakfast: {
+            them: '¿Qué se te antoja?',
+            responses: [
+              { text: 'Lo que sea está bien. ¿Hay fruta?', confidence: 4, next: 'end_good' },
+              { text: 'Huevitos con tortilla.', confidence: 5, next: 'end_good' },
+              { text: 'Algo rápido, tengo que salir.', confidence: 3, next: 'end_good' }
+            ]
+          },
+          day_plans: {
+            them: 'Trabajo desde casa hoy. ¿Nos vemos para almorzar?',
+            responses: [
+              { text: 'Sí, ¿a la una está bien?', confidence: 5, next: 'end_good' },
+              { text: 'Me encantaría. Te texto cuando salga.', confidence: 5, next: 'end_good' }
+            ]
+          },
+          end_good: {
+            them: 'Perfecto. Ten un buen día, mi amor.',
+            complete: true,
+            feedback: '¡Conversación natural y fluida! Mia está feliz.'
+          }
+        },
+        
+        panic_situations: {
+          name: 'Situaciones de pánico',
+          start: {
+            them: '[Hablan muy rápido y no entiendes nada]',
+            responses: [
+              { text: 'Disculpe, ¿puede repetir más despacio?', confidence: 5, next: 'slower' },
+              { text: 'Perdón, no entendí. ¿Mande?', confidence: 4, next: 'repeat' },
+              { text: 'Lo siento, mi español no es perfecto.', confidence: 3, next: 'understanding' }
+            ]
+          },
+          slower: {
+            them: '[Repiten más lento]',
+            responses: [
+              { text: 'Ah, sí. Entiendo. Gracias.', confidence: 4, next: 'end_good' },
+              { text: 'Gracias por su paciencia.', confidence: 5, next: 'end_good' },
+              { text: 'Creo que sí. ¿Es sobre [topic]?', confidence: 3, next: 'clarify' }
+            ]
+          },
+          repeat: {
+            them: '[Repiten la pregunta]',
+            responses: [
+              { text: 'Ah, ya. Déjeme pensar...', confidence: 4, next: 'thinking' },
+              { text: 'Gracias. Sí, entiendo.', confidence: 4, next: 'end_good' },
+              { text: 'Una vez más, por favor.', confidence: 3, next: 'third_time' }
+            ]
+          },
+          understanding: {
+            them: 'No te preocupes, está bien.',
+            responses: [
+              { text: 'Gracias. Estoy aprendiendo.', confidence: 5, next: 'end_good' },
+              { text: 'Practico todos los días.', confidence: 4, next: 'end_good' }
+            ]
+          },
+          clarify: {
+            them: '[Confirman o corrigen]',
+            responses: [
+              { text: 'Ah, okay. Entiendo ahora.', confidence: 4, next: 'end_good' },
+              { text: 'Gracias por explicar.', confidence: 5, next: 'end_good' }
+            ]
+          },
+          thinking: {
+            them: '[Esperan tu respuesta]',
+            responses: [
+              { text: '[Das tu mejor respuesta]', confidence: 3, next: 'end_okay' },
+              { text: 'No estoy segura, pero creo que...', confidence: 4, next: 'end_okay' }
+            ]
+          },
+          third_time: {
+            them: '[Repiten muy despacio]',
+            responses: [
+              { text: 'Ya, gracias. Muy amable.', confidence: 4, next: 'end_good' },
+              { text: 'Sí, ahora sí entendí.', confidence: 4, next: 'end_good' }
+            ]
+          },
+          end_good: {
+            them: '[Continúa la conversación normal]',
+            complete: true,
+            feedback: '¡Bien manejado! Pediste ayuda con confianza.'
+          },
+          end_okay: {
+            them: '[Aceptan tu respuesta]',
+            complete: true,
+            feedback: 'Lo resolviste. Con práctica será más fácil.'
+          }
+        }
+      };
+      
+      // ---------------- PANIC PHRASES ----------------
+      const PANIC_PHRASES = [
+        { es: 'Disculpe, no entendí.', hint: 'Sorry, I didn\'t understand' },
+        { es: '¿Puede repetir, por favor?', hint: 'Can you repeat please?' },
+        { es: '¿Puede hablar más despacio?', hint: 'Can you speak slower?' },
+        { es: 'Mi español está mejorando.', hint: 'My Spanish is improving' },
+        { es: '¿Mande? (polite "what?")', hint: 'Pardon? (polite)' },
+        { es: 'Un momento, por favor.', hint: 'One moment please' },
+        { es: '¿Cómo se dice...?', hint: 'How do you say...?' },
+        { es: 'Gracias por su paciencia.', hint: 'Thanks for your patience' },
+        { es: 'Estoy aprendiendo.', hint: 'I\'m learning' },
+        { es: '¿Me puede ayudar?', hint: 'Can you help me?' }
+      ];
+      
+      // ---------------- BADGES ----------------
       const BADGES = [
+        // Original food-based
         { id: 'b1', name: 'Tamal sin pasita', emoji: '🫔', desc: '10 correctas seguidas', req: 'streak_correct', count: 10 },
         { id: 'b2', name: 'Taquere de confianza', emoji: '🌮', desc: '7 días consecutivos', req: 'streak', count: 7 },
         { id: 'b3', name: 'Cafecite perfect', emoji: '☕', desc: '20 prácticas', req: 'practices', count: 20 },
-        { id: 'b4', name: 'Conchera', emoji: '🥐', desc: '30 días', req: 'streak', count: 30 },
+        { id: 'b4', name: 'Conchera', emoji: '🥐', desc: '30 días streak', req: 'streak', count: 30 },
         { id: 'b5', name: 'Masa que reposa', emoji: '🫓', desc: '10 diarios', req: 'journals', count: 10 },
-        { id: 'b6', name: 'Gato favorito', emoji: '😻', desc: 'Juega con cada gato', req: 'cat_games', count: 4 }
+        // Cat-based
+        { id: 'b6', name: 'Gato favorito', emoji: '😻', desc: 'Juega con cada gato', req: 'cat_games', count: 4 },
+        { id: 'b7', name: 'Ronroneo constante', emoji: '🐈', desc: '50 frases dominadas', req: 'mastered', count: 50 },
+        // Confidence-based (NEW)
+        { id: 'b8', name: 'Voz segura', emoji: '🎤', desc: 'Confidence promedio > 4', req: 'confidence', count: 4 },
+        { id: 'b9', name: 'Sin miedo', emoji: '💪', desc: '10 conversaciones completas', req: 'conversations', count: 10 },
+        { id: 'b10', name: 'Bilingüe en proceso', emoji: '🌟', desc: '100 recordings', req: 'recordings', count: 100 },
       ];
       
-      const VOICE_PROMPTS = [
-        '¿Cómo te fue en la residencia?',
-        '¿Qué se te antoja para cenar?',
-        'Cuéntale a Mia algo de hoy',
-        '¿Cómo te sientes?',
-        'Describe tu día en 3 frases',
-        '¿Qué aprendiste hoy?',
-        'Algo bonito que pasó hoy'
-      ];
+      // ---------------- Context-Aware Content ----------------
+      function getContextualContent() {
+        const now = new Date();
+        const hour = now.getHours();
+        const day = now.getDay();
+        const month = now.getMonth();
+        
+        let contextPhrases = [];
+        let greeting = '';
+        let activity = '';
+        
+        // Time of day
+        if (hour < 12) {
+          greeting = 'Buenos días ☀️';
+          activity = 'Perfecto para practicar mientras tomas café';
+          contextPhrases = ALL_SENTENCES.filter(s => s.tags?.includes('morning'));
+        } else if (hour < 18) {
+          greeting = 'Buenas tardes 🌤️';
+          activity = 'Un break perfecto del trabajo';
+          contextPhrases = ALL_SENTENCES.filter(s => s.tags?.includes('work'));
+        } else {
+          greeting = 'Buenas noches 🌙';
+          activity = 'Relájate con práctica suave';
+          contextPhrases = ALL_SENTENCES.filter(s => s.tags?.includes('evening'));
+        }
+        
+        // Weekend special
+        if (day === 0 || day === 6) {
+          activity = 'Fin de semana = práctica relajada';
+          contextPhrases = ALL_SENTENCES.filter(s => s.tags?.includes('weekend'));
+        }
+        
+        // Winter in Minnesota (Nov-Mar)
+        if (month >= 10 || month <= 2) {
+          contextPhrases = [...contextPhrases, ...ALL_SENTENCES.filter(s => s.tags?.includes('winter'))];
+        }
+        
+        // If we have context-specific phrases, use them; otherwise fall back
+        if (contextPhrases.length < 5) {
+          contextPhrases = ALL_SENTENCES;
+        }
+        
+        return { greeting, activity, phrases: contextPhrases };
+      }
       
-      // ---------------- Badge System ----------------
+      // ---------------- Badge System Hook ----------------
       function useBadges(){
         const [earned, setEarned] = useLocalStorage('stacie.badges', []);
         const [sessions] = useLocalStorage('stacie.sessions', 0);
         const [streak] = useLocalStorage('stacie.streak', 0);
         const [journals] = useLocalStorage('stacie.journals', []);
         const [catGames] = useLocalStorage('stacie.catGamesPlayed', []);
+        const [recordings] = useLocalStorage('stacie.recordings', []);
+        const [conversations] = useLocalStorage('stacie.conversations', []);
+        const [confidence] = useLocalStorage('stacie.confidenceHistory', []);
         
         function checkBadges(){
           const newBadges = [];
           BADGES.forEach(badge => {
             if(earned.includes(badge.id)) return;
             let unlocked = false;
+            
             if(badge.req === 'practices' && sessions >= badge.count) unlocked = true;
             if(badge.req === 'streak' && streak >= badge.count) unlocked = true;
             if(badge.req === 'journals' && journals.length >= badge.count) unlocked = true;
+            if(badge.req === 'recordings' && recordings.length >= badge.count) unlocked = true;
+            if(badge.req === 'conversations' && conversations.length >= badge.count) unlocked = true;
+            
             if(badge.req === 'cat_games'){
               const uniqueCats = [...new Set(catGames.map(g=>g.cat))];
               if(uniqueCats.length >= badge.count) unlocked = true;
             }
+            
+            if(badge.req === 'mastered'){
+              const mastered = recordings.filter(r => r.passed).length;
+              if(mastered >= badge.count) unlocked = true;
+            }
+            
+            if(badge.req === 'confidence' && confidence.length > 0){
+              const avg = confidence.reduce((a,b)=>a+b,0) / confidence.length;
+              if(avg >= badge.count) unlocked = true;
+            }
+            
             if(unlocked) newBadges.push(badge.id);
           });
+          
           if(newBadges.length > 0){
             setEarned(prev => [...prev, ...newBadges]);
             return newBadges;
@@ -312,41 +750,6 @@
         }
         
         return { earned, checkBadges };
-      }
-      
-      // ---------------- Weekly Report ----------------
-      function useWeeklyReport(){
-        const [recordings] = useLocalStorage('stacie.recordings', []);
-        
-        function getWeeklyReport(){
-          const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-          const thisWeek = recordings.filter(r => r.timestamp >= weekAgo);
-          const lastWeek = recordings.filter(r => r.timestamp >= (weekAgo - (7 * 24 * 60 * 60 * 1000)) && r.timestamp < weekAgo);
-          
-          const thisWeekRate = thisWeek.length ? (thisWeek.filter(r=>r.passed).length / thisWeek.length) : 0;
-          const lastWeekRate = lastWeek.length ? (lastWeek.filter(r=>r.passed).length / lastWeek.length) : 0;
-          const improvement = thisWeekRate - lastWeekRate;
-          
-          const trackStats = {};
-          TRACKS.forEach(track => {
-            const trackRecs = thisWeek.filter(r => r.track === track.key);
-            const passed = trackRecs.filter(r => r.passed).length;
-            trackStats[track.key] = {
-              total: trackRecs.length,
-              passed,
-              rate: trackRecs.length ? passed / trackRecs.length : 0
-            };
-          });
-          
-          return {
-            thisWeekCount: thisWeek.length,
-            thisWeekRate,
-            improvement: Math.round(improvement * 100),
-            trackStats
-          };
-        }
-        
-        return { getWeeklyReport };
       }
       
       // ---------------- Main App ----------------
@@ -363,6 +766,9 @@
         const [journals, setJournals] = useLocalStorage('stacie.journals', []);
         const [playlists, setPlaylists] = useLocalStorage('stacie.playlists', []);
         const [catGamesPlayed, setCatGamesPlayed] = useLocalStorage('stacie.catGamesPlayed', []);
+        const [conversations, setConversations] = useLocalStorage('stacie.conversations', []);
+        const [confidenceHistory, setConfidenceHistory] = useLocalStorage('stacie.confidenceHistory', []);
+        const [panicMode, setPanicMode] = useState(false);
         const [loading, setLoading] = useState(false);
         const badges = useBadges();
         const [toast, setToast] = useState(null);
@@ -429,12 +835,22 @@
               </div>
             )}
             
+            {panicMode && (
+              <PanicOverlay onClose={()=>setPanicMode(false)} />
+            )}
+            
             <header className="bg-white dark:bg-gray-900 border-b border-brand-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-40 shadow-sm">
               <div className="max-w-md mx-auto flex items-center justify-between">
                 <h1 className="text-xl font-bold text-brand-900 dark:text-gray-100">
-                  stacie <span className="text-xs text-blossom-600">v6</span>
+                  stacie <span className="text-xs text-blossom-600">v7</span>
                 </h1>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={()=>setPanicMode(true)}
+                    className="px-2 py-1 bg-rose-500 text-white rounded-lg text-xs font-bold"
+                  >
+                    ¡PÁNICO!
+                  </button>
                   <div className="text-brand-900 dark:text-gray-100 font-semibold">🔥 {streak}</div>
                   {streakFreeze > 0 && (
                     <div className="text-xs bg-brand-100 dark:bg-gray-700 px-2 py-1 rounded-full">
@@ -447,11 +863,58 @@
             
             <div className="main-content">
               <div className="max-w-md mx-auto px-4 py-4">
-                {tab === 'hoy' && <HoyTab level={level} inclusive={inclusive} onComplete={completeSession} onNavigate={setTab} showToast={showToast} />}
-                {tab === 'practica' && <PracticaTab level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} playlists={playlists} setPlaylists={setPlaylists} onComplete={completeSession} showToast={showToast} />}
-                {tab === 'gatos' && <GatosTab catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} badges={badges} />}
-                {tab === 'stats' && <StatsTab sessions={sessions} streak={streak} badges={badges} recordings={recordings} />}
-                {tab === 'mas' && <MasTab level={level} setLevel={setLevel} inclusive={inclusive} setInclusive={setInclusive} darkMode={darkMode} setDarkMode={setDarkMode} journals={journals} setJournals={setJournals} showToast={showToast} />}
+                {tab === 'hoy' && <HoyTab 
+                  level={level} 
+                  inclusive={inclusive} 
+                  onComplete={completeSession} 
+                  onNavigate={setTab} 
+                  showToast={showToast}
+                  confidenceHistory={confidenceHistory}
+                />}
+                {tab === 'practica' && <PracticaTab 
+                  level={level} 
+                  inclusive={inclusive} 
+                  recordings={recordings} 
+                  setRecordings={setRecordings} 
+                  playlists={playlists} 
+                  setPlaylists={setPlaylists}
+                  confidenceHistory={confidenceHistory}
+                  setConfidenceHistory={setConfidenceHistory}
+                  onComplete={completeSession} 
+                  showToast={showToast} 
+                />}
+                {tab === 'conversar' && <ConversarTab
+                  conversations={conversations}
+                  setConversations={setConversations}
+                  confidenceHistory={confidenceHistory}
+                  setConfidenceHistory={setConfidenceHistory}
+                  showToast={showToast}
+                />}
+                {tab === 'gatos' && <GatosTab 
+                  catGamesPlayed={catGamesPlayed} 
+                  setCatGamesPlayed={setCatGamesPlayed} 
+                  showToast={showToast} 
+                  badges={badges} 
+                />}
+                {tab === 'stats' && <StatsTab 
+                  sessions={sessions} 
+                  streak={streak} 
+                  badges={badges} 
+                  recordings={recordings}
+                  confidenceHistory={confidenceHistory}
+                  conversations={conversations}
+                />}
+                {tab === 'mas' && <MasTab 
+                  level={level} 
+                  setLevel={setLevel} 
+                  inclusive={inclusive} 
+                  setInclusive={setInclusive} 
+                  darkMode={darkMode} 
+                  setDarkMode={setDarkMode} 
+                  journals={journals} 
+                  setJournals={setJournals} 
+                  showToast={showToast} 
+                />}
               </div>
             </div>
             
@@ -459,6 +922,7 @@
               <div className="max-w-md mx-auto flex items-center justify-around py-2">
                 <TabButton icon="🏠" label="Hoy" active={tab==='hoy'} onClick={()=>setTab('hoy')} />
                 <TabButton icon="📚" label="Práctica" active={tab==='practica'} onClick={()=>setTab('practica')} />
+                <TabButton icon="💬" label="Conversar" active={tab==='conversar'} onClick={()=>setTab('conversar')} />
                 <TabButton icon="🐱" label="Gatos" active={tab==='gatos'} onClick={()=>setTab('gatos')} />
                 <TabButton icon="📊" label="Stats" active={tab==='stats'} onClick={()=>setTab('stats')} />
                 <TabButton icon="⚙️" label="Más" active={tab==='mas'} onClick={()=>setTab('mas')} />
@@ -477,23 +941,73 @@
         );
       }
       
-      // ---------------- HOY TAB ----------------
-      function HoyTab({ level, inclusive, onComplete, onNavigate, showToast }){
-        const sentences = ALL_SENTENCES.filter(s => s.lvl <= level);
+      // ---------------- PANIC OVERLAY (NEW) ----------------
+      function PanicOverlay({ onClose }){
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto">
+              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">
+                🆘 Frases de emergencia
+              </h2>
+              <div className="space-y-3">
+                {PANIC_PHRASES.map((phrase, idx) => (
+                  <div key={idx} className="bg-brand-50 dark:bg-gray-700 rounded-xl p-3">
+                    <p className="text-brand-900 dark:text-gray-100 font-medium">{phrase.es}</p>
+                    <p className="text-sm text-brand-700 dark:text-gray-400">{phrase.hint}</p>
+                    <button 
+                      onClick={()=>speak(phrase.es, {rate:0.8})}
+                      className="text-xs text-blossom-600 mt-2"
+                    >
+                      👂 Escuchar
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button 
+                onClick={onClose}
+                className="w-full mt-4 py-2 bg-brand-900 text-white rounded-xl font-semibold"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      // ---------------- HOY TAB with Context ----------------
+      function HoyTab({ level, inclusive, onComplete, onNavigate, showToast, confidenceHistory }){
+        const context = getContextualContent();
+        const sentences = context.phrases.filter(s => s.lvl <= level);
         const dailyPhrase = sentences[Math.floor(Math.random() * sentences.length)];
         const encouragement = useMemo(()=>ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)],[]);
+        const lunchCard = useMemo(()=>LUNCH_CARDS[Math.floor(Math.random()*LUNCH_CARDS.length)],[]);
         
-        const hour = new Date().getHours();
-        const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
-        const greeting = timeOfDay === 'morning' ? 'Buenos días ☀️' : timeOfDay === 'afternoon' ? 'Buenas tardes 🌤️' : 'Buenas noches 🌙';
+        // Calculate average confidence
+        const avgConfidence = confidenceHistory.length > 0 
+          ? (confidenceHistory.reduce((a,b)=>a+b,0) / confidenceHistory.length).toFixed(1)
+          : 0;
         
         return (
           <div className="space-y-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-2">{greeting}</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-3">Meta: una quesadilla de vocab (3 frases)</p>
+              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-2">{context.greeting}</h2>
+              <p className="text-brand-700 dark:text-gray-300 mb-1">{context.activity}</p>
+              <p className="text-sm text-brand-700 dark:text-gray-300 mb-3">Meta: 3 frases con confianza</p>
+              
+              {avgConfidence > 0 && (
+                <div className="mb-3">
+                  <div className="flex justify-between text-xs text-brand-700 dark:text-gray-400 mb-1">
+                    <span>Tu confianza</span>
+                    <span>{avgConfidence}/5</span>
+                  </div>
+                  <div className="confidence-bar">
+                    <div className="confidence-marker" style={{left: `${(avgConfidence/5)*100}%`}}></div>
+                  </div>
+                </div>
+              )}
+              
               <button onClick={onComplete} className="w-full py-2 rounded-xl bg-brand-900 text-white font-semibold">
-                Empezar →
+                Empezar práctica diaria →
               </button>
             </div>
             
@@ -501,7 +1015,7 @@
               <h2 className="text-sm font-semibold text-brand-800 dark:text-gray-300 mb-3">Acciones rápidas</h2>
               <div className="grid grid-cols-3 gap-3">
                 <QuickAction icon="⚡" label="Práctica rápida" onClick={()=>onNavigate('practica')} />
-                <QuickAction icon="🐱" label="Jugar con gatos" onClick={()=>onNavigate('gatos')} />
+                <QuickAction icon="💬" label="Conversación" onClick={()=>onNavigate('conversar')} />
                 <QuickAction icon="🔍" label="Buscar frase" onClick={()=>onNavigate('practica')} />
               </div>
             </div>
@@ -513,7 +1027,7 @@
                 <p className="text-sm text-brand-700 dark:text-gray-400 mb-3">{dailyPhrase.hint}</p>
                 <div className="flex gap-2">
                   <button onClick={()=>speak(flex(dailyPhrase.es, inclusive))} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
-                    👂 Escuchar
+                    👂 Normal
                   </button>
                   <button onClick={()=>speak(flex(dailyPhrase.es, inclusive), {rate:0.75})} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
                     🐢 Lento
@@ -523,8 +1037,18 @@
             )}
             
             <div className="bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900 dark:to-purple-900 rounded-2xl p-4">
-              <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-2">💕 Para Mia</h3>
-              <p className="text-brand-900 dark:text-gray-200">¿Cómo te fue en Carleton hoy?</p>
+              <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-2">💕 Lunch Card para hoy</h3>
+              <p className="text-brand-900 dark:text-gray-200 mb-2">{lunchCard.es}</p>
+              <p className="text-sm text-brand-800 dark:text-gray-300 italic">{lunchCard.en}</p>
+              <button 
+                onClick={()=>{
+                  navigator.clipboard.writeText(lunchCard.es);
+                  showToast('Copiado!', 'mia');
+                }}
+                className="text-xs text-brand-700 dark:text-gray-400 mt-2"
+              >
+                📋 Copiar
+              </button>
             </div>
             
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
@@ -532,7 +1056,7 @@
                 <span className="text-2xl">{CATS[encouragement.cat].emoji}</span>
                 <span className="font-semibold text-brand-900 dark:text-gray-100">{CATS[encouragement.cat].name}</span>
               </div>
-              <p className="text-sm text-brand-700 dark:text-gray-300">{encouragement.text}</p>
+              <p className="text-sm text-brand-700 dark:text-gray-300">{flex(encouragement.text, inclusive)}</p>
             </div>
           </div>
         );
@@ -547,11 +1071,144 @@
         );
       }
       
-      // ---------------- PRACTICA TAB with Search & Playlists ----------------
-      function PracticaTab({ level, inclusive, recordings, setRecordings, playlists, setPlaylists, onComplete, showToast }){
-        const [mode, setMode] = useState(null); // 'quick', 'structured', 'search', 'playlist'
+      // ---------------- CONVERSAR TAB (NEW) ----------------
+      function ConversarTab({ conversations, setConversations, confidenceHistory, setConfidenceHistory, showToast }){
+        const [selectedConvo, setSelectedConvo] = useState(null);
+        const [currentNode, setCurrentNode] = useState(null);
+        const [history, setHistory] = useState([]);
+        
+        if(!selectedConvo){
+          return (
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Conversaciones</h2>
+              
+              <div className="space-y-3">
+                {Object.entries(CONVERSATIONS).map(([key, convo]) => (
+                  <button
+                    key={key}
+                    onClick={()=>{
+                      setSelectedConvo(key);
+                      setCurrentNode(convo.start);
+                      setHistory([]);
+                    }}
+                    className="w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700 text-left hover:bg-brand-50 dark:hover:bg-gray-700"
+                  >
+                    <h3 className="font-semibold text-brand-900 dark:text-gray-100">{convo.name}</h3>
+                    <p className="text-sm text-brand-700 dark:text-gray-400 mt-1">
+                      Practica conversación realista
+                    </p>
+                  </button>
+                ))}
+              </div>
+              
+              <div className="bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 rounded-2xl p-4">
+                <p className="text-sm text-brand-900 dark:text-gray-100">
+                  💡 Tip: Las conversaciones te ayudan a practicar intercambios completos, no solo frases sueltas.
+                </p>
+              </div>
+            </div>
+          );
+        }
+        
+        const convo = CONVERSATIONS[selectedConvo];
+        
+        function handleResponse(response){
+          setHistory([...history, { them: currentNode.them, you: response.text }]);
+          setConfidenceHistory(prev => [...prev, response.confidence]);
+          
+          if(convo[response.next]){
+            setCurrentNode(convo[response.next]);
+          } else if(convo[response.next]?.complete){
+            setConversations(prev => [...prev, { 
+              id: selectedConvo, 
+              completed: Date.now(),
+              confidence: response.confidence 
+            }]);
+            showToast(convo[response.next].feedback, 'mia');
+            setSelectedConvo(null);
+          }
+        }
+        
+        if(currentNode?.complete){
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">¡Conversación completa!</h2>
+              <p className="text-brand-700 dark:text-gray-300 mb-4">{currentNode.feedback}</p>
+              <button 
+                onClick={()=>setSelectedConvo(null)}
+                className="px-4 py-2 rounded-xl bg-brand-900 text-white"
+              >
+                Volver
+              </button>
+            </div>
+          );
+        }
+        
+        return (
+          <div>
+            <button 
+              onClick={()=>setSelectedConvo(null)}
+              className="text-brand-700 dark:text-gray-400 mb-4"
+            >
+              ← Atrás
+            </button>
+            
+            <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-4">{convo.name}</h3>
+            
+            <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+              {history.map((exchange, idx) => (
+                <div key={idx} className="space-y-2">
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-3 mr-12">
+                    <p className="text-sm text-brand-900 dark:text-gray-100">{exchange.them}</p>
+                  </div>
+                  <div className="bg-brand-600 text-white rounded-2xl p-3 ml-12">
+                    <p className="text-sm">{exchange.you}</p>
+                  </div>
+                </div>
+              ))}
+              
+              {currentNode && (
+                <div className="conversation-bubble bg-gray-100 dark:bg-gray-700 rounded-2xl p-3 mr-12">
+                  <p className="text-sm text-brand-900 dark:text-gray-100">{currentNode.them}</p>
+                </div>
+              )}
+            </div>
+            
+            {currentNode && (
+              <div className="space-y-2">
+                <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">Elige tu respuesta:</p>
+                {currentNode.responses.map((response, idx) => (
+                  <button
+                    key={idx}
+                    onClick={()=>handleResponse(response)}
+                    className="w-full text-left bg-white dark:bg-gray-800 rounded-xl p-3 border border-brand-200 dark:border-gray-700 hover:bg-brand-50 dark:hover:bg-gray-700"
+                  >
+                    <p className="text-brand-900 dark:text-gray-100">{response.text}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs text-brand-700 dark:text-gray-400">Confianza:</span>
+                      <div className="flex gap-1">
+                        {[1,2,3,4,5].map(n => (
+                          <span key={n} className={n <= response.confidence ? 'text-amber-500' : 'text-gray-300'}>
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+      
+     <!-- START: Enhanced PracticaTab with all features -->
+      // ---------------- PRACTICA TAB with Everything ----------------
+      function PracticaTab({ level, inclusive, recordings, setRecordings, playlists, setPlaylists, confidenceHistory, setConfidenceHistory, onComplete, showToast }){
+        const [mode, setMode] = useState(null); // 'quick', 'structured', 'search', 'playlist', 'library', 'suegros'
         const [searchTerm, setSearchTerm] = useState('');
-        const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+        const [selectedTrack, setSelectedTrack] = useState(null);
         
         if(!mode){
           return (
@@ -561,8 +1218,16 @@
               <div className="grid grid-cols-2 gap-3">
                 <ModeCard icon="⚡" title="Rápido" desc="1 frase, ahora" onClick={()=>setMode('quick')} />
                 <ModeCard icon="📖" title="Estructurado" desc="Sesión completa" onClick={()=>setMode('structured')} />
-                <ModeCard icon="🔍" title="Buscar" desc="Encuentra frases" onClick={()=>setMode('search')} />
+                <ModeCard icon="👴" title="Suegros Mode" desc="Práctica formal" onClick={()=>setMode('suegros')} color="bg-purple-100 dark:bg-purple-900" />
                 <ModeCard icon="🎵" title="Playlist" desc="Tu colección" onClick={()=>setMode('playlist')} />
+                <ModeCard icon="🔍" title="Buscar" desc="Encuentra frases" onClick={()=>setMode('search')} />
+                <ModeCard icon="📼" title="Biblioteca" desc="Tus grabaciones" onClick={()=>setMode('library')} color="bg-emerald-100 dark:bg-emerald-900" />
+              </div>
+              
+              <div className="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-2xl p-4">
+                <p className="text-sm text-brand-900 dark:text-gray-100">
+                  💡 Nuevo: Graba tu confianza después de cada frase para ver tu progreso emocional
+                </p>
               </div>
             </div>
           );
@@ -576,16 +1241,24 @@
           return <PlaylistMode playlists={playlists} setPlaylists={setPlaylists} level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} onBack={()=>setMode(null)} showToast={showToast} />;
         }
         
+        if(mode === 'library'){
+          return <RecordingLibrary recordings={recordings} inclusive={inclusive} onBack={()=>setMode(null)} showToast={showToast} />;
+        }
+        
+        if(mode === 'suegros'){
+          return <SuegrosMode level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} confidenceHistory={confidenceHistory} setConfidenceHistory={setConfidenceHistory} onBack={()=>setMode(null)} onComplete={onComplete} showToast={showToast} />;
+        }
+        
         if(mode === 'quick' || mode === 'structured'){
-          return <PracticeMode mode={mode} level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} onBack={()=>setMode(null)} onComplete={onComplete} showToast={showToast} />;
+          return <PracticeMode mode={mode} level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} confidenceHistory={confidenceHistory} setConfidenceHistory={setConfidenceHistory} selectedTrack={selectedTrack} setSelectedTrack={setSelectedTrack} onBack={()=>setMode(null)} onComplete={onComplete} showToast={showToast} />;
         }
         
         return null;
       }
       
-      function ModeCard({ icon, title, desc, onClick }){
+      function ModeCard({ icon, title, desc, onClick, color }){
         return (
-          <button onClick={onClick} className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700 text-left hover:bg-brand-50 dark:hover:bg-gray-700 transition-colors">
+          <button onClick={onClick} className={cx("rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700 text-left hover:scale-105 transition-transform", color || "bg-white dark:bg-gray-800")}>
             <div className="text-4xl mb-2">{icon}</div>
             <h3 className="font-bold text-brand-900 dark:text-gray-100 mb-1">{title}</h3>
             <p className="text-xs text-brand-700 dark:text-gray-400">{desc}</p>
@@ -593,6 +1266,7 @@
         );
       }
       
+      // Enhanced Search with tags
       function SearchMode({ searchTerm, setSearchTerm, level, inclusive, onBack, showToast }){
         const results = ALL_SENTENCES.filter(s => 
           s.lvl <= level && (
@@ -602,9 +1276,13 @@
           )
         );
         
+        // Popular tags for quick filtering
+        const popularTags = ['greeting', 'work', 'mia', 'morning', 'evening', 'weekend', 'coffee', 'food', 'emotions'];
+        
         return (
           <div>
             <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            
             <div className="mb-4">
               <input 
                 type="text"
@@ -615,16 +1293,38 @@
               />
             </div>
             
+            <div className="flex flex-wrap gap-2 mb-4">
+              {popularTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={()=>setSearchTerm(tag)}
+                  className="px-3 py-1 rounded-full bg-brand-100 dark:bg-gray-700 text-xs text-brand-900 dark:text-gray-100"
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+            
             {searchTerm && (
               <div className="space-y-2">
                 <p className="text-sm text-brand-700 dark:text-gray-400">{results.length} resultados</p>
-                {results.map(phrase => (
+                {results.slice(0,20).map(phrase => (
                   <div key={phrase.id} className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-soft border border-brand-200 dark:border-gray-700">
                     <p className="text-brand-900 dark:text-gray-100 mb-1">{flex(phrase.es, inclusive)}</p>
                     <p className="text-xs text-brand-700 dark:text-gray-400">{phrase.hint}</p>
-                    <button onClick={()=>{speak(flex(phrase.es, inclusive)); showToast('Reproduciendo', 'lassie');}} className="text-xs text-blossom-600 mt-2">
-                      👂 Escuchar
-                    </button>
+                    <div className="flex items-center gap-2 mt-2">
+                      <button onClick={()=>{speak(flex(phrase.es, inclusive)); showToast('Reproduciendo', 'lassie');}} className="text-xs text-blossom-600">
+                        👂 Normal
+                      </button>
+                      <button onClick={()=>{speak(flex(phrase.es, inclusive), {rate:0.75}); showToast('Lento', 'lassie');}} className="text-xs text-blossom-600">
+                        🐢 Lento
+                      </button>
+                      {phrase.tags && (
+                        <span className="text-xs text-gray-500">
+                          {phrase.tags.map(t => `#${t}`).join(' ')}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -633,17 +1333,393 @@
         );
       }
       
+      // Recording Library (NEW)
+      function RecordingLibrary({ recordings, inclusive, onBack, showToast }){
+        const [filter, setFilter] = useState('all'); // 'all', 'passed', 'failed', 'recent'
+        
+        const filtered = recordings.filter(r => {
+          if(filter === 'passed') return r.passed;
+          if(filter === 'failed') return !r.passed;
+          if(filter === 'recent') return Date.now() - r.timestamp < 7*24*60*60*1000;
+          return true;
+        }).slice(-50).reverse(); // Show last 50, newest first
+        
+        // Group by phrase for comparison
+        const groupedByPhrase = {};
+        recordings.forEach(r => {
+          if(!groupedByPhrase[r.target]) groupedByPhrase[r.target] = [];
+          groupedByPhrase[r.target].push(r);
+        });
+        
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Tu biblioteca de grabaciones</h2>
+            
+            <div className="flex gap-2 mb-4">
+              {['all', 'passed', 'failed', 'recent'].map(f => (
+                <button
+                  key={f}
+                  onClick={()=>setFilter(f)}
+                  className={cx('px-3 py-1 rounded-lg text-sm', 
+                    filter === f ? 'bg-brand-900 text-white' : 'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100'
+                  )}
+                >
+                  {f === 'all' ? 'Todas' : f === 'passed' ? '✓ Correctas' : f === 'failed' ? '✗ Practicar' : '🕐 Recientes'}
+                </button>
+              ))}
+            </div>
+            
+            {filtered.length === 0 ? (
+              <p className="text-center text-brand-700 dark:text-gray-400 py-8">No hay grabaciones {filter !== 'all' && `(${filter})`}</p>
+            ) : (
+              <div className="space-y-2">
+                {filtered.map((rec, idx) => (
+                  <div key={idx} className={cx('rounded-xl p-3 border', 
+                    rec.passed ? 'bg-emerald-50 dark:bg-emerald-900 border-emerald-200 dark:border-emerald-700' : 'bg-amber-50 dark:bg-amber-900 border-amber-200 dark:border-amber-700'
+                  )}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-sm text-brand-900 dark:text-gray-100 font-medium">{rec.target}</p>
+                        <p className="text-xs text-brand-700 dark:text-gray-400">Tu respuesta: {rec.transcript}</p>
+                        {rec.confidence && (
+                          <p className="text-xs text-brand-700 dark:text-gray-400 mt-1">
+                            Confianza: {'⭐'.repeat(rec.confidence)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(rec.timestamp).toLocaleDateString('es-MX')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {Object.keys(groupedByPhrase).length > 0 && (
+              <div className="mt-6 bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900 dark:to-green-900 rounded-2xl p-4">
+                <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-2">📈 Tu progreso</h3>
+                <p className="text-sm text-brand-900 dark:text-gray-200">
+                  Has practicado {Object.keys(groupedByPhrase).length} frases diferentes.
+                  {Object.values(groupedByPhrase).filter(attempts => attempts.some(a => a.passed)).length} dominadas.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      }
+      
+      // Suegros Mode (NEW)
+      function SuegrosMode({ level, inclusive, recordings, setRecordings, confidenceHistory, setConfidenceHistory, onBack, onComplete, showToast }){
+        const suegrosContent = [...SENTENCES.suegros, ...SENTENCES.family].filter(s => s.lvl <= level);
+        const practice = useMemo(()=>suegrosContent.sort(()=>0.5-Math.random()).slice(0,5),[]);
+        const [idx, setIdx] = useState(0);
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState('');
+        const [result, setResult] = useState(null);
+        const [confidence, setConfidence] = useState(0);
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+        
+        const phrase = practice[idx];
+        const done = idx >= practice.length;
+        
+        if(done){
+          onComplete();
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">👴👵</div>
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">¡Listo para los suegros!</h2>
+              <p className="text-brand-700 dark:text-gray-300 mb-4">Practicaste frases formales y respetuosas.</p>
+              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+            </div>
+          );
+        }
+        
+        function handleRecord(){
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
+          else {
+            rec.stop();
+            const { pass } = wordScore(flex(phrase.es, inclusive), transcript);
+            setResult(pass);
+          }
+        }
+        
+        function saveAndNext(){
+          if(confidence > 0){
+            setConfidenceHistory(prev => [...prev, confidence]);
+            setRecordings(prev => [...prev, { 
+              transcript, 
+              target: phrase.es, 
+              passed: result, 
+              confidence,
+              timestamp: Date.now(),
+              phraseId: phrase.id,
+              track: 'suegros'
+            }]);
+            showToast(confidence >= 4 ? 'Con confianza!' : 'Sigue practicando', confidence >= 4 ? 'doom' : 'jules');
+          }
+          
+          setIdx(i=>i+1);
+          setTranscript('');
+          setResult(null);
+          setConfidence(0);
+        }
+        
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            
+            <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-2xl p-4 mb-4">
+              <h3 className="font-semibold text-brand-900 dark:text-gray-100">👴👵 Modo Suegros</h3>
+              <p className="text-sm text-brand-800 dark:text-gray-200">Practica frases formales y respetuosas</p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft border border-brand-200 dark:border-gray-700">
+              <div className="text-xs text-brand-700 dark:text-gray-400 mb-2">{idx+1} / {practice.length}</div>
+              <p className="text-xl text-brand-900 dark:text-gray-100 mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">{phrase.hint}</p>
+              
+              <div className="flex gap-2 mb-4">
+                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                  🐢 Lento
+                </button>
+                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                  👂 Normal
+                </button>
+                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+                  {recording ? '⏹ Detener' : '🎤 Grabar'}
+                </button>
+              </div>
+              
+              {transcript && (
+                <div className="p-3 bg-brand-50 dark:bg-gray-700 rounded-lg mb-3">
+                  <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">Tu respuesta:</div>
+                  <div className="text-sm text-brand-900 dark:text-gray-100">{transcript}</div>
+                </div>
+              )}
+              
+              {result !== null && (
+                <>
+                  <div className={cx('p-3 rounded-xl mb-3', result?'bg-emerald-100 dark:bg-emerald-900':'bg-amber-100 dark:bg-amber-900')}>
+                    {result ? '✓ Correcto' : '◻ Casi - intenta otra vez'}
+                  </div>
+                  
+                  <div className="mb-4">
+                    <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">¿Qué tan seguro te sentiste?</p>
+                    <div className="flex gap-2">
+                      {[1,2,3,4,5].map(n => (
+                        <button
+                          key={n}
+                          onClick={()=>setConfidence(n)}
+                          className={cx('flex-1 py-2 rounded-lg text-sm',
+                            confidence === n ? 'bg-brand-900 text-white' : 'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100'
+                          )}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>Nada</span>
+                      <span>Muy seguro</span>
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              <button onClick={saveAndNext} disabled={!confidence} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+                Siguiente →
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      // Enhanced Practice Mode with track selection and confidence
+      function PracticeMode({ mode, level, inclusive, recordings, setRecordings, confidenceHistory, setConfidenceHistory, selectedTrack, setSelectedTrack, onBack, onComplete, showToast }){
+        // Track selection first
+        if(!selectedTrack && mode === 'structured'){
+          return (
+            <div>
+              <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+              <h3 className="text-lg font-semibold text-brand-900 dark:text-gray-100 mb-4">Elige un tema</h3>
+              <div className="space-y-2">
+                {TRACKS.map(track => (
+                  <button
+                    key={track.key}
+                    onClick={()=>setSelectedTrack(track.key)}
+                    className={cx('w-full text-left p-4 rounded-xl border border-brand-200 dark:border-gray-700 hover:bg-brand-50 dark:hover:bg-gray-700', track.color)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{track.icon}</span>
+                      <div>
+                        <h4 className="font-semibold text-brand-900 dark:text-gray-100">{track.name}</h4>
+                        <p className="text-xs text-brand-700 dark:text-gray-400">
+                          {SENTENCES[track.key]?.filter(s => s.lvl <= level).length || 0} frases disponibles
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        
+        const trackSentences = selectedTrack ? SENTENCES[selectedTrack] : ALL_SENTENCES;
+        const sentences = trackSentences.filter(s => s.lvl <= level);
+        const count = mode === 'quick' ? 1 : 5;
+        const practice = useMemo(()=>sentences.sort(()=>0.5-Math.random()).slice(0,count),[selectedTrack]);
+        
+        const [idx, setIdx] = useState(0);
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState('');
+        const [result, setResult] = useState(null);
+        const [confidence, setConfidence] = useState(0);
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+        
+        const phrase = practice[idx];
+        const done = idx >= practice.length;
+        
+        if(done){
+          onComplete();
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">¡De lujo!</h2>
+              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+            </div>
+          );
+        }
+        
+        function handleRecord(){
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
+          else {
+            rec.stop();
+            const { pass } = wordScore(flex(phrase.es, inclusive), transcript);
+            setResult(pass);
+          }
+        }
+        
+        function saveAndNext(){
+          if(confidence > 0){
+            setConfidenceHistory(prev => [...prev, confidence]);
+          }
+          
+          setRecordings(prev => [...prev, { 
+            transcript, 
+            target: phrase.es, 
+            passed: result, 
+            confidence,
+            timestamp: Date.now(),
+            phraseId: phrase.id,
+            track: selectedTrack || 'mixed'
+          }]);
+          
+          // Dynamic encouragement based on confidence
+          if(confidence >= 4){
+            showToast('¡Con mucha confianza!', 'mia');
+          } else if(confidence === 3){
+            showToast('Vas mejorando', 'doom');
+          } else {
+            showToast('Poquito a poquito', 'lassie');
+          }
+          
+          setIdx(i=>i+1);
+          setTranscript('');
+          setResult(null);
+          setConfidence(0);
+        }
+        
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            
+            {selectedTrack && (
+              <div className="flex items-center gap-2 mb-4 text-sm text-brand-700 dark:text-gray-400">
+                <span>{TRACKS.find(t => t.key === selectedTrack)?.icon}</span>
+                <span>{TRACKS.find(t => t.key === selectedTrack)?.name}</span>
+              </div>
+            )}
+            
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft border border-brand-200 dark:border-gray-700">
+              <div className="text-xs text-brand-700 dark:text-gray-400 mb-2">{idx+1} / {practice.length}</div>
+              <p className="text-xl text-brand-900 dark:text-gray-100 mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">{phrase.hint}</p>
+              
+              <div className="flex gap-2 mb-4">
+                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                  🐢 Lento
+                </button>
+                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                  👂 Normal
+                </button>
+                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+                  {recording ? '⏹ Detener' : '🎤 Grabar'}
+                </button>
+              </div>
+              
+              {transcript && (
+                <div className="p-3 bg-brand-50 dark:bg-gray-700 rounded-lg mb-3">
+                  <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">Tu respuesta:</div>
+                  <div className="text-sm text-brand-900 dark:text-gray-100">{transcript}</div>
+                </div>
+              )}
+              
+              {result !== null && (
+                <>
+                  <div className={cx('p-3 rounded-xl mb-3', result?'bg-emerald-100 dark:bg-emerald-900':'bg-amber-100 dark:bg-amber-900')}>
+                    {result ? '✓ Quedó chido' : '◻ Poquito más'}
+                  </div>
+                  
+                  <div className="mb-4">
+                    <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">¿Cómo te sentiste diciendo esto?</p>
+                    <div className="flex gap-2">
+                      {[1,2,3,4,5].map(n => (
+                        <button
+                          key={n}
+                          onClick={()=>setConfidence(n)}
+                          className={cx('flex-1 py-3 rounded-lg',
+                            confidence === n ? 'bg-brand-900 text-white' : 'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100'
+                          )}
+                        >
+                          <div className="text-lg">{['😰','😟','😐','🙂','😊'][n-1]}</div>
+                          <div className="text-xs mt-1">{n}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              <button onClick={saveAndNext} disabled={!confidence && result !== null} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+                {result === null ? 'Graba primero' : 'Siguiente →'}
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
       function PlaylistMode({ playlists, setPlaylists, level, inclusive, recordings, setRecordings, onBack, showToast }){
         const [creating, setCreating] = useState(false);
         const [newName, setNewName] = useState('');
         const [selectedPhrases, setSelectedPhrases] = useState([]);
+        const [practicing, setPracticing] = useState(null);
         
         if(creating){
           const available = ALL_SENTENCES.filter(s => s.lvl <= level);
           
           function savePlaylist(){
             if(!newName) return;
-            setPlaylists(prev => [...prev, { name: newName, phrases: selectedPhrases, created: Date.now() }]);
+            setPlaylists(prev => [...prev, { 
+              id: Date.now(), 
+              name: newName, 
+              phrases: selectedPhrases, 
+              created: Date.now() 
+            }]);
             setCreating(false);
             setNewName('');
             setSelectedPhrases([]);
@@ -674,6 +1750,7 @@
                       selectedPhrases.includes(phrase.id) ? 'border-brand-900 bg-brand-50 dark:bg-gray-700' : 'border-brand-200 dark:border-gray-700 bg-white dark:bg-gray-800')}
                   >
                     <p className="text-sm text-brand-900 dark:text-gray-100">{flex(phrase.es, inclusive)}</p>
+                    <p className="text-xs text-brand-700 dark:text-gray-400">{phrase.hint}</p>
                   </button>
                 ))}
               </div>
@@ -697,10 +1774,16 @@
               <p className="text-center text-brand-700 dark:text-gray-400 py-8">No hay playlists todavía</p>
             ) : (
               <div className="space-y-3">
-                {playlists.map((pl, idx) => (
-                  <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
+                {playlists.map((pl) => (
+                  <div key={pl.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
                     <h3 className="font-semibold text-brand-900 dark:text-gray-100">{pl.name}</h3>
-                    <p className="text-xs text-brand-700 dark:text-gray-400">{pl.phrases.length} frases</p>
+                    <p className="text-xs text-brand-700 dark:text-gray-400 mb-2">{pl.phrases.length} frases</p>
+                    <button 
+                      onClick={()=>showToast('Práctica de playlist próximamente', 'otis')}
+                      className="text-xs text-blossom-600"
+                    >
+                      ▶ Practicar
+                    </button>
                   </div>
                 ))}
               </div>
@@ -708,98 +1791,10 @@
           </div>
         );
       }
-      
-      function PracticeMode({ mode, level, inclusive, recordings, setRecordings, onBack, onComplete, showToast }){
-        const sentences = ALL_SENTENCES.filter(s => s.lvl <= level);
-        const count = mode === 'quick' ? 1 : 5;
-        const practice = useMemo(()=>sentences.sort(()=>0.5-Math.random()).slice(0,count),[]);
-        const [idx, setIdx] = useState(0);
-        const [recording, setRecording] = useState(false);
-        const [transcript, setTranscript] = useState('');
-        const [result, setResult] = useState(null);
-        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
-        
-        const phrase = practice[idx];
-        const done = idx >= practice.length;
-        
-        if(done){
-          onComplete();
-          return (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">¡De lujo!</h2>
-              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
-            </div>
-          );
-        }
-        
-        function handleRecord(){
-          if(!rec.supported) return;
-          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
-          else {
-            rec.stop();
-            const { pass } = wordScore(flex(phrase.es, inclusive), transcript);
-            setResult(pass);
-            setRecordings(prev => [...prev, { 
-              transcript, 
-              target: phrase.es, 
-              passed: pass, 
-              timestamp: Date.now(),
-              phraseId: phrase.id,
-              track: TRACKS.find(t=>t.key===phrase.id.split('')[0])?.key
-            }]);
-            showToast(pass ? 'De lujo!' : 'Casi', pass ? 'doom' : 'jules');
-          }
-        }
-        
-        function next(){
-          setIdx(i=>i+1);
-          setTranscript('');
-          setResult(null);
-        }
-        
-        return (
-          <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft border border-brand-200 dark:border-gray-700">
-              <div className="text-xs text-brand-700 dark:text-gray-400 mb-2">{idx+1} / {practice.length}</div>
-              <p className="text-xl text-brand-900 dark:text-gray-100 mb-2">{flex(phrase.es, inclusive)}</p>
-              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">{phrase.hint}</p>
-              
-              <div className="flex gap-2 mb-4">
-                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
-                  🐢 Lento
-                </button>
-                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
-                  👂 Normal
-                </button>
-                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600':'bg-brand-900')}>
-                  {recording ? '⏹' : '🎤'}
-                </button>
-              </div>
-              
-              {transcript && (
-                <div className="p-3 bg-brand-50 dark:bg-gray-700 rounded-lg mb-3">
-                  <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">Tu respuesta:</div>
-                  <div className="text-sm text-brand-900 dark:text-gray-100">{transcript}</div>
-                </div>
-              )}
-              
-              {result !== null && (
-                <div className={cx('p-3 rounded-xl mb-3', result?'bg-emerald-100 dark:bg-emerald-900':'bg-amber-100 dark:bg-amber-900')}>
-                  {result ? '✓ Quedó chido' : '◻ Poquito más'}
-                </div>
-              )}
-              
-              <button onClick={next} className="w-full py-2 rounded-xl bg-brand-900 text-white">
-                Siguiente →
-              </button>
-            </div>
-          </div>
-        );
-      }
-      
-      // ---------------- GATOS TAB - Cat Minigames ----------------
+<!-- END: Enhanced PracticaTab -->
+
+<!-- START: All Cat Games from v6 -->
+      // ---------------- GATOS TAB - All 4 Games ----------------
       function GatosTab({ catGamesPlayed, setCatGamesPlayed, showToast, badges }){
         const [selectedGame, setSelectedGame] = useState(null);
         
@@ -809,15 +1804,21 @@
               <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Juegos de gatos 🐱</h2>
               
               <div className="grid grid-cols-2 gap-3">
-                {Object.entries(CATS).map(([key, cat]) => (
+                {Object.entries(CATS).filter(([k,v]) => v.game).map(([key, cat]) => (
                   <button
                     key={key}
                     onClick={()=>setSelectedGame(key)}
                     className="cat-card bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700 text-center"
+                    style={{borderColor: cat.color}}
                   >
                     <div className="text-6xl mb-2">{cat.emoji}</div>
                     <h3 className="font-bold text-brand-900 dark:text-gray-100 mb-1">{cat.name}</h3>
                     <p className="text-xs text-brand-700 dark:text-gray-400">{cat.game}</p>
+                    {catGamesPlayed.filter(g => g.cat === key).length > 0 && (
+                      <p className="text-xs text-emerald-600 mt-2">
+                        Jugado {catGamesPlayed.filter(g => g.cat === key).length}x
+                      </p>
+                    )}
                   </button>
                 ))}
               </div>
@@ -826,6 +1827,15 @@
                 <p className="text-sm text-brand-900 dark:text-gray-100">
                   🏆 Juega con los 4 gatos para desbloquear "Gato favorito"
                 </p>
+                <div className="flex gap-4 mt-3">
+                  {['otis','doom','jules','lassie'].map(cat => (
+                    <div key={cat} className={cx('text-2xl opacity-30', 
+                      catGamesPlayed.some(g => g.cat === cat) && 'opacity-100'
+                    )}>
+                      {CATS[cat].emoji}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           );
@@ -839,12 +1849,16 @@
         return null;
       }
       
-      // Otis: Speed Challenge
+      // Otis: Speed Challenge - How many phrases can you recognize in 10 seconds?
       function OtisGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
         const [timeLeft, setTimeLeft] = useState(10);
         const [score, setScore] = useState(0);
         const [started, setStarted] = useState(false);
         const [phrase, setPhrase] = useState(null);
+        const [highScore] = useState(() => {
+          const otisGames = catGamesPlayed.filter(g => g.cat === 'otis');
+          return otisGames.length > 0 ? Math.max(...otisGames.map(g => g.score || 0)) : 0;
+        });
         
         useEffect(()=>{
           if(!started || timeLeft <= 0) return;
@@ -855,9 +1869,10 @@
         useEffect(()=>{
           if(timeLeft === 0 && started){
             setCatGamesPlayed(prev => [...prev, {cat:'otis', score, timestamp:Date.now()}]);
-            showToast(`${score} puntos! MIAU MIAU!`, 'otis');
+            const msg = score > highScore ? `¡Nuevo récord: ${score}! MIAU MIAU!` : `${score} puntos! No mal para un humano...`;
+            showToast(msg, 'otis');
           }
-        }, [timeLeft]);
+        }, [timeLeft, started]);
         
         function start(){
           setStarted(true);
@@ -882,7 +1897,10 @@
               <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
               <div className="text-8xl mb-4">🐱</div>
               <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">Speed Challenge de Otis</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-4">10 segundos. ¿Cuántas frases reconoces?</p>
+              <p className="text-brand-700 dark:text-gray-300 mb-2">10 segundos. ¿Cuántas frases reconoces?</p>
+              {highScore > 0 && (
+                <p className="text-sm text-amber-600 mb-4">Tu récord: {highScore} puntos</p>
+              )}
               <button onClick={start} className="px-6 py-3 rounded-xl bg-amber-600 text-white font-semibold">
                 Empezar
               </button>
@@ -895,9 +1913,12 @@
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🐱</div>
               <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">¡Terminado!</h2>
-              <p className="text-4xl font-bold text-brand-900 dark:text-gray-100 mb-4">{score} puntos</p>
+              <p className="text-4xl font-bold text-brand-900 dark:text-gray-100 mb-2">{score} puntos</p>
+              {score > highScore && (
+                <p className="text-amber-600 font-semibold mb-2">🏆 ¡Nuevo récord!</p>
+              )}
               <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">
-                Otis dice: "Bueeeno, estuvo aceptable."
+                Otis dice: "{score >= 8 ? 'Impresionante... para un humano.' : score >= 5 ? 'Aceptable. Yo hubiera hecho 20.' : 'Necesitas más práctica. Obvio.'}"
               </p>
               <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
             </div>
@@ -915,10 +1936,15 @@
               
               {phrase && (
                 <>
-                  <p className="text-xl text-brand-900 dark:text-gray-100 mb-4 text-center">{phrase.es}</p>
+                  <p className="text-xl text-brand-900 dark:text-gray-100 mb-2 text-center">{phrase.es}</p>
+                  <p className="text-sm text-brand-700 dark:text-gray-400 mb-4 text-center">{phrase.hint}</p>
                   <div className="grid grid-cols-2 gap-2">
-                    <button onClick={()=>check(true)} className="py-3 rounded-xl bg-emerald-600 text-white">✓ Sé esto</button>
-                    <button onClick={()=>check(false)} className="py-3 rounded-xl bg-rose-600 text-white">✗ No sé</button>
+                    <button onClick={()=>check(true)} className="py-3 rounded-xl bg-emerald-600 text-white font-semibold">
+                      ✓ Sé esto
+                    </button>
+                    <button onClick={()=>check(false)} className="py-3 rounded-xl bg-rose-600 text-white font-semibold">
+                      ✗ No sé
+                    </button>
                   </div>
                 </>
               )}
@@ -927,17 +1953,24 @@
         );
       }
       
-      // Doom: Memory Match
+      // Doom: Memory Match - Match Spanish phrases with their meanings
       function DoomGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
         const [cards, setCards] = useState([]);
         const [flipped, setFlipped] = useState([]);
         const [matched, setMatched] = useState([]);
         const [moves, setMoves] = useState(0);
+        const [bestMoves] = useState(() => {
+          const doomGames = catGamesPlayed.filter(g => g.cat === 'doom');
+          return doomGames.length > 0 ? Math.min(...doomGames.map(g => g.moves || 999)) : 0;
+        });
         
         useEffect(()=>{
           const phrases = ALL_SENTENCES.slice(0,4);
-          const pairs = [...phrases, ...phrases].map((p,i)=>({...p, id:i}));
-          setCards(pairs.sort(()=>0.5-Math.random()));
+          const cards = phrases.map(p => [
+            { id: p.id + '_es', text: p.es, match: p.id, type: 'es' },
+            { id: p.id + '_en', text: p.hint, match: p.id, type: 'en' }
+          ]).flat();
+          setCards(cards.sort(()=>0.5-Math.random()));
         }, []);
         
         function flip(idx){
@@ -948,12 +1981,15 @@
           if(newFlipped.length === 2){
             setMoves(m=>m+1);
             const [a,b] = newFlipped;
-            if(cards[a].es === cards[b].es){
+            if(cards[a].match === cards[b].match && cards[a].type !== cards[b].type){
               setMatched([...matched, a, b]);
               setFlipped([]);
               if(matched.length + 2 === cards.length){
                 setCatGamesPlayed(prev => [...prev, {cat:'doom', moves, timestamp:Date.now()}]);
-                showToast('¡Completado! Te mando abrazo.', 'doom');
+                const msg = bestMoves === 0 || moves < bestMoves 
+                  ? `¡Nuevo récord: ${moves} movimientos! Te mando abrazo.` 
+                  : `¡Completado en ${moves} movimientos! Bien hecho.`;
+                showToast(msg, 'doom');
               }
             } else {
               setTimeout(()=>setFlipped([]), 1000);
@@ -967,30 +2003,42 @@
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft">
               <div className="flex justify-between mb-4">
                 <h3 className="font-bold text-brand-900 dark:text-gray-100">🐈 Memory de Doom</h3>
-                <div className="text-sm text-brand-700 dark:text-gray-400">Movimientos: {moves}</div>
+                <div className="text-sm text-brand-700 dark:text-gray-400">
+                  Movimientos: {moves}
+                  {bestMoves > 0 && ` (Récord: ${bestMoves})`}
+                </div>
               </div>
               
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {cards.map((card, idx) => (
                   <button
                     key={idx}
                     onClick={()=>flip(idx)}
-                    className={cx('aspect-square rounded-xl flex items-center justify-center text-xs p-2',
-                      matched.includes(idx) ? 'bg-emerald-100 dark:bg-emerald-900' :
+                    className={cx('aspect-square rounded-xl flex items-center justify-center text-xs p-2 transition-all',
+                      matched.includes(idx) ? 'bg-purple-200 dark:bg-purple-800' :
                       flipped.includes(idx) ? 'bg-purple-100 dark:bg-purple-900' :
                       'bg-brand-100 dark:bg-gray-700'
                     )}
                   >
-                    {(flipped.includes(idx) || matched.includes(idx)) ? card.es : '?'}
+                    {(flipped.includes(idx) || matched.includes(idx)) 
+                      ? card.text 
+                      : <span className="text-2xl">{card.type === 'es' ? '🇲🇽' : '🇺🇸'}</span>}
                   </button>
                 ))}
               </div>
+              
+              {matched.length === cards.length && (
+                <div className="mt-4 text-center">
+                  <p className="text-emerald-600 font-semibold">¡Completado!</p>
+                  <p className="text-sm text-brand-700 dark:text-gray-400">Doom dice: "Te quiero mucho"</p>
+                </div>
+              )}
             </div>
           </div>
         );
       }
       
-      // Jules: Truth Meter (confidence rating)
+      // Jules: Truth Meter - Rate your confidence honestly
       function JulesGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
         const phrases = useMemo(()=>ALL_SENTENCES.sort(()=>0.5-Math.random()).slice(0,5),[]);
         const [idx, setIdx] = useState(0);
@@ -1005,9 +2053,12 @@
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🐾</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">Listo</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-4">
-                Jules dice: "Confianza promedio {avg.toFixed(1)}/5. Respeto."
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">Evaluación completa</h2>
+              <p className="text-brand-700 dark:text-gray-300 mb-2">
+                Confianza promedio: {avg.toFixed(1)}/5
+              </p>
+              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">
+                Jules dice: "{avg >= 4 ? 'Confianza sólida. Respeto.' : avg >= 3 ? 'Vas bien. Sigue trabajando.' : 'Necesitas más práctica. Es obvio.'}"
               </p>
               <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
             </div>
@@ -1017,6 +2068,7 @@
         function rate(score){
           setRatings([...ratings, score]);
           setIdx(i=>i+1);
+          speak(phrase.es);
         }
         
         return (
@@ -1029,13 +2081,22 @@
                 <p className="text-xs text-brand-700 dark:text-gray-400">{idx+1} / {phrases.length}</p>
               </div>
               
-              <p className="text-lg text-brand-900 dark:text-gray-100 text-center mb-4">{phrase.es}</p>
-              <p className="text-sm text-brand-700 dark:text-gray-400 text-center mb-6">¿Qué tan [segure|segure] te sientes?</p>
+              <p className="text-lg text-brand-900 dark:text-gray-100 text-center mb-2">{phrase.es}</p>
+              <p className="text-sm text-brand-700 dark:text-gray-400 text-center mb-6">¿Qué tan segure te sientes diciendo esto?</p>
               
               <div className="space-y-2">
                 {[1,2,3,4,5].map(n=>(
-                  <button key={n} onClick={()=>rate(n)} className="w-full py-3 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100">
-                    {'⭐'.repeat(n)} {n}/5
+                  <button key={n} onClick={()=>rate(n)} className="w-full py-3 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 hover:bg-brand-200 dark:hover:bg-gray-600 transition-colors">
+                    <div className="flex items-center justify-center gap-2">
+                      <span>{'⭐'.repeat(n)}</span>
+                      <span className="text-sm">
+                        {n === 1 ? 'No entiendo nada' : 
+                         n === 2 ? 'Muy insegure' :
+                         n === 3 ? 'Algo segure' :
+                         n === 4 ? 'Bastante segure' :
+                         'Súper segure'}
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -1044,24 +2105,49 @@
         );
       }
       
-      // Lassie: Phrase Collector
+      // Lassie: Phrase Collector - Find the right translation
       function LassieGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
-        const [collected, setCollected] = useState([]);
-        const [target] = useState(ALL_SENTENCES[Math.floor(Math.random()*ALL_SENTENCES.length)]);
+        const [round, setRound] = useState(0);
+        const [score, setScore] = useState(0);
+        const [target, setTarget] = useState(null);
+        const [options, setOptions] = useState([]);
+        const totalRounds = 5;
         
-        const options = useMemo(()=>{
-          const others = ALL_SENTENCES.filter(p=>p.id!==target.id).sort(()=>0.5-Math.random()).slice(0,4);
-          return [...others, target].sort(()=>0.5-Math.random());
-        },[target]);
+        useEffect(()=>{
+          if(round < totalRounds){
+            const t = ALL_SENTENCES[Math.floor(Math.random()*ALL_SENTENCES.length)];
+            const others = ALL_SENTENCES.filter(p=>p.id!==t.id).sort(()=>0.5-Math.random()).slice(0,3);
+            setTarget(t);
+            setOptions([...others, t].sort(()=>0.5-Math.random()));
+          } else {
+            setCatGamesPlayed(prev => [...prev, {cat:'lassie', score, timestamp:Date.now()}]);
+            const msg = score === totalRounds ? '¡Perfecto! Te protejo siempre.' : `${score}/${totalRounds} correctas. Sigo aquí para ti.`;
+            showToast(msg, 'lassie');
+          }
+        }, [round]);
         
         function select(phrase){
           if(phrase.id === target.id){
-            setCatGamesPlayed(prev => [...prev, {cat:'lassie', collected, timestamp:Date.now()}]);
-            showToast('¡Correcto! Te cuido siempre.', 'lassie');
-            setTimeout(onBack, 2000);
+            setScore(s=>s+1);
+            showToast('¡Correcto!', 'lassie');
           } else {
-            showToast('No es esa. Intenta otra.', 'lassie');
+            showToast('No es esa, pero está bien', 'lassie');
           }
+          setRound(r=>r+1);
+        }
+        
+        if(round >= totalRounds){
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">😸</div>
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">¡Terminado!</h2>
+              <p className="text-3xl font-bold text-brand-900 dark:text-gray-100 mb-2">{score}/{totalRounds}</p>
+              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">
+                Lassie dice: "{score === totalRounds ? 'Perfecto. Siempre te cuido.' : score >= 3 ? 'Bien hecho. Aquí estoy.' : 'Practica más. Te apoyo.'}"
+              </p>
+              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+            </div>
+          );
         }
         
         return (
@@ -1071,56 +2157,318 @@
               <div className="text-center mb-4">
                 <div className="text-6xl mb-2">😸</div>
                 <h3 className="font-bold text-brand-900 dark:text-gray-100">Lassie Phrase Collector</h3>
+                <p className="text-sm text-brand-700 dark:text-gray-400">Ronda {round+1}/{totalRounds} • Puntos: {score}</p>
               </div>
               
-              <p className="text-center text-brand-700 dark:text-gray-300 mb-4">Encuentra la traducción:</p>
-              <p className="text-lg text-center text-brand-900 dark:text-gray-100 mb-6 font-semibold">{target.hint}</p>
-              
-              <div className="space-y-2">
-                {options.map((p,i)=>(
-                  <button key={i} onClick={()=>select(p)} className="w-full text-left py-3 px-4 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100">
-                    {p.es}
-                  </button>
-                ))}
-              </div>
+              {target && (
+                <>
+                  <p className="text-center text-brand-700 dark:text-gray-300 mb-2">Encuentra la traducción:</p>
+                  <div className="bg-emerald-100 dark:bg-emerald-900 rounded-xl p-3 mb-6">
+                    <p className="text-lg text-center text-brand-900 dark:text-gray-100 font-semibold">{target.hint}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {options.map((p,i)=>(
+                      <button key={i} onClick={()=>select(p)} className="w-full text-left py-3 px-4 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 hover:bg-brand-200 dark:hover:bg-gray-600 transition-colors">
+                        {p.es}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         );
       }
-      
-      // Stats & Más tabs (simplified for space)
-      function StatsTab({ sessions, streak, badges, recordings }){
-        const weeklyReport = useWeeklyReport();
-        const report = weeklyReport.getWeeklyReport();
+<!-- END: All Cat Games -->
+
+<!-- START: Enhanced StatsTab with confidence tracking -->
+      // ---------------- STATS TAB with Everything ----------------
+      function StatsTab({ sessions, streak, badges, recordings, confidenceHistory, conversations }){
+        const [view, setView] = useState('overview'); // 'overview', 'confidence', 'tracks', 'timeline'
         
-        return (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-br from-blossom-600 to-brand-900 text-white rounded-2xl p-6">
-              <h2 className="text-xl font-bold mb-2">Esta semana</h2>
-              <div className="text-3xl font-bold">{report.thisWeekCount} prácticas</div>
-              <div className="text-sm">{Math.round(report.thisWeekRate*100)}% éxito</div>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700">
-              <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-4">Insignias 🌮</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {BADGES.map(badge => {
-                  const earned = badges.earned.includes(badge.id);
-                  return (
-                    <div key={badge.id} className={cx('p-3 rounded-xl text-center', earned?'bg-pink-100 dark:bg-pink-900':'bg-gray-100 dark:bg-gray-700 opacity-50')}>
-                      <div className="text-3xl mb-1">{badge.emoji}</div>
-                      <div className="text-xs font-semibold text-brand-900 dark:text-gray-100">{badge.name}</div>
-                    </div>
-                  );
-                })}
+        // Calculate stats
+        const totalPhrases = recordings.length;
+        const passedPhrases = recordings.filter(r => r.passed).length;
+        const successRate = totalPhrases > 0 ? Math.round((passedPhrases/totalPhrases)*100) : 0;
+        
+        const avgConfidence = confidenceHistory.length > 0 
+          ? (confidenceHistory.reduce((a,b)=>a+b,0) / confidenceHistory.length).toFixed(1)
+          : 0;
+        
+        const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const thisWeek = recordings.filter(r => r.timestamp >= weekAgo);
+        const thisWeekRate = thisWeek.length ? Math.round((thisWeek.filter(r=>r.passed).length / thisWeek.length)*100) : 0;
+        
+        // Track breakdown
+        const trackStats = {};
+        TRACKS.forEach(track => {
+          const trackRecs = recordings.filter(r => r.track === track.key);
+          const passed = trackRecs.filter(r => r.passed).length;
+          trackStats[track.key] = {
+            total: trackRecs.length,
+            passed,
+            rate: trackRecs.length ? Math.round((passed / trackRecs.length)*100) : 0,
+            avgConfidence: trackRecs
+              .filter(r => r.confidence)
+              .reduce((sum, r) => sum + r.confidence, 0) / (trackRecs.filter(r => r.confidence).length || 1)
+          };
+        });
+        
+        // Confidence over time (last 30 recordings)
+        const recentConfidence = recordings
+          .filter(r => r.confidence)
+          .slice(-30)
+          .map(r => r.confidence);
+        
+        if(view === 'overview'){
+          return (
+            <div className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <button onClick={()=>setView('overview')} className="px-3 py-1 rounded-lg bg-brand-900 text-white text-sm">Vista general</button>
+                <button onClick={()=>setView('confidence')} className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">Confianza</button>
+                <button onClick={()=>setView('tracks')} className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">Temas</button>
+                <button onClick={()=>setView('timeline')} className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">Progreso</button>
+              </div>
+              
+              <div className="bg-gradient-to-br from-blossom-600 to-brand-900 text-white rounded-2xl p-6">
+                <h2 className="text-xl font-bold mb-2">Esta semana</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-3xl font-bold">{thisWeek.length}</div>
+                    <div className="text-sm opacity-90">prácticas</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold">{thisWeekRate}%</div>
+                    <div className="text-sm opacity-90">éxito</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard 
+                  icon="🎯"
+                  title="Total frases"
+                  value={totalPhrases}
+                  detail={`${passedPhrases} correctas`}
+                />
+                <StatCard 
+                  icon="💪"
+                  title="Confianza"
+                  value={avgConfidence}
+                  detail="promedio /5"
+                  color="bg-purple-100 dark:bg-purple-900"
+                />
+                <StatCard 
+                  icon="🔥"
+                  title="Streak"
+                  value={streak}
+                  detail="días seguidos"
+                  color="bg-orange-100 dark:bg-orange-900"
+                />
+                <StatCard 
+                  icon="💬"
+                  title="Conversaciones"
+                  value={conversations.length}
+                  detail="completadas"
+                  color="bg-blue-100 dark:bg-blue-900"
+                />
+              </div>
+              
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700">
+                <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-4">Insignias ganadas</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {BADGES.map(badge => {
+                    const earned = badges.earned.includes(badge.id);
+                    return (
+                      <div key={badge.id} className={cx('p-3 rounded-xl text-center transition-all', 
+                        earned ? 'bg-pink-100 dark:bg-pink-900 scale-100' : 'bg-gray-100 dark:bg-gray-700 opacity-50 scale-95'
+                      )}>
+                        <div className="text-3xl mb-1">{badge.emoji}</div>
+                        <div className="text-xs font-semibold text-brand-900 dark:text-gray-100">{badge.name}</div>
+                        {!earned && <div className="text-xs text-gray-500 mt-1">{badge.desc}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
+          );
+        }
+        
+        if(view === 'confidence'){
+          return (
+            <div className="space-y-4">
+              <button onClick={()=>setView('overview')} className="text-brand-700 dark:text-gray-400">← Vista general</button>
+              
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft">
+                <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Tu confianza al hablar</h2>
+                
+                <div className="mb-6">
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-sm text-brand-700 dark:text-gray-400">Promedio actual</span>
+                    <span className="text-3xl font-bold text-brand-900 dark:text-gray-100">{avgConfidence}/5</span>
+                  </div>
+                  <div className="confidence-bar h-12 rounded-lg">
+                    <div className="confidence-marker" style={{left: `${(avgConfidence/5)*100}%`, width: '20px', height: '20px', top: '14px'}}></div>
+                  </div>
+                </div>
+                
+                {recentConfidence.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-brand-900 dark:text-gray-100 mb-3">Últimas 30 prácticas</h3>
+                    <div className="flex gap-1 items-end" style={{height: '100px'}}>
+                      {recentConfidence.map((conf, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex-1 bg-gradient-to-t from-brand-600 to-brand-400 rounded-t"
+                          style={{height: `${(conf/5)*100}%`}}
+                          title={`Confianza: ${conf}/5`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-brand-700 dark:text-gray-400 mt-2 text-center">→ Tiempo</p>
+                  </div>
+                )}
+                
+                <div className="mt-6 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-xl p-4">
+                  <p className="text-sm text-brand-900 dark:text-gray-100">
+                    {avgConfidence >= 4 ? '🌟 ¡Excelente confianza! Sigue así.' :
+                     avgConfidence >= 3 ? '💪 Vas bien. La práctica hace la confianza.' :
+                     avgConfidence >= 2 ? '🌱 Mejorando poco a poco. No te rindas.' :
+                     '🤗 Todos empezamos con poca confianza. Sigue practicando.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+        
+        if(view === 'tracks'){
+          return (
+            <div className="space-y-4">
+              <button onClick={()=>setView('overview')} className="text-brand-700 dark:text-gray-400">← Vista general</button>
+              
+              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100">Progreso por tema</h2>
+              
+              {TRACKS.map(track => {
+                const stats = trackStats[track.key];
+                if(!stats || stats.total === 0) return null;
+                
+                return (
+                  <div key={track.key} className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">{track.icon}</span>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-brand-900 dark:text-gray-100">{track.name}</h3>
+                        <p className="text-xs text-brand-700 dark:text-gray-400">{stats.total} prácticas</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-brand-900 dark:text-gray-100">{stats.rate}%</div>
+                        <div className="text-xs text-brand-700 dark:text-gray-400">éxito</div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-brand-600 to-brand-400 h-full rounded-full transition-all"
+                        style={{width: `${stats.rate}%`}}
+                      />
+                    </div>
+                    
+                    {stats.avgConfidence > 0 && (
+                      <p className="text-xs text-brand-700 dark:text-gray-400 mt-2">
+                        Confianza promedio: {stats.avgConfidence.toFixed(1)}/5
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+              
+              {Object.values(trackStats).every(s => s.total === 0) && (
+                <p className="text-center text-brand-700 dark:text-gray-400 py-8">
+                  Todavía no has practicado ningún tema específico
+                </p>
+              )}
+            </div>
+          );
+        }
+        
+        if(view === 'timeline'){
+          // Group recordings by day
+          const dailyStats = {};
+          recordings.forEach(r => {
+            const day = new Date(r.timestamp).toLocaleDateString('es-MX');
+            if(!dailyStats[day]) dailyStats[day] = { total: 0, passed: 0, confidence: [] };
+            dailyStats[day].total++;
+            if(r.passed) dailyStats[day].passed++;
+            if(r.confidence) dailyStats[day].confidence.push(r.confidence);
+          });
+          
+          const last7Days = Object.entries(dailyStats).slice(-7);
+          
+          return (
+            <div className="space-y-4">
+              <button onClick={()=>setView('overview')} className="text-brand-700 dark:text-gray-400">← Vista general</button>
+              
+              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100">Tu progreso</h2>
+              
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft">
+                <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-4">Últimos 7 días</h3>
+                
+                {last7Days.length === 0 ? (
+                  <p className="text-center text-brand-700 dark:text-gray-400 py-6">
+                    No hay datos de los últimos 7 días
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {last7Days.map(([day, stats]) => (
+                      <div key={day} className="border-b border-brand-200 dark:border-gray-700 pb-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-sm font-medium text-brand-900 dark:text-gray-100">{day}</span>
+                          <span className="text-xs text-brand-700 dark:text-gray-400">{stats.total} frases</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-emerald-100 dark:bg-emerald-900 rounded px-2 py-1">
+                            Éxito: {Math.round((stats.passed/stats.total)*100)}%
+                          </div>
+                          {stats.confidence.length > 0 && (
+                            <div className="bg-purple-100 dark:bg-purple-900 rounded px-2 py-1">
+                              Confianza: {(stats.confidence.reduce((a,b)=>a+b,0)/stats.confidence.length).toFixed(1)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-brand-700 dark:text-gray-400">
+                    Total histórico: {recordings.length} prácticas en {Object.keys(dailyStats).length} días
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+      }
+      
+      function StatCard({ icon, title, value, detail, color }){
+        return (
+          <div className={cx("rounded-xl p-4 border border-brand-200 dark:border-gray-700", color || "bg-white dark:bg-gray-800")}>
+            <div className="text-2xl mb-2">{icon}</div>
+            <div className="text-2xl font-bold text-brand-900 dark:text-gray-100">{value}</div>
+            <div className="text-xs text-brand-700 dark:text-gray-400">{detail}</div>
           </div>
         );
       }
-      
+<!-- END: Enhanced StatsTab -->
+
+<!-- START: Enhanced MasTab with better journal -->
+      // ---------------- MAS TAB with Voice Journal ----------------
       function MasTab({ level, setLevel, inclusive, setInclusive, darkMode, setDarkMode, journals, setJournals, showToast }){
-        const [tab, setTab] = useState('settings'); // 'settings', 'journal', 'tips'
+        const [tab, setTab] = useState('settings'); // 'settings', 'journal', 'tips', 'about'
         
         if(tab === 'journal'){
           return <JournalSection journals={journals} setJournals={setJournals} showToast={showToast} onBack={()=>setTab('settings')} />;
@@ -1128,6 +2476,10 @@
         
         if(tab === 'tips'){
           return <TipsSection onBack={()=>setTab('settings')} />;
+        }
+        
+        if(tab === 'about'){
+          return <AboutSection onBack={()=>setTab('settings')} />;
         }
         
         return (
@@ -1162,30 +2514,52 @@
             </div>
             
             <button onClick={()=>setTab('journal')} className="w-full bg-brand-900 text-white py-3 rounded-xl font-semibold">
-              💬 Mi diario
+              💬 Mi diario de voz
             </button>
             
             <button onClick={()=>setTab('tips')} className="w-full bg-blossom-600 text-white py-3 rounded-xl font-semibold">
               📚 Tips culturales
             </button>
             
+            <button onClick={()=>setTab('about')} className="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold">
+              💜 Sobre esta app
+            </button>
+            
             <div className="text-center space-y-2 py-4">
               <div className="flex justify-center gap-3 text-2xl">
-                <span>🐱</span><span>🐈</span><span>🐾</span><span>😸</span>
+                {Object.values(CATS).map(cat => (
+                  <span key={cat.name} title={cat.name}>{cat.emoji}</span>
+                ))}
               </div>
               <div className="text-xs text-brand-700 dark:text-gray-400">
-                para stacie · v6.0
+                para stacie · v7.0 · con amor de mia
               </div>
             </div>
           </div>
         );
       }
       
+      // Enhanced Voice Journal with better prompts
       function JournalSection({ journals, setJournals, showToast, onBack }){
         const [recording, setRecording] = useState(false);
         const [transcript, setTranscript] = useState('');
-        const [prompt] = useState(VOICE_PROMPTS[Math.floor(Math.random()*VOICE_PROMPTS.length)]);
+        const [selectedPrompt, setSelectedPrompt] = useState(0);
         const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+        
+        const JOURNAL_PROMPTS = [
+          { es: '¿Cómo te fue en la residencia hoy?', en: 'How was the residence today?' },
+          { es: '¿Qué fue lo mejor de tu día?', en: 'What was the best part of your day?' },
+          { es: 'Cuéntale a Mia algo nuevo que aprendiste', en: 'Tell Mia something new you learned' },
+          { es: '¿Cómo te sientes en este momento?', en: 'How are you feeling right now?' },
+          { es: 'Describe tu comida favorita mexicana', en: 'Describe your favorite Mexican food' },
+          { es: '¿Qué planes tienes para el fin de semana?', en: 'What are your weekend plans?' },
+          { es: '¿Qué extrañas de casa?', en: 'What do you miss from home?' },
+          { es: 'Habla de tu gato favorito y por qué', en: 'Talk about your favorite cat and why' },
+          { es: '¿Qué quieres hacer con Mia mañana?', en: 'What do you want to do with Mia tomorrow?' },
+          { es: 'Practica presentarte a los suegros', en: 'Practice introducing yourself to in-laws' }
+        ];
+        
+        const prompt = JOURNAL_PROMPTS[selectedPrompt];
         
         function handleRecord(){
           if(!rec.supported) return;
@@ -1193,9 +2567,13 @@
           else {
             rec.stop();
             if(transcript){
-              setJournals(prev => [...prev, { text: transcript, timestamp: Date.now() }]);
+              setJournals(prev => [...prev, { 
+                text: transcript, 
+                prompt: prompt.es,
+                timestamp: Date.now() 
+              }]);
               setTranscript('');
-              showToast('Guardado', 'doom');
+              showToast('Guardado en tu diario', 'mia');
             }
           }
         }
@@ -1205,11 +2583,30 @@
             <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
             
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700 mb-4">
-              <h3 className="font-bold text-brand-900 dark:text-gray-100 mb-2">Prompt:</h3>
-              <p className="text-brand-700 dark:text-gray-300 mb-4">{prompt}</p>
+              <h3 className="font-bold text-brand-900 dark:text-gray-100 mb-3">Prompt de hoy:</h3>
               
-              <button onClick={handleRecord} className={cx('w-full py-3 rounded-xl text-white font-semibold', recording?'bg-rose-600':'bg-brand-900')}>
-                {recording ? '⏹ Detener' : '🎤 Grabar'}
+              <div className="mb-4">
+                <p className="text-brand-900 dark:text-gray-100 font-medium">{prompt.es}</p>
+                <p className="text-sm text-brand-700 dark:text-gray-400 italic">{prompt.en}</p>
+              </div>
+              
+              <div className="flex gap-2 mb-4">
+                <button 
+                  onClick={()=>setSelectedPrompt((p+1) % JOURNAL_PROMPTS.length)}
+                  className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-sm text-brand-900 dark:text-gray-100"
+                >
+                  🔄 Otro prompt
+                </button>
+                <button 
+                  onClick={()=>speak(prompt.es, {rate:0.9})}
+                  className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-sm text-brand-900 dark:text-gray-100"
+                >
+                  👂 Escuchar
+                </button>
+              </div>
+              
+              <button onClick={handleRecord} className={cx('w-full py-3 rounded-xl text-white font-semibold', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+                {recording ? '⏹ Detener grabación' : '🎤 Grabar respuesta'}
               </button>
               
               {transcript && (
@@ -1221,12 +2618,29 @@
             
             <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-3">Entradas recientes</h3>
             {journals.length === 0 ? (
-              <p className="text-center text-brand-700 dark:text-gray-400 py-6">Todavía nada</p>
+              <p className="text-center text-brand-700 dark:text-gray-400 py-6">
+                Tu diario está vacío. ¡Graba tu primera entrada!
+              </p>
             ) : (
               <div className="space-y-2">
                 {journals.slice().reverse().slice(0,5).map((j,i)=>(
                   <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-soft border border-brand-200 dark:border-gray-700">
-                    <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">{new Date(j.timestamp).toLocaleDateString('es-MX')}</div>
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="text-xs text-brand-700 dark:text-gray-400">
+                        {new Date(j.timestamp).toLocaleDateString('es-MX')}
+                      </div>
+                      <button 
+                        onClick={()=>speak(j.text)}
+                        className="text-xs text-blossom-600"
+                      >
+                        👂
+                      </button>
+                    </div>
+                    {j.prompt && (
+                      <p className="text-xs text-brand-700 dark:text-gray-400 italic mb-1">
+                        Prompt: {j.prompt}
+                      </p>
+                    )}
                     <p className="text-sm text-brand-900 dark:text-gray-100">{j.text}</p>
                   </div>
                 ))}
@@ -1238,16 +2652,20 @@
       
       function TipsSection({ onBack }){
         const tips = [
-          { title: '¿Mande?', text: 'Forma amable de "¿qué?" más común en México.' },
-          { title: 'Jitomate vs. Tomate', text: 'Jitomate = rojo. Tomate = verde (en México).' },
-          { title: 'Diminutivos', text: 'Poquito, ratito, tantito = cariño, no vaguedad.' },
-          { title: 'Usted vs. Tú', text: 'Con estudiantes: tú. Con familias: usted.' }
+          { title: '¿Mande?', text: 'Forma cortés de "¿qué?" muy común en México. Los suegros lo apreciarán.' },
+          { title: 'Jitomate vs. Tomate', text: 'En México: jitomate = rojo (lo normal), tomate = verde (para salsa verde).' },
+          { title: 'Diminutivos con cariño', text: 'Poquito, ratito, ahorita, tantito = no es vago, es cariñoso.' },
+          { title: 'Usted con los suegros', text: 'Al principio usa "usted" con los papás de Mia. Ellos te dirán cuándo tutear.' },
+          { title: 'La sobremesa', text: 'Después de comer, se platica. No te levantes rápido de la mesa.' },
+          { title: 'El "ahorita"', text: 'Ahorita = en un rato. Ahora mismo = right now. Ahorita no es urgente.' },
+          { title: 'Comida = almuerzo', text: 'Desayuno (morning), comida (lunch/main meal), cena (dinner).' },
+          { title: 'No digas "no" directo', text: 'Mejor "déjame ver", "a ver si puedo", "tal vez" que un "no" seco.' }
         ];
         
         return (
           <div>
             <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-            <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Tips culturales</h2>
+            <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Tips culturales 🌮</h2>
             <div className="space-y-3">
               {tips.map((tip,i)=>(
                 <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
@@ -1259,6 +2677,50 @@
           </div>
         );
       }
+      
+      function AboutSection({ onBack }){
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            
+            <div className="bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900 dark:to-purple-900 rounded-2xl p-6 mb-4">
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">
+                Hecha con amor 💜
+              </h2>
+              <p className="text-brand-900 dark:text-gray-200 mb-3">
+                Esta app fue creada por Mia para Stacie, con la ayuda de cinco gatos supervisores.
+              </p>
+              <p className="text-sm text-brand-800 dark:text-gray-300">
+                Después de 11,000 días en Duolingo, era hora de algo diferente. 
+                Esta app no es sobre memorizar palabras — es sobre sentir confianza al hablar español con la familia.
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft mb-4">
+              <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-3">Los supervisores:</h3>
+              <div className="space-y-2">
+                {Object.entries(CATS).map(([key, cat]) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="text-2xl">{cat.emoji}</span>
+                    <div>
+                      <span className="font-medium text-brand-900 dark:text-gray-100">{cat.name}</span>
+                      <span className="text-sm text-brand-700 dark:text-gray-400 ml-2">
+                        — {cat.personality}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="text-center text-sm text-brand-700 dark:text-gray-400">
+              <p>Versión 7.0 • Confidence Edition</p>
+              <p className="mt-2">Para Stacie, siempre 💙</p>
+            </div>
+          </div>
+        );
+      }
+<
       
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
