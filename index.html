@@ -226,9 +226,8 @@
         { key:'food', name:'Comida', icon:'🌶️', color:'bg-orange-600' }
       ];
       
-  // ---------------- EXPANDED CONTENT LIBRARY ----------------
-// 1) Keep your original sentences as a base:
-const SENTENCES_BASE = {
+// ---------------- EXPANDED CONTENT LIBRARY (FIXED) ----------------
+const SENTENCES = {
   work: [
     // Residence Hall Basics
     { id:'w1', lvl:0, es:'Hola, bienvenido. ¿Cómo te llamas?', hint:'welcome what is your name', tags:['greeting'] },
@@ -254,7 +253,7 @@ const SENTENCES_BASE = {
     { id:'m4', lvl:1, es:'¿Hubo tours interesantes hoy?', hint:'interesting tours today', tags:['work'] },
     { id:'m5', lvl:1, es:'Te guardé la última concha.', hint:'saved you the last pastry', tags:['sweet'] },
     { id:'m6', lvl:1, es:'¿Quieres que hagamos algo especial este finde?', hint:'do something special weekend', tags:['plans'] },
-    { id:'m7', lvl:1, es:'Eres [increíble|increíble]. Gracias por todo.', hint:'you are amazing thanks for everything', tags:['appreciation'] },
+    { id:'m7', lvl:1, es:'Eres increíble. Gracias por todo.', hint:'you are amazing thanks for everything', tags:['appreciation'] },
     { id:'m8', lvl:2, es:'Te ves [cansada|cansado]. ¿Necesitas descansar?', hint:'you look tired need to rest', tags:['care'] },
     // Emotional Support
     { id:'m9', lvl:0, es:'Te extraño cuando no estás.', hint:'miss you when not here', tags:['love'] },
@@ -282,11 +281,11 @@ const SENTENCES_BASE = {
   suegros: [
     // Meeting Parents
     { id:'s1', lvl:0, es:'Mucho gusto en conocerlos.', hint:'nice to meet you', tags:['first_meeting'] },
-    { id:'s2', lvl:0, es:'Jorge me ha hablado mucho de ustedes.', hint:' told me a lot about you', tags:['connection'] },
+    { id:'s2', lvl:0, es:'Jorge me ha hablado mucho de ustedes.', hint:'Jorge told me a lot about you', tags:['connection'] },
     { id:'s3', lvl:0, es:'Su casa es muy bonita.', hint:'your house is very pretty', tags:['compliment'] },
     { id:'s4', lvl:1, es:'¿Puedo ayudar con algo?', hint:'can I help with something', tags:['helpful'] },
     { id:'s5', lvl:1, es:'Me encanta la comida mexicana.', hint:'love Mexican food', tags:['food'] },
-    { id:'s6', lvl:1, es:'Mia y yo estamos muy [contentas|contentes].', hint:'Mia and I are very happy', tags:['relationship'] },
+    { id:'s6', lvl:1, es:'Jorge y yo estamos muy contentos.', hint:'Jorge and I are very happy', tags:['relationship'] },
     { id:'s7', lvl:2, es:'Trabajo en una residencia universitaria.', hint:'work in university residence', tags:['job'] },
     { id:'s8', lvl:2, es:'Aprecio mucho su hospitalidad.', hint:'appreciate your hospitality', tags:['formal'] },
     // Cultural Bridge
@@ -306,7 +305,7 @@ const SENTENCES_BASE = {
     // Evening Routines
     { id:'v6', lvl:0, es:'¿Qué se te antoja para cenar?', hint:'what want for dinner', tags:['evening','food'] },
     { id:'v7', lvl:0, es:'Ya llegué. ¿Cómo estás?', hint:'arrived how are you', tags:['evening','arrival'] },
-    { id:'v8', lvl:1, es:'Estoy [cansada|cansado]. ¿Pedimos comida?', hint:'tired order food', tags:['evening','tired'] },
+    { id:'v8', lvl:1, es:'Estoy cansado. ¿Pedimos comida?', hint:'tired order food', tags:['evening','tired'] },
     { id:'v9', lvl:1, es:'Vamos a ver algo en Netflix y descansar.', hint:'watch Netflix and rest', tags:['evening','relax'] },
     { id:'v10', lvl:2, es:'Prepara tú la cena mientras yo lavo.', hint:'you make dinner while I wash', tags:['evening','chores'] },
     // Weekend
@@ -315,7 +314,7 @@ const SENTENCES_BASE = {
     { id:'v13', lvl:1, es:'¿Qué tal un brunch y luego el mercado?', hint:'brunch then market', tags:['weekend','plans'] },
     { id:'v14', lvl:2, es:'Invitemos a amigos a cenar.', hint:'invite friends for dinner', tags:['weekend','social'] },
     // Minnesota Life
-    { id:'v15', lvl:0, es:'Hace un mucho frio afuera.', hint:'freezing cold outside', tags:['winter','minnesota'] },
+    { id:'v15', lvl:0, es:'Hace mucho frío afuera.', hint:'freezing cold outside', tags:['winter','minnesota'] },
     { id:'v16', lvl:1, es:'Si hace frío, hacemos té y nos quedamos.', hint:'if cold make tea and stay', tags:['winter','cozy'] },
     { id:'v17', lvl:1, es:'¿Traes tu chamarra buena? Hace frío.', hint:'have good jacket cold', tags:['winter','care'] },
     { id:'v18', lvl:1, es:'La nieve está bonita pero qué flojera.', hint:'snow pretty but what laziness', tags:['winter','minnesota'] },
@@ -336,7 +335,7 @@ const SENTENCES_BASE = {
     // Emotions
     { id:'h6', lvl:0, es:'Estoy feliz.', hint:'I am happy', tags:['emotions','positive'] },
     { id:'h7', lvl:0, es:'Me siento triste.', hint:'feel sad', tags:['emotions','negative'] },
-    { id:'h8', lvl:1, es:'Estoy estrasada por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
+    { id:'h8', lvl:1, es:'Estoy estresada por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
     { id:'h9', lvl:1, es:'Me siento orgullosa de ti.', hint:'feel proud of you', tags:['emotions','pride'] },
     { id:'h10', lvl:2, es:'Necesito hablar de algo que me molesta.', hint:'need to talk about something bothering', tags:['emotions','communication'] },
   ],
@@ -359,6 +358,8 @@ const SENTENCES_BASE = {
     { id:'fo12', lvl:2, es:'Me gustan las tortillas de maíz más.', hint:'prefer corn tortillas', tags:['mexican','preference'] },
   ]
 };
+
+const ALL_SENTENCES = Object.values(SENTENCES).flat();
 
 // 2) Variant engine: creates ~2 extra natural variants per phrase (≈3× total)
 function makeVariants(s) {
@@ -841,29 +842,52 @@ const BADGES = [
           }, 500);
         }
         
-        function completeSession(){
-          const today = todayISO();
-          if(lastDone !== today){
-            if(lastDone === ydayISO()) {
-              setStreak(s => s+1);
-              saveWithToast('¡Streak vivo!');
-            } else if (streakFreeze > 0) {
-              setStreakFreeze(f => f-1);
-              saveWithToast(`Usaste un freeze. Quedan ${streakFreeze-1}.`);
-            } else {
-              setStreak(1);
-              saveWithToast('Streak reiniciado. Poquito pero diario.');
-            }
-            setLastDone(today);
-          }
-          setSessions(s => s+1);
-          const newBadges = badges.checkBadges();
-          if(newBadges.length > 0){
-            const badge = BADGES.find(b => b.id === newBadges[0]);
-            showToast(`¡Nueva insignia! ${badge.emoji} ${badge.name}`, 'jules');
-          }
-          saveWithToast('Guardado — como frijoles en el refri');
+function completeSession(){
+  try {
+    const today = todayISO();
+    
+    // Debug logging
+    console.log('Completing session:', { today, lastDone, streak });
+    
+    if(lastDone !== today){
+      if(lastDone === ydayISO()) {
+        setStreak(prev => {
+          const newStreak = prev + 1;
+          console.log('Incrementing streak to:', newStreak);
+          return newStreak;
+        });
+        showToast('¡Streak vivo!', 'doom');
+      } else if (streakFreeze > 0) {
+        setStreakFreeze(prev => prev - 1);
+        showToast(`Usaste un freeze. Quedan ${streakFreeze-1}.`, 'jules');
+      } else {
+        setStreak(1);
+        showToast('Streak reiniciado. Poquito pero diario.', 'lassie');
+      }
+      setLastDone(today);
+    }
+    
+    setSessions(prev => prev + 1);
+    
+    // Check badges with error handling
+    try {
+      const newBadges = badges.checkBadges();
+      if(newBadges && newBadges.length > 0){
+        const badge = BADGES.find(b => b.id === newBadges[0]);
+        if(badge) {
+          showToast(`¡Nueva insignia! ${badge.emoji} ${badge.name}`, 'jules');
         }
+      }
+    } catch(e) {
+      console.error('Badge check error:', e);
+    }
+    
+    showToast('Sesión guardada', 'doom');
+  } catch(error) {
+    console.error('Error completing session:', error);
+    showToast('Error al guardar', 'otis');
+  }
+}
         
         return (
           <div className="min-h-screen">
