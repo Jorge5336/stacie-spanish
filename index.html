@@ -813,6 +813,7 @@ const BADGES = [
         const [lastDone, setLastDone] = useLocalStorage('stacie.lastDone', '');
         const [sessions, setSessions] = useLocalStorage('stacie.sessions', 0);
         const [recordings, setRecordings] = useLocalStorage('stacie.recordings', []);
+        const [dailyScores, setDailyScores] = useLocalStorage('stacie.dailyScores', []);
         const [journals, setJournals] = useLocalStorage('stacie.journals', []);
         const [playlists, setPlaylists] = useLocalStorage('stacie.playlists', []);
         const [catGamesPlayed, setCatGamesPlayed] = useLocalStorage('stacie.catGamesPlayed', []);
@@ -826,14 +827,56 @@ const BADGES = [
         useEffect(()=>{
           document.body.className = darkMode ? 'dark' : 'light';
         }, [darkMode]);
-        
+
         function showToast(msg, cat){
           const catData = CATS[cat];
           const icon = catData ? `${catData.emoji} ${catData.name}: ` : '';
           setToast(icon + msg);
           setTimeout(()=>setToast(null), 4000);
         }
-        
+
+        // Auto-level progression logic
+        const checkAndUpdateLevel = useCallback(() => {
+          // Don't level up if already at max
+          if(level >= 2) return false;
+
+          // Analyze recent recordings (last 20 attempts)
+          const recentRecordings = recordings.slice(-20);
+          if(recentRecordings.length < 10) return false; // Need at least 10 attempts
+
+          const passed = recentRecordings.filter(r => r.passed).length;
+          const passRate = passed / recentRecordings.length;
+          const avgConfidence = recentRecordings.reduce((sum, r) => sum + (r.confidence || 0), 0) / recentRecordings.length;
+
+          console.log('Level check:', { level, passRate, avgConfidence, passed, total: recentRecordings.length });
+
+          // Level up criteria:
+          // Level 0 -> 1: 70% pass rate AND avg confidence >= 3.5
+          // Level 1 -> 2: 80% pass rate AND avg confidence >= 4.0
+
+          if(level === 0 && passRate >= 0.7 && avgConfidence >= 3.5){
+            setLevel(1);
+            showToast('¡Nivel desbloqueado! Ahora tienes frases intermedias.', 'otis');
+            return true;
+          }
+
+          if(level === 1 && passRate >= 0.8 && avgConfidence >= 4.0){
+            setLevel(2);
+            showToast('¡Nivel avanzado desbloqueado! Impresionante progreso.', 'otis');
+            return true;
+          }
+
+          return false;
+        }, [level, recordings, setLevel, showToast]);
+
+        // Check for level up whenever recordings change
+        useEffect(()=>{
+          if(recordings.length > 0 && recordings.length % 5 === 0){
+            // Check every 5 recordings to avoid too frequent checks
+            checkAndUpdateLevel();
+          }
+        }, [recordings.length, checkAndUpdateLevel]);
+
         function saveWithToast(msg){
           setLoading(true);
           setTimeout(()=>{
@@ -841,14 +884,29 @@ const BADGES = [
             showToast(msg, 'doom');
           }, 500);
         }
-        
+
 function completeSession(){
   try {
     const today = todayISO();
-    
+
     // Debug logging
     console.log('Completing session:', { today, lastDone, streak });
-    
+
+    // Track daily progress
+    const todayScore = {
+      date: today,
+      phrasesAttempted: recordings.filter(r => {
+        const recDate = new Date(r.timestamp).toISOString().slice(0,10);
+        return recDate === today;
+      }).length,
+      timestamp: Date.now()
+    };
+
+    setDailyScores(prev => {
+      const filtered = prev.filter(s => s.date !== today);
+      return [...filtered, todayScore];
+    });
+
     if(lastDone !== today){
       if(lastDone === ydayISO()) {
         setStreak(prev => {
@@ -866,9 +924,12 @@ function completeSession(){
       }
       setLastDone(today);
     }
-    
+
     setSessions(prev => prev + 1);
-    
+
+    // Check for level up
+    const leveledUp = checkAndUpdateLevel();
+
     // Check badges with error handling
     try {
       const newBadges = badges.checkBadges();
@@ -881,8 +942,10 @@ function completeSession(){
     } catch(e) {
       console.error('Badge check error:', e);
     }
-    
-    showToast('Sesión guardada', 'doom');
+
+    if(!leveledUp){
+      showToast('Sesión guardada', 'doom');
+    }
   } catch(error) {
     console.error('Error completing session:', error);
     showToast('Error al guardar', 'otis');
@@ -977,16 +1040,17 @@ function completeSession(){
                   confidenceHistory={confidenceHistory}
                   conversations={conversations}
                 />}
-                {tab === 'mas' && <MasTab 
-                  level={level} 
-                  setLevel={setLevel} 
-                  inclusive={inclusive} 
-                  setInclusive={setInclusive} 
-                  darkMode={darkMode} 
-                  setDarkMode={setDarkMode} 
-                  journals={journals} 
-                  setJournals={setJournals} 
-                  showToast={showToast} 
+                {tab === 'mas' && <MasTab
+                  level={level}
+                  setLevel={setLevel}
+                  inclusive={inclusive}
+                  setInclusive={setInclusive}
+                  darkMode={darkMode}
+                  setDarkMode={setDarkMode}
+                  journals={journals}
+                  setJournals={setJournals}
+                  recordings={recordings}
+                  showToast={showToast}
                 />}
               </div>
             </div>
@@ -2540,8 +2604,42 @@ function completeSession(){
 
 /* START: Enhanced MasTab with better journal */
       // ---------------- MAS TAB with Voice Journal ----------------
-      function MasTab({ level, setLevel, inclusive, setInclusive, darkMode, setDarkMode, journals, setJournals, showToast }){
+      function MasTab({ level, setLevel, inclusive, setInclusive, darkMode, setDarkMode, journals, setJournals, recordings, showToast }){
         const [tab, setTab] = useState('settings'); // 'settings', 'journal', 'tips', 'about'
+
+        // Calculate progress to next level
+        const recentRecordings = recordings.slice(-20);
+        const passRate = recentRecordings.length > 0
+          ? (recentRecordings.filter(r => r.passed).length / recentRecordings.length)
+          : 0;
+        const avgConfidence = recentRecordings.length > 0
+          ? (recentRecordings.reduce((sum, r) => sum + (r.confidence || 0), 0) / recentRecordings.length)
+          : 0;
+
+        let progressMsg = '';
+        let progressPercent = 0;
+        if(level === 0){
+          const passGoal = 0.7;
+          const confGoal = 3.5;
+          const passProgress = Math.min((passRate / passGoal) * 100, 100);
+          const confProgress = Math.min((avgConfidence / confGoal) * 100, 100);
+          progressPercent = (passProgress + confProgress) / 2;
+          progressMsg = recentRecordings.length < 10
+            ? `Practica ${10 - recentRecordings.length} más frases para evaluar nivel`
+            : `${progressPercent.toFixed(0)}% hacia nivel Intermedio (necesitas 70% éxito + confianza 3.5)`;
+        } else if(level === 1){
+          const passGoal = 0.8;
+          const confGoal = 4.0;
+          const passProgress = Math.min((passRate / passGoal) * 100, 100);
+          const confProgress = Math.min((avgConfidence / confGoal) * 100, 100);
+          progressPercent = (passProgress + confProgress) / 2;
+          progressMsg = recentRecordings.length < 10
+            ? `Practica ${10 - recentRecordings.length} más frases para evaluar nivel`
+            : `${progressPercent.toFixed(0)}% hacia nivel Avanzado (necesitas 80% éxito + confianza 4.0)`;
+        } else {
+          progressMsg = '¡Ya estás en el nivel máximo!';
+          progressPercent = 100;
+        }
         
         if(tab === 'journal'){
           return <JournalSection journals={journals} setJournals={setJournals} showToast={showToast} onBack={()=>setTab('settings')} />;
@@ -2561,15 +2659,37 @@ function completeSession(){
               <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Ajustes</h2>
               
               <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-brand-200 dark:border-gray-700">
-                  <span className="text-brand-900 dark:text-gray-100">Nivel</span>
-                  <select value={level} onChange={e=>setLevel(parseInt(e.target.value))} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100">
-                    <option value={0}>0 - Principiante</option>
-                    <option value={1}>1 - Intermedio</option>
-                    <option value={2}>2 - Avanzado</option>
-                  </select>
+                <div className="py-2 border-b border-brand-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-brand-900 dark:text-gray-100">Nivel</span>
+                    <select value={level} onChange={e=>setLevel(parseInt(e.target.value))} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100">
+                      <option value={0}>0 - Principiante</option>
+                      <option value={1}>1 - Intermedio</option>
+                      <option value={2}>2 - Avanzado</option>
+                    </select>
+                  </div>
+                  {level < 2 && recentRecordings.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs text-brand-700 dark:text-gray-400 mb-1">
+                        <span>Progreso al siguiente nivel</span>
+                        <span>{progressPercent.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-brand-100 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-brand-600 h-2 rounded-full transition-all duration-300"
+                          style={{width: `${Math.min(progressPercent, 100)}%`}}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-brand-700 dark:text-gray-400 mt-1">{progressMsg}</p>
+                    </div>
+                  )}
+                  {level < 2 && recentRecordings.length === 0 && (
+                    <p className="text-xs text-brand-700 dark:text-gray-400 mt-2">
+                      Empieza a practicar para desbloquear niveles automáticamente
+                    </p>
+                  )}
                 </div>
-                
+
                 <div className="flex items-center justify-between py-2 border-b border-brand-200 dark:border-gray-700">
                   <span className="text-brand-900 dark:text-gray-100">Lenguaje inclusivo</span>
                   <button onClick={()=>setInclusive(v=>!v)} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100">
