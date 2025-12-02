@@ -811,7 +811,6 @@ const BADGES = [
         const [lastDone, setLastDone] = useLocalStorage('stacie.lastDone', '');
         const [sessions, setSessions] = useLocalStorage('stacie.sessions', 0);
         const [recordings, setRecordings] = useLocalStorage('stacie.recordings', []);
-        const [dailyScores, setDailyScores] = useLocalStorage('stacie.dailyScores', []);
         const [journals, setJournals] = useLocalStorage('stacie.journals', []);
         const [playlists, setPlaylists] = useLocalStorage('stacie.playlists', []);
         const [catGamesPlayed, setCatGamesPlayed] = useLocalStorage('stacie.catGamesPlayed', []);
@@ -889,21 +888,6 @@ function completeSession(){
 
     // Debug logging
     console.log('Completing session:', { today, lastDone, streak });
-
-    // Track daily progress
-    const todayScore = {
-      date: today,
-      phrasesAttempted: recordings.filter(r => {
-        const recDate = new Date(r.timestamp).toISOString().slice(0,10);
-        return recDate === today;
-      }).length,
-      timestamp: Date.now()
-    };
-
-    setDailyScores(prev => {
-      const filtered = prev.filter(s => s.date !== today);
-      return [...filtered, todayScore];
-    });
 
     if(lastDone !== today){
       if(lastDone === ydayISO()) {
@@ -1250,17 +1234,17 @@ function completeSession(){
         function handleResponse(response){
           setHistory([...history, { them: currentNode.them, you: response.text }]);
           setConfidenceHistory(prev => [...prev, response.confidence]);
-          
+
           if(convo[response.next]){
+            if(convo[response.next].complete){
+              setConversations(prev => [...prev, {
+                id: selectedConvo,
+                completed: Date.now(),
+                confidence: response.confidence
+              }]);
+              showToast(convo[response.next].feedback, 'mia');
+            }
             setCurrentNode(convo[response.next]);
-          } else if(convo[response.next]?.complete){
-            setConversations(prev => [...prev, { 
-              id: selectedConvo, 
-              completed: Date.now(),
-              confidence: response.confidence 
-            }]);
-            showToast(convo[response.next].feedback, 'mia');
-            setSelectedConvo(null);
           }
         }
         
@@ -1830,7 +1814,7 @@ function completeSession(){
                 </>
               )}
               
-              <button onClick={saveAndNext} disabled={!confidence && result !== null} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+              <button onClick={saveAndNext} disabled={result === null || !confidence} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
                 {result === null ? 'Graba primero' : 'Siguiente →'}
               </button>
             </div>
