@@ -101,8 +101,8 @@
       }
       .recording-pulse { animation: pulse 1.5s ease-in-out infinite; }
     </style>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
   <body class="light">
@@ -125,6 +125,14 @@
       
       // ---------------- helpers ----------------
       const esLocale = 'es-MX';
+      function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
       function cx(...classes) { return classes.filter(Boolean).join(' '); }
       function todayISO(){
         const d=new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10);
@@ -138,9 +146,12 @@
       function useLocalStorage(key, initial){
         const [value,setValue]=useState(()=>{
           try { const raw=localStorage.getItem(key); return raw?JSON.parse(raw):initial; }
-          catch { return initial; }
+          catch(e) { console.warn('localStorage read error for', key, e); return initial; }
         });
-        useEffect(()=>{ try{ localStorage.setItem(key, JSON.stringify(value)); }catch{} },[key,value]);
+        useEffect(()=>{
+          try{ localStorage.setItem(key, JSON.stringify(value)); }
+          catch(e){ console.warn('localStorage write error for', key, e); }
+        },[key,value]);
         return [value,setValue];
       }
       
@@ -845,8 +856,6 @@ const BADGES = [
           const passRate = passed / recentRecordings.length;
           const avgConfidence = recentRecordings.reduce((sum, r) => sum + (r.confidence || 0), 0) / recentRecordings.length;
 
-          console.log('Level check:', { level, passRate, avgConfidence, passed, total: recentRecordings.length });
-
           // Level up criteria:
           // Level 0 -> 1: 70% pass rate AND avg confidence >= 3.5
           // Level 1 -> 2: 80% pass rate AND avg confidence >= 4.0
@@ -886,16 +895,9 @@ function completeSession(){
   try {
     const today = todayISO();
 
-    // Debug logging
-    console.log('Completing session:', { today, lastDone, streak });
-
     if(lastDone !== today){
       if(lastDone === ydayISO()) {
-        setStreak(prev => {
-          const newStreak = prev + 1;
-          console.log('Incrementing streak to:', newStreak);
-          return newStreak;
-        });
+        setStreak(prev => prev + 1);
         showToast('¡Streak vivo!', 'doom');
       } else if (streakFreeze > 0) {
         setStreakFreeze(prev => prev - 1);
@@ -963,9 +965,10 @@ function completeSession(){
                   stacie <span className="text-xs text-blossom-600">v7</span>
                 </h1>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={()=>setPanicMode(true)}
                     className="px-2 py-1 bg-rose-500 text-white rounded-lg text-xs font-bold"
+                    aria-label="Frases de emergencia"
                   >
                     ¡PÁNICO!
                   </button>
@@ -1073,18 +1076,20 @@ function completeSession(){
                   <div key={idx} className="bg-brand-50 dark:bg-gray-700 rounded-xl p-3">
                     <p className="text-brand-900 dark:text-gray-100 font-medium">{phrase.es}</p>
                     <p className="text-sm text-brand-700 dark:text-gray-400">{phrase.hint}</p>
-                    <button 
+                    <button
                       onClick={()=>speak(phrase.es, {rate:0.8})}
                       className="text-xs text-blossom-600 mt-2"
+                      aria-label="Escuchar frase"
                     >
                       👂 Escuchar
                     </button>
                   </div>
                 ))}
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="w-full mt-4 py-2 bg-brand-900 text-white rounded-xl font-semibold"
+                aria-label="Cerrar frases de emergencia"
               >
                 Cerrar
               </button>
@@ -1159,12 +1164,13 @@ function completeSession(){
               <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-2">💕 Lunch Card para hoy</h3>
               <p className="text-brand-900 dark:text-gray-200 mb-2">{lunchCard.es}</p>
               <p className="text-sm text-brand-800 dark:text-gray-300 italic">{lunchCard.en}</p>
-              <button 
+              <button
                 onClick={()=>{
                   navigator.clipboard.writeText(lunchCard.es);
                   showToast('Copiado!', 'mia');
                 }}
                 className="text-xs text-brand-700 dark:text-gray-400 mt-2"
+                aria-label="Copiar frase al portapapeles"
               >
                 📋 Copiar
               </button>
@@ -1532,7 +1538,7 @@ function completeSession(){
       // Suegros Mode (NEW)
       function SuegrosMode({ level, inclusive, recordings, setRecordings, confidenceHistory, setConfidenceHistory, onBack, onComplete, showToast }){
         const suegrosContent = [...SENTENCES.suegros, ...SENTENCES.family].filter(s => s.lvl <= level);
-        const practice = useMemo(()=>suegrosContent.sort(()=>0.5-Math.random()).slice(0,5),[]);
+        const practice = useMemo(()=>shuffle(suegrosContent).slice(0,5),[level]);
         const [idx, setIdx] = useState(0);
         const [recording, setRecording] = useState(false);
         const [transcript, setTranscript] = useState('');
@@ -1690,7 +1696,7 @@ function completeSession(){
         const trackSentences = selectedTrack ? SENTENCES[selectedTrack] : ALL_SENTENCES;
         const sentences = trackSentences.filter(s => s.lvl <= level);
         const count = mode === 'quick' ? 1 : 5;
-        const practice = useMemo(()=>sentences.sort(()=>0.5-Math.random()).slice(0,count),[selectedTrack]);
+        const practice = useMemo(()=>shuffle(sentences).slice(0,count),[selectedTrack, count]);
         
         const [idx, setIdx] = useState(0);
         const [recording, setRecording] = useState(false);
@@ -2089,7 +2095,7 @@ function completeSession(){
             { id: p.id + '_es', text: p.es, match: p.id, type: 'es' },
             { id: p.id + '_en', text: p.hint, match: p.id, type: 'en' }
           ]).flat();
-          setCards(cards.sort(()=>0.5-Math.random()));
+          setCards(shuffle(cards));
         }, []);
         
         function flip(idx){
@@ -2159,7 +2165,7 @@ function completeSession(){
       
       // Jules: Truth Meter - Rate your confidence honestly
       function JulesGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
-        const phrases = useMemo(()=>ALL_SENTENCES.sort(()=>0.5-Math.random()).slice(0,5),[]);
+        const phrases = useMemo(()=>shuffle(ALL_SENTENCES).slice(0,5),[]);
         const [idx, setIdx] = useState(0);
         const [ratings, setRatings] = useState([]);
         
@@ -2235,9 +2241,9 @@ function completeSession(){
         useEffect(()=>{
           if(round < totalRounds){
             const t = ALL_SENTENCES[Math.floor(Math.random()*ALL_SENTENCES.length)];
-            const others = ALL_SENTENCES.filter(p=>p.id!==t.id).sort(()=>0.5-Math.random()).slice(0,3);
+            const others = shuffle(ALL_SENTENCES.filter(p=>p.id!==t.id)).slice(0,3);
             setTarget(t);
-            setOptions([...others, t].sort(()=>0.5-Math.random()));
+            setOptions(shuffle([...others, t]));
           } else {
             setCatGamesPlayed(prev => [...prev, {cat:'lassie', score, timestamp:Date.now()}]);
             const msg = score === totalRounds ? '¡Perfecto! Te protejo siempre.' : `${score}/${totalRounds} correctas. Sigo aquí para ti.`;
@@ -2767,7 +2773,7 @@ function completeSession(){
               
               <div className="flex gap-2 mb-4">
                 <button 
-                  onClick={()=>setSelectedPrompt((p+1) % JOURNAL_PROMPTS.length)}
+                  onClick={()=>setSelectedPrompt((selectedPrompt+1) % JOURNAL_PROMPTS.length)}
                   className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-sm text-brand-900 dark:text-gray-100"
                 >
                   🔄 Otro prompt
