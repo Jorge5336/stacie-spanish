@@ -375,36 +375,40 @@ const SENTENCES_BASE = {
   ]
 };
 
-// 2) Variant engine: creates ~2 extra natural variants per phrase (≈3× total)
+// 2) Variant engine: creates natural variants only where they make sense
 function makeVariants(s) {
   const variants = [s];
+  const text = s.es;
 
-  // Politeness / discourse tweak
+  // Multi-sentence phrases are fixed expressions — never modify them
+  if (/[.!]\s+[A-Z¿]/.test(text)) return variants;
+
+  // v1: polite swap (porfa ↔ por favor), or ¿sí? for declarative suggestions only
   const politeMap = [
     ['porfa', 'por favor'],
     ['por favor', 'porfa'],
   ];
-  let v1 = s.es;
+  let v1 = text;
   for (const [a, b] of politeMap) {
-    if (v1.includes(a)) { v1 = v1.replace(a, b); }
+    if (v1.includes(a)) { v1 = v1.replace(a, b); break; }
   }
-  if (v1 === s.es) {
-    // softener if nothing changed
-    v1 = s.es.endsWith('?') ? s.es.replace('?', ', ¿sí?') : s.es + ', ¿sí?';
+  if (v1 === text) {
+    // ¿sí? only works as a tag on statements, not on questions (which already end with ?)
+    const isSuggestion = !text.startsWith('¿') &&
+      /^(Vamos|Podemos|Invitemos|Hagamos)/i.test(text);
+    if (isSuggestion) v1 = text.replace(/[.?]$/, ', ¿sí?');
   }
-  variants.push({ ...s, id: s.id + 'a', es: v1 });
+  if (v1 !== text) variants.push({ ...s, id: s.id + 'a', es: v1 });
 
-  // Time/tense/context tweak
-  let v2 = s.es;
-  const action = /\b(cenar|cocinar|desayunar|hacer|salir|ir|practicar|ver|comprar|invitemos|vamos)\b/i.test(v2);
-  if (action) {
-    v2 = v2.includes('hoy') ? v2.replace(/\bhoy\b/i, 'ahorita') : (v2.endsWith('.') ? v2.replace(/\.$/, ' ahorita.') : v2 + ' ahorita');
-  } else if (v2.endsWith('?')) {
-    v2 = v2.replace('?', ' un momento?');
-  } else {
-    v2 = v2 + ' tantito.';
+  // v2: swap 'hoy' → 'ahorita', or append 'ahorita', for action-verb statements only
+  // Never transform questions — "¿A qué hora sales hoy un momento?" is nonsense
+  const hasActionVerb = /\b(cenar|cocinar|desayunar|hacer|salir|ir|practicar|ver|comprar|invitemos|vamos|quedamos)\b/i.test(text);
+  if (hasActionVerb && !text.endsWith('?')) {
+    let v2 = text.includes('hoy')
+      ? text.replace(/\bhoy\b/i, 'ahorita')
+      : text.replace(/\.?$/, ' ahorita.');
+    if (v2 !== text) variants.push({ ...s, id: s.id + 'b', es: v2 });
   }
-  variants.push({ ...s, id: s.id + 'b', es: v2 });
 
   // De-dup
   const seen = new Set();
