@@ -157,16 +157,16 @@
       
       function lev(a,b){
         const m=a.length,n=b.length;
-        const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
-        for(let i=0;i<=m;i++)dp[i][0]=i;
-        for(let j=0;j<=n;j++)dp[0][j]=j;
+        let prev=Array.from({length:n+1},(_,i)=>i);
         for(let i=1;i<=m;i++){
+          const curr=[i];
           for(let j=1;j<=n;j++){
             const cost=a[i-1]===b[j-1]?0:1;
-            dp[i][j]=Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+            curr[j]=Math.min(prev[j]+1,curr[j-1]+1,prev[j-1]+cost);
           }
+          prev=curr;
         }
-        return dp[m][n];
+        return prev[n];
       }
       function stripDiacritics(s){ try{ return s.normalize('NFD').replace(/[\p{M}]/gu,''); }catch{ return s; } }
       function tokenize(s){
@@ -836,12 +836,12 @@ const BADGES = [
           document.body.className = darkMode ? 'dark' : 'light';
         }, [darkMode]);
 
-        function showToast(msg, cat){
+        const showToast = useCallback((msg, cat) => {
           const catData = CATS[cat];
           const icon = catData ? `${catData.emoji} ${catData.name}: ` : '';
           setToast(icon + msg);
           setTimeout(()=>setToast(null), 4000);
-        }
+        }, []);
 
         // Auto-level progression logic
         const checkAndUpdateLevel = useCallback(() => {
@@ -1100,9 +1100,9 @@ function completeSession(){
       
       // ---------------- HOY TAB with Context ----------------
       function HoyTab({ level, inclusive, onComplete, onNavigate, showToast, confidenceHistory }){
-        const context = getContextualContent();
-        const sentences = context.phrases.filter(s => s.lvl <= level);
-        const dailyPhrase = sentences[Math.floor(Math.random() * sentences.length)];
+        const context = useMemo(() => getContextualContent(), []);
+        const sentences = useMemo(() => context.phrases.filter(s => s.lvl <= level), [context, level]);
+        const dailyPhrase = useMemo(() => sentences[Math.floor(Math.random() * sentences.length)], [level]);
         const encouragement = useMemo(()=>ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)],[]);
         const lunchCard = useMemo(()=>LUNCH_CARDS[Math.floor(Math.random()*LUNCH_CARDS.length)],[]);
         
@@ -1469,12 +1469,14 @@ function completeSession(){
           return true;
         }).slice(-50).reverse(); // Show last 50, newest first
         
-        // Group by phrase for comparison
-        const groupedByPhrase = {};
-        recordings.forEach(r => {
-          if(!groupedByPhrase[r.target]) groupedByPhrase[r.target] = [];
-          groupedByPhrase[r.target].push(r);
-        });
+        const groupedByPhrase = useMemo(() => {
+          const map = {};
+          recordings.forEach(r => {
+            if(!map[r.target]) map[r.target] = [];
+            map[r.target].push(r);
+          });
+          return map;
+        }, [recordings]);
         
         return (
           <div>
@@ -2090,7 +2092,7 @@ function completeSession(){
         });
         
         useEffect(()=>{
-          const phrases = ALL_SENTENCES.slice(0,4);
+          const phrases = shuffle(ALL_SENTENCES).slice(0,4);
           const cards = phrases.map(p => [
             { id: p.id + '_es', text: p.es, match: p.id, type: 'es' },
             { id: p.id + '_en', text: p.hint, match: p.id, type: 'en' }
@@ -2720,25 +2722,25 @@ function completeSession(){
         );
       }
       
+      const JOURNAL_PROMPTS = [
+        { es: '¿Cómo te fue en la residencia hoy?', en: 'How was the residence today?' },
+        { es: '¿Qué fue lo mejor de tu día?', en: 'What was the best part of your day?' },
+        { es: 'Cuéntale a Mia algo nuevo que aprendiste', en: 'Tell Mia something new you learned' },
+        { es: '¿Cómo te sientes en este momento?', en: 'How are you feeling right now?' },
+        { es: 'Describe tu comida favorita mexicana', en: 'Describe your favorite Mexican food' },
+        { es: '¿Qué planes tienes para el fin de semana?', en: 'What are your weekend plans?' },
+        { es: '¿Qué extrañas de casa?', en: 'What do you miss from home?' },
+        { es: 'Habla de tu gato favorito y por qué', en: 'Talk about your favorite cat and why' },
+        { es: '¿Qué quieres hacer con Mia mañana?', en: 'What do you want to do with Mia tomorrow?' },
+        { es: 'Practica presentarte a los suegros', en: 'Practice introducing yourself to in-laws' }
+      ];
+
       // Enhanced Voice Journal with better prompts
       function JournalSection({ journals, setJournals, showToast, onBack }){
         const [recording, setRecording] = useState(false);
         const [transcript, setTranscript] = useState('');
         const [selectedPrompt, setSelectedPrompt] = useState(0);
         const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
-        
-        const JOURNAL_PROMPTS = [
-          { es: '¿Cómo te fue en la residencia hoy?', en: 'How was the residence today?' },
-          { es: '¿Qué fue lo mejor de tu día?', en: 'What was the best part of your day?' },
-          { es: 'Cuéntale a Mia algo nuevo que aprendiste', en: 'Tell Mia something new you learned' },
-          { es: '¿Cómo te sientes en este momento?', en: 'How are you feeling right now?' },
-          { es: 'Describe tu comida favorita mexicana', en: 'Describe your favorite Mexican food' },
-          { es: '¿Qué planes tienes para el fin de semana?', en: 'What are your weekend plans?' },
-          { es: '¿Qué extrañas de casa?', en: 'What do you miss from home?' },
-          { es: 'Habla de tu gato favorito y por qué', en: 'Talk about your favorite cat and why' },
-          { es: '¿Qué quieres hacer con Mia mañana?', en: 'What do you want to do with Mia tomorrow?' },
-          { es: 'Practica presentarte a los suegros', en: 'Practice introducing yourself to in-laws' }
-        ];
         
         const prompt = JOURNAL_PROMPTS[selectedPrompt];
         
@@ -2831,17 +2833,19 @@ function completeSession(){
         );
       }
       
+      const CULTURAL_TIPS = [
+        { title: '¿Mande?', text: 'Forma cortés de "¿qué?" muy común en México. Los suegros lo apreciarán.' },
+        { title: 'Jitomate vs. Tomate', text: 'En México: jitomate = rojo (lo normal), tomate = verde (para salsa verde).' },
+        { title: 'Diminutivos con cariño', text: 'Poquito, ratito, ahorita, tantito = no es vago, es cariñoso.' },
+        { title: 'Usted con los suegros', text: 'Al principio usa "usted" con los papás de Mia. Ellos te dirán cuándo tutear.' },
+        { title: 'La sobremesa', text: 'Después de comer, se platica. No te levantes rápido de la mesa.' },
+        { title: 'El "ahorita"', text: 'Ahorita = en un rato. Ahora mismo = right now. Ahorita no es urgente.' },
+        { title: 'Comida = almuerzo', text: 'Desayuno (morning), comida (lunch/main meal), cena (dinner).' },
+        { title: 'No digas "no" directo', text: 'Mejor "déjame ver", "a ver si puedo", "tal vez" que un "no" seco.' }
+      ];
+
       function TipsSection({ onBack }){
-        const tips = [
-          { title: '¿Mande?', text: 'Forma cortés de "¿qué?" muy común en México. Los suegros lo apreciarán.' },
-          { title: 'Jitomate vs. Tomate', text: 'En México: jitomate = rojo (lo normal), tomate = verde (para salsa verde).' },
-          { title: 'Diminutivos con cariño', text: 'Poquito, ratito, ahorita, tantito = no es vago, es cariñoso.' },
-          { title: 'Usted con los suegros', text: 'Al principio usa "usted" con los papás de Mia. Ellos te dirán cuándo tutear.' },
-          { title: 'La sobremesa', text: 'Después de comer, se platica. No te levantes rápido de la mesa.' },
-          { title: 'El "ahorita"', text: 'Ahorita = en un rato. Ahora mismo = right now. Ahorita no es urgente.' },
-          { title: 'Comida = almuerzo', text: 'Desayuno (morning), comida (lunch/main meal), cena (dinner).' },
-          { title: 'No digas "no" directo', text: 'Mejor "déjame ver", "a ver si puedo", "tal vez" que un "no" seco.' }
-        ];
+        const tips = CULTURAL_TIPS;
         
         return (
           <div>
