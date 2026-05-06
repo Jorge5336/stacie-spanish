@@ -346,9 +346,14 @@ const SENTENCES_BASE = {
     // Emotions
     { id:'h6', lvl:0, es:'Estoy feliz.', hint:'I am happy', tags:['emotions','positive'] },
     { id:'h7', lvl:0, es:'Me siento triste.', hint:'feel sad', tags:['emotions','negative'] },
-    { id:'h8', lvl:1, es:'Estoy estresada por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
-    { id:'h9', lvl:1, es:'Me siento orgullosa de ti.', hint:'feel proud of you', tags:['emotions','pride'] },
+    { id:'h8', lvl:1, es:'Estoy [estresada|estresade] por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
+    { id:'h9', lvl:1, es:'Me siento [orgullosa|orgullose] de ti.', hint:'feel proud of you', tags:['emotions','pride'] },
     { id:'h10', lvl:2, es:'Necesito hablar de algo que me molesta.', hint:'need to talk about something bothering', tags:['emotions','communication'] },
+    // More emotions & wellbeing
+    { id:'h11', lvl:0, es:'Necesito un descanso.', hint:'need a break', tags:['recovery','rest'] },
+    { id:'h12', lvl:1, es:'Me siento mucho mejor hoy.', hint:'feeling much better today', tags:['emotions','positive'] },
+    { id:'h13', lvl:1, es:'Dormí muy mal anoche.', hint:'slept very badly last night', tags:['health','sleep'] },
+    { id:'h14', lvl:2, es:'¿Puedes venir? No me siento bien.', hint:'can you come I don\'t feel well', tags:['health','support'] },
   ],
   
   food: [
@@ -436,6 +441,9 @@ const LUNCH_CARDS = [
   { id:'lc13', es:'Practica ordenar café en español.', en:'Practice ordering coffee in Spanish.' },
   { id:'lc14', es:'Describe tu comida favorita mexicana.', en:'Describe your favorite Mexican food.' },
   { id:'lc15', es:'Habla de tus metas en español.', en:'Talk about your goals in Spanish.' },
+  { id:'lc16', es:'Cuéntale una cosa buena de tu semana.', en:'Tell her one good thing from your week.' },
+  { id:'lc17', es:'Pregunta: "¿Hay algo en que te pueda ayudar?"', en:'Ask: "Is there anything I can help with?"' },
+  { id:'lc18', es:'Dile en español por qué la admiras.', en:'Tell her in Spanish why you admire her.' },
 ];
 
 // ---------------- ENCOURAGEMENTS ----------------
@@ -444,22 +452,32 @@ const ENCOURAGEMENTS = [
   { cat: 'otis', text: 'MIAU MIAU... digo, excelente. Aunque yo lo hubiera hecho mejor. 😼' },
   { cat: 'otis', text: '*se estira todo lo largo* Sí sí, bien. ¿Ya terminaste? 🐱' },
   { cat: 'otis', text: 'Aceptable. Para ser humana. *bosteza* 🐱' },
+  { cat: 'otis', text: 'Ese nivel... me recuerda cuando tenía 3 semanas. Sigue. 🐱' },
+  { cat: 'otis', text: '*interrumpe el baño para aplaudir* Bien. *regresa al baño* 😼' },
   // Doom (affectionate)
   { cat: 'doom', text: 'Eso estuvo de lujo. Te mando un abrazo grande (como yo). 🐈💕' },
   { cat: 'doom', text: 'Le echaste salsita. Pica rico. 🌶️🐈' },
   { cat: 'doom', text: '*ronroneo intenso* Bien hecho, Stacie. 🐈' },
+  { cat: 'doom', text: 'Sabía que podías. Doom nunca duda de ti. 🐈💜' },
+  { cat: 'doom', text: '*se sube a tu regazo en señal de aprobación* 🐈' },
   // Jules (independent)
   { cat: 'jules', text: 'Quedó chido. Ahora déjame en paz, necesito mi espacio. 🐾' },
   { cat: 'jules', text: 'Respeto. Hoy te ganaste tu espacio. 👏🐾' },
   { cat: 'jules', text: 'No está mal. *se va a su rincón* 🐾' },
+  { cat: 'jules', text: 'Jules aprueba. No lo digo seguido, así que guárdalo. 🐾' },
+  { cat: 'jules', text: 'Bien. Ya puedes continuar con tu día. *voltea la cara* 🐾' },
   // Lassie (protective)
   { cat: 'lassie', text: 'Te cuido siempre. Poquito a poquito es camino. 😸' },
   { cat: 'lassie', text: 'Estoy [orgullosa|orgullose]. Yo vigilo. 🛡️😸' },
   { cat: 'lassie', text: 'Bien, Stacie. Aquí estoy si necesitas. 😸' },
+  { cat: 'lassie', text: 'Cada frase te acerca más a la familia. Lo veo, yo vigilo. 😸' },
+  { cat: 'lassie', text: '*movimiento de cola de aprobación* Vas muy bien. 😸' },
   // Mia (supportive)
-  { cat: 'mia', text: 'Mi amor, qué [orgullose|orgullose] estoy. Eres increíble. 💙' },
+  { cat: 'mia', text: 'Mi amor, qué [orgullosa|orgullose] estoy. Eres increíble. 💙' },
   { cat: 'mia', text: 'Te amo. Cada día mejor. 💙' },
   { cat: 'mia', text: 'Eso es, mi vida. Sigue así. 💙' },
+  { cat: 'mia', text: 'Mi familia te va a adorar. Ya lo veo. 💙' },
+  { cat: 'mia', text: 'Este esfuerzo que haces... significa todo para mí. 💙' },
 ];
 
 // ---------------- CONVERSATIONS ----------------
@@ -680,6 +698,108 @@ const CONVERSATIONS = {
       complete: true,
       feedback: 'Lo resolviste. Con práctica será más fácil.'
     }
+  },
+
+  cafe_order: {
+    name: 'Pidiendo en la cafetería',
+    start: {
+      them: 'Hola, ¿qué vas a querer?',
+      responses: [
+        { text: 'Un oat milk latte, por favor.', confidence: 5, next: 'size' },
+        { text: 'Hmm, ¿qué me recomienda?', confidence: 4, next: 'recommend' },
+        { text: 'Un café negro, porfa.', confidence: 4, next: 'black_coffee' }
+      ]
+    },
+    size: {
+      them: '¿Grande o chico?',
+      responses: [
+        { text: 'Grande, por favor.', confidence: 5, next: 'pay' },
+        { text: 'Chico está bien, gracias.', confidence: 4, next: 'pay' }
+      ]
+    },
+    recommend: {
+      them: 'El mocha está muy rico hoy.',
+      responses: [
+        { text: 'Perfecto, uno de eso.', confidence: 5, next: 'pay' },
+        { text: '¿Tiene leche de avena?', confidence: 4, next: 'oat_milk' }
+      ]
+    },
+    black_coffee: {
+      them: 'Aquí tienes. Son tres cincuenta.',
+      responses: [
+        { text: 'Gracias. Aquí tiene.', confidence: 5, next: 'end_good' },
+        { text: '¿Acepta tarjeta?', confidence: 4, next: 'card' }
+      ]
+    },
+    oat_milk: {
+      them: 'Claro, con mucho gusto.',
+      responses: [
+        { text: 'Perfecto, uno de eso entonces.', confidence: 5, next: 'pay' }
+      ]
+    },
+    pay: {
+      them: '¿Para aquí o para llevar?',
+      responses: [
+        { text: 'Para llevar, por favor.', confidence: 5, next: 'end_good' },
+        { text: 'Para aquí, gracias.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    card: {
+      them: 'Sí, claro. Aquí la terminal.',
+      responses: [
+        { text: 'Perfecto, gracias.', confidence: 5, next: 'end_good' }
+      ]
+    },
+    end_good: {
+      them: '¡Que lo disfrutes!',
+      complete: true,
+      feedback: '¡Pediste tu café sin problema! Como una local.'
+    }
+  },
+
+  weekend_plans: {
+    name: 'Planes para el fin de semana',
+    start: {
+      them: '¿Qué quieres hacer este fin de semana?',
+      responses: [
+        { text: 'Me gustaría ir al Arb contigo.', confidence: 5, next: 'arb' },
+        { text: 'No sé, ¿qué quieres tú?', confidence: 3, next: 'ask_back' },
+        { text: 'Invitemos a amigos a cenar.', confidence: 5, next: 'friends' }
+      ]
+    },
+    arb: {
+      them: '¡Me encanta! ¿Y después?',
+      responses: [
+        { text: 'Brunch primero y luego caminamos.', confidence: 5, next: 'end_good' },
+        { text: 'Algo de comer en el mercado.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    ask_back: {
+      them: 'Tengo ganas de cocinar algo especial.',
+      responses: [
+        { text: '¡Sí! Yo ayudo con lo que necesites.', confidence: 4, next: 'cooking' },
+        { text: '¿Enchiladas? Las haces riquísimo.', confidence: 5, next: 'end_good' }
+      ]
+    },
+    friends: {
+      them: '¡Qué buena idea! ¿El sábado o domingo?',
+      responses: [
+        { text: 'El sábado en la noche.', confidence: 5, next: 'end_good' },
+        { text: 'El domingo si están libres.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    cooking: {
+      them: '¿Qué se te antoja hacer?',
+      responses: [
+        { text: 'Algo mexicano, me encanta aprender.', confidence: 5, next: 'end_good' },
+        { text: 'Lo que quieras, tú decides.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    end_good: {
+      them: 'Perfecto. Va a ser un fin de semana increíble.',
+      complete: true,
+      feedback: '¡Planeaste un fin de semana perfecto en español!'
+    }
   }
 };
 
@@ -782,6 +902,14 @@ const BADGES = [
             if(badge.req === 'journals' && journals.length >= badge.count) unlocked = true;
             if(badge.req === 'recordings' && recordings.length >= badge.count) unlocked = true;
             if(badge.req === 'conversations' && conversations.length >= badge.count) unlocked = true;
+
+            if(badge.req === 'streak_correct'){
+              let run = 0;
+              for(let i = recordings.length - 1; i >= 0; i--){
+                if(recordings[i].passed) run++; else break;
+              }
+              if(run >= badge.count) unlocked = true;
+            }
             
             if(badge.req === 'cat_games'){
               const uniqueCats = [...new Set(catGames.map(g=>g.cat))];
