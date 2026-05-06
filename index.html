@@ -157,16 +157,16 @@
       
       function lev(a,b){
         const m=a.length,n=b.length;
-        const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
-        for(let i=0;i<=m;i++)dp[i][0]=i;
-        for(let j=0;j<=n;j++)dp[0][j]=j;
+        let prev=Array.from({length:n+1},(_,i)=>i);
         for(let i=1;i<=m;i++){
+          const curr=[i];
           for(let j=1;j<=n;j++){
             const cost=a[i-1]===b[j-1]?0:1;
-            dp[i][j]=Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+            curr[j]=Math.min(prev[j]+1,curr[j-1]+1,prev[j-1]+cost);
           }
+          prev=curr;
         }
-        return dp[m][n];
+        return prev[n];
       }
       function stripDiacritics(s){ try{ return s.normalize('NFD').replace(/[\p{M}]/gu,''); }catch{ return s; } }
       function tokenize(s){
@@ -346,9 +346,14 @@ const SENTENCES_BASE = {
     // Emotions
     { id:'h6', lvl:0, es:'Estoy feliz.', hint:'I am happy', tags:['emotions','positive'] },
     { id:'h7', lvl:0, es:'Me siento triste.', hint:'feel sad', tags:['emotions','negative'] },
-    { id:'h8', lvl:1, es:'Estoy estresada por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
-    { id:'h9', lvl:1, es:'Me siento orgullosa de ti.', hint:'feel proud of you', tags:['emotions','pride'] },
+    { id:'h8', lvl:1, es:'Estoy [estresada|estresade] por el trabajo.', hint:'stressed about work', tags:['emotions','stress'] },
+    { id:'h9', lvl:1, es:'Me siento [orgullosa|orgullose] de ti.', hint:'feel proud of you', tags:['emotions','pride'] },
     { id:'h10', lvl:2, es:'Necesito hablar de algo que me molesta.', hint:'need to talk about something bothering', tags:['emotions','communication'] },
+    // More emotions & wellbeing
+    { id:'h11', lvl:0, es:'Necesito un descanso.', hint:'need a break', tags:['recovery','rest'] },
+    { id:'h12', lvl:1, es:'Me siento mucho mejor hoy.', hint:'feeling much better today', tags:['emotions','positive'] },
+    { id:'h13', lvl:1, es:'Dormí muy mal anoche.', hint:'slept very badly last night', tags:['health','sleep'] },
+    { id:'h14', lvl:2, es:'¿Puedes venir? No me siento bien.', hint:'can you come I don\'t feel well', tags:['health','support'] },
   ],
   
   food: [
@@ -426,16 +431,19 @@ const LUNCH_CARDS = [
   { id:'lc3', es:'Dile algo bonito usando "me encanta..."', en:'Say something nice using "me encanta..."' },
   { id:'lc4', es:'Invítala a cocinar juntes esta noche.', en:'Invite her to cook together tonight.' },
   { id:'lc5', es:'Pregunta: "¿Cómo te sientes hoy?"', en:'Ask: "How do you feel today?"' },
-  { id:'lc6', es:'Practica: "Estoy [orgullose|orgullose] de ti."', en:'Practice: "I\'m proud of you."' },
+  { id:'lc6', es:'Practica: "Estoy [orgullosa|orgullose] de ti."', en:'Practice: "I\'m proud of you."' },
   { id:'lc7', es:'Sugiere planes para el fin de semana.', en:'Suggest weekend plans.' },
   { id:'lc8', es:'Habla del clima en español.', en:'Talk about the weather in Spanish.' },
   { id:'lc9', es:'Pide ayuda con algo usando "¿Me ayudas...?"', en:'Ask for help using "¿Me ayudas...?"' },
   { id:'lc10', es:'Comparte qué aprendiste hoy.', en:'Share what you learned today.' },
   { id:'lc11', es:'Pregunta sobre su familia en México.', en:'Ask about her family in Mexico.' },
-  { id:'lc12', es:'Dile tres cosas por las que estás [agradecide|agradecide].', en:'Tell three things you\'re grateful for.' },
+  { id:'lc12', es:'Dile tres cosas por las que estás [agradecida|agradecide].', en:'Tell three things you\'re grateful for.' },
   { id:'lc13', es:'Practica ordenar café en español.', en:'Practice ordering coffee in Spanish.' },
   { id:'lc14', es:'Describe tu comida favorita mexicana.', en:'Describe your favorite Mexican food.' },
   { id:'lc15', es:'Habla de tus metas en español.', en:'Talk about your goals in Spanish.' },
+  { id:'lc16', es:'Cuéntale una cosa buena de tu semana.', en:'Tell her one good thing from your week.' },
+  { id:'lc17', es:'Pregunta: "¿Hay algo en que te pueda ayudar?"', en:'Ask: "Is there anything I can help with?"' },
+  { id:'lc18', es:'Dile en español por qué la admiras.', en:'Tell her in Spanish why you admire her.' },
 ];
 
 // ---------------- ENCOURAGEMENTS ----------------
@@ -444,22 +452,32 @@ const ENCOURAGEMENTS = [
   { cat: 'otis', text: 'MIAU MIAU... digo, excelente. Aunque yo lo hubiera hecho mejor. 😼' },
   { cat: 'otis', text: '*se estira todo lo largo* Sí sí, bien. ¿Ya terminaste? 🐱' },
   { cat: 'otis', text: 'Aceptable. Para ser humana. *bosteza* 🐱' },
+  { cat: 'otis', text: 'Ese nivel... me recuerda cuando tenía 3 semanas. Sigue. 🐱' },
+  { cat: 'otis', text: '*interrumpe el baño para aplaudir* Bien. *regresa al baño* 😼' },
   // Doom (affectionate)
   { cat: 'doom', text: 'Eso estuvo de lujo. Te mando un abrazo grande (como yo). 🐈💕' },
   { cat: 'doom', text: 'Le echaste salsita. Pica rico. 🌶️🐈' },
   { cat: 'doom', text: '*ronroneo intenso* Bien hecho, Stacie. 🐈' },
+  { cat: 'doom', text: 'Sabía que podías. Doom nunca duda de ti. 🐈💜' },
+  { cat: 'doom', text: '*se sube a tu regazo en señal de aprobación* 🐈' },
   // Jules (independent)
   { cat: 'jules', text: 'Quedó chido. Ahora déjame en paz, necesito mi espacio. 🐾' },
   { cat: 'jules', text: 'Respeto. Hoy te ganaste tu espacio. 👏🐾' },
   { cat: 'jules', text: 'No está mal. *se va a su rincón* 🐾' },
+  { cat: 'jules', text: 'Jules aprueba. No lo digo seguido, así que guárdalo. 🐾' },
+  { cat: 'jules', text: 'Bien. Ya puedes continuar con tu día. *voltea la cara* 🐾' },
   // Lassie (protective)
   { cat: 'lassie', text: 'Te cuido siempre. Poquito a poquito es camino. 😸' },
   { cat: 'lassie', text: 'Estoy [orgullosa|orgullose]. Yo vigilo. 🛡️😸' },
   { cat: 'lassie', text: 'Bien, Stacie. Aquí estoy si necesitas. 😸' },
+  { cat: 'lassie', text: 'Cada frase te acerca más a la familia. Lo veo, yo vigilo. 😸' },
+  { cat: 'lassie', text: '*movimiento de cola de aprobación* Vas muy bien. 😸' },
   // Mia (supportive)
-  { cat: 'mia', text: 'Mi amor, qué [orgullose|orgullose] estoy. Eres increíble. 💙' },
+  { cat: 'mia', text: 'Mi amor, qué [orgullosa|orgullose] estoy. Eres increíble. 💙' },
   { cat: 'mia', text: 'Te amo. Cada día mejor. 💙' },
   { cat: 'mia', text: 'Eso es, mi vida. Sigue así. 💙' },
+  { cat: 'mia', text: 'Mi familia te va a adorar. Ya lo veo. 💙' },
+  { cat: 'mia', text: 'Este esfuerzo que haces... significa todo para mí. 💙' },
 ];
 
 // ---------------- CONVERSATIONS ----------------
@@ -680,6 +698,108 @@ const CONVERSATIONS = {
       complete: true,
       feedback: 'Lo resolviste. Con práctica será más fácil.'
     }
+  },
+
+  cafe_order: {
+    name: 'Pidiendo en la cafetería',
+    start: {
+      them: 'Hola, ¿qué vas a querer?',
+      responses: [
+        { text: 'Un oat milk latte, por favor.', confidence: 5, next: 'size' },
+        { text: 'Hmm, ¿qué me recomienda?', confidence: 4, next: 'recommend' },
+        { text: 'Un café negro, porfa.', confidence: 4, next: 'black_coffee' }
+      ]
+    },
+    size: {
+      them: '¿Grande o chico?',
+      responses: [
+        { text: 'Grande, por favor.', confidence: 5, next: 'pay' },
+        { text: 'Chico está bien, gracias.', confidence: 4, next: 'pay' }
+      ]
+    },
+    recommend: {
+      them: 'El mocha está muy rico hoy.',
+      responses: [
+        { text: 'Perfecto, uno de eso.', confidence: 5, next: 'pay' },
+        { text: '¿Tiene leche de avena?', confidence: 4, next: 'oat_milk' }
+      ]
+    },
+    black_coffee: {
+      them: 'Aquí tienes. Son tres cincuenta.',
+      responses: [
+        { text: 'Gracias. Aquí tiene.', confidence: 5, next: 'end_good' },
+        { text: '¿Acepta tarjeta?', confidence: 4, next: 'card' }
+      ]
+    },
+    oat_milk: {
+      them: 'Claro, con mucho gusto.',
+      responses: [
+        { text: 'Perfecto, uno de eso entonces.', confidence: 5, next: 'pay' }
+      ]
+    },
+    pay: {
+      them: '¿Para aquí o para llevar?',
+      responses: [
+        { text: 'Para llevar, por favor.', confidence: 5, next: 'end_good' },
+        { text: 'Para aquí, gracias.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    card: {
+      them: 'Sí, claro. Aquí la terminal.',
+      responses: [
+        { text: 'Perfecto, gracias.', confidence: 5, next: 'end_good' }
+      ]
+    },
+    end_good: {
+      them: '¡Que lo disfrutes!',
+      complete: true,
+      feedback: '¡Pediste tu café sin problema! Como una local.'
+    }
+  },
+
+  weekend_plans: {
+    name: 'Planes para el fin de semana',
+    start: {
+      them: '¿Qué quieres hacer este fin de semana?',
+      responses: [
+        { text: 'Me gustaría ir al Arb contigo.', confidence: 5, next: 'arb' },
+        { text: 'No sé, ¿qué quieres tú?', confidence: 3, next: 'ask_back' },
+        { text: 'Invitemos a amigos a cenar.', confidence: 5, next: 'friends' }
+      ]
+    },
+    arb: {
+      them: '¡Me encanta! ¿Y después?',
+      responses: [
+        { text: 'Brunch primero y luego caminamos.', confidence: 5, next: 'end_good' },
+        { text: 'Algo de comer en el mercado.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    ask_back: {
+      them: 'Tengo ganas de cocinar algo especial.',
+      responses: [
+        { text: '¡Sí! Yo ayudo con lo que necesites.', confidence: 4, next: 'cooking' },
+        { text: '¿Enchiladas? Las haces riquísimo.', confidence: 5, next: 'end_good' }
+      ]
+    },
+    friends: {
+      them: '¡Qué buena idea! ¿El sábado o domingo?',
+      responses: [
+        { text: 'El sábado en la noche.', confidence: 5, next: 'end_good' },
+        { text: 'El domingo si están libres.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    cooking: {
+      them: '¿Qué se te antoja hacer?',
+      responses: [
+        { text: 'Algo mexicano, me encanta aprender.', confidence: 5, next: 'end_good' },
+        { text: 'Lo que quieras, tú decides.', confidence: 4, next: 'end_good' }
+      ]
+    },
+    end_good: {
+      them: 'Perfecto. Va a ser un fin de semana increíble.',
+      complete: true,
+      feedback: '¡Planeaste un fin de semana perfecto en español!'
+    }
   }
 };
 
@@ -782,6 +902,14 @@ const BADGES = [
             if(badge.req === 'journals' && journals.length >= badge.count) unlocked = true;
             if(badge.req === 'recordings' && recordings.length >= badge.count) unlocked = true;
             if(badge.req === 'conversations' && conversations.length >= badge.count) unlocked = true;
+
+            if(badge.req === 'streak_correct'){
+              let run = 0;
+              for(let i = recordings.length - 1; i >= 0; i--){
+                if(recordings[i].passed) run++; else break;
+              }
+              if(run >= badge.count) unlocked = true;
+            }
             
             if(badge.req === 'cat_games'){
               const uniqueCats = [...new Set(catGames.map(g=>g.cat))];
@@ -831,17 +959,19 @@ const BADGES = [
         const [loading, setLoading] = useState(false);
         const badges = useBadges();
         const [toast, setToast] = useState(null);
-        
+        const toastTimerRef = useRef(null);
+
         useEffect(()=>{
           document.body.className = darkMode ? 'dark' : 'light';
         }, [darkMode]);
 
-        function showToast(msg, cat){
+        const showToast = useCallback((msg, cat) => {
           const catData = CATS[cat];
           const icon = catData ? `${catData.emoji} ${catData.name}: ` : '';
           setToast(icon + msg);
-          setTimeout(()=>setToast(null), 4000);
-        }
+          if(toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          toastTimerRef.current = setTimeout(()=>setToast(null), 4000);
+        }, []);
 
         // Auto-level progression logic
         const checkAndUpdateLevel = useCallback(() => {
@@ -1010,12 +1140,14 @@ function completeSession(){
                   confidenceHistory={confidenceHistory}
                   setConfidenceHistory={setConfidenceHistory}
                   showToast={showToast}
+                  onComplete={completeSession}
                 />}
-                {tab === 'gatos' && <GatosTab 
-                  catGamesPlayed={catGamesPlayed} 
-                  setCatGamesPlayed={setCatGamesPlayed} 
-                  showToast={showToast} 
-                  badges={badges} 
+                {tab === 'gatos' && <GatosTab
+                  catGamesPlayed={catGamesPlayed}
+                  setCatGamesPlayed={setCatGamesPlayed}
+                  showToast={showToast}
+                  badges={badges}
+                  onComplete={completeSession}
                 />}
                 {tab === 'stats' && <StatsTab 
                   sessions={sessions} 
@@ -1100,9 +1232,9 @@ function completeSession(){
       
       // ---------------- HOY TAB with Context ----------------
       function HoyTab({ level, inclusive, onComplete, onNavigate, showToast, confidenceHistory }){
-        const context = getContextualContent();
-        const sentences = context.phrases.filter(s => s.lvl <= level);
-        const dailyPhrase = sentences[Math.floor(Math.random() * sentences.length)];
+        const context = useMemo(() => getContextualContent(), []);
+        const sentences = useMemo(() => context.phrases.filter(s => s.lvl <= level), [context, level]);
+        const dailyPhrase = useMemo(() => sentences[Math.floor(Math.random() * sentences.length)], [level]);
         const encouragement = useMemo(()=>ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)],[]);
         const lunchCard = useMemo(()=>LUNCH_CARDS[Math.floor(Math.random()*LUNCH_CARDS.length)],[]);
         
@@ -1130,7 +1262,7 @@ function completeSession(){
                 </div>
               )}
               
-              <button onClick={onComplete} className="w-full py-2 rounded-xl bg-brand-900 text-white font-semibold">
+              <button onClick={()=>onNavigate('practica')} className="w-full py-2 rounded-xl bg-brand-900 text-white font-semibold">
                 Empezar práctica diaria →
               </button>
             </div>
@@ -1197,7 +1329,7 @@ function completeSession(){
       }
       
       // ---------------- CONVERSAR TAB (NEW) ----------------
-      function ConversarTab({ conversations, setConversations, confidenceHistory, setConfidenceHistory, showToast }){
+      function ConversarTab({ conversations, setConversations, confidenceHistory, setConfidenceHistory, showToast, onComplete }){
         const [selectedConvo, setSelectedConvo] = useState(null);
         const [currentNode, setCurrentNode] = useState(null);
         const [history, setHistory] = useState([]);
@@ -1249,6 +1381,7 @@ function completeSession(){
                 confidence: response.confidence
               }]);
               showToast(convo[response.next].feedback, 'mia');
+              onComplete();
             }
             setCurrentNode(convo[response.next]);
           }
@@ -1363,7 +1496,7 @@ function completeSession(){
         }
         
         if(mode === 'playlist'){
-          return <PlaylistMode playlists={playlists} setPlaylists={setPlaylists} level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} onBack={()=>setMode(null)} showToast={showToast} />;
+          return <PlaylistMode playlists={playlists} setPlaylists={setPlaylists} level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} confidenceHistory={confidenceHistory} setConfidenceHistory={setConfidenceHistory} onBack={()=>setMode(null)} onComplete={onComplete} showToast={showToast} />;
         }
         
         if(mode === 'library'){
@@ -1469,12 +1602,14 @@ function completeSession(){
           return true;
         }).slice(-50).reverse(); // Show last 50, newest first
         
-        // Group by phrase for comparison
-        const groupedByPhrase = {};
-        recordings.forEach(r => {
-          if(!groupedByPhrase[r.target]) groupedByPhrase[r.target] = [];
-          groupedByPhrase[r.target].push(r);
-        });
+        const groupedByPhrase = useMemo(() => {
+          const map = {};
+          recordings.forEach(r => {
+            if(!map[r.target]) map[r.target] = [];
+            map[r.target].push(r);
+          });
+          return map;
+        }, [recordings]);
         
         return (
           <div>
@@ -1696,7 +1831,7 @@ function completeSession(){
         const trackSentences = selectedTrack ? SENTENCES[selectedTrack] : ALL_SENTENCES;
         const sentences = trackSentences.filter(s => s.lvl <= level);
         const count = mode === 'quick' ? 1 : 5;
-        const practice = useMemo(()=>shuffle(sentences).slice(0,count),[selectedTrack, count]);
+        const practice = useMemo(()=>shuffle(sentences).slice(0,count),[selectedTrack, count, level]);
         
         const [idx, setIdx] = useState(0);
         const [recording, setRecording] = useState(false);
@@ -1828,11 +1963,27 @@ function completeSession(){
         );
       }
       
-      function PlaylistMode({ playlists, setPlaylists, level, inclusive, recordings, setRecordings, onBack, showToast }){
+      function PlaylistMode({ playlists, setPlaylists, level, inclusive, recordings, setRecordings, confidenceHistory, setConfidenceHistory, onBack, onComplete, showToast }){
         const [creating, setCreating] = useState(false);
         const [newName, setNewName] = useState('');
         const [selectedPhrases, setSelectedPhrases] = useState([]);
         const [practicing, setPracticing] = useState(null);
+
+        if(practicing){
+          const phrases = ALL_SENTENCES.filter(s => practicing.phrases.includes(s.id));
+          return <PlaylistPracticeSession
+            phrases={phrases}
+            playlistName={practicing.name}
+            inclusive={inclusive}
+            recordings={recordings}
+            setRecordings={setRecordings}
+            confidenceHistory={confidenceHistory}
+            setConfidenceHistory={setConfidenceHistory}
+            onBack={()=>setPracticing(null)}
+            onComplete={onComplete}
+            showToast={showToast}
+          />;
+        }
         
         if(creating){
           const available = ALL_SENTENCES.filter(s => s.lvl <= level);
@@ -1903,9 +2054,9 @@ function completeSession(){
                   <div key={pl.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
                     <h3 className="font-semibold text-brand-900 dark:text-gray-100">{pl.name}</h3>
                     <p className="text-xs text-brand-700 dark:text-gray-400 mb-2">{pl.phrases.length} frases</p>
-                    <button 
-                      onClick={()=>showToast('Práctica de playlist próximamente', 'otis')}
-                      className="text-xs text-blossom-600"
+                    <button
+                      onClick={()=>setPracticing(pl)}
+                      className="text-xs text-blossom-600 font-medium"
                     >
                       ▶ Practicar
                     </button>
@@ -1916,11 +2067,102 @@ function completeSession(){
           </div>
         );
       }
+      function PlaylistPracticeSession({ phrases, playlistName, inclusive, recordings, setRecordings, confidenceHistory, setConfidenceHistory, onBack, onComplete, showToast }){
+        const practice = useMemo(()=>shuffle(phrases), [phrases.length]);
+        const [idx, setIdx] = useState(0);
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState('');
+        const [result, setResult] = useState(null);
+        const [confidence, setConfidence] = useState(0);
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+
+        const phrase = practice[idx];
+        const done = idx >= practice.length;
+
+        if(done){
+          onComplete();
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🎵</div>
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">¡Playlist completo!</h2>
+              <p className="text-brand-700 dark:text-gray-300 mb-4">Practicaste todas las frases de "{playlistName}"</p>
+              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+            </div>
+          );
+        }
+
+        function handleRecord(){
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
+          else { rec.stop(); const { pass } = wordScore(flex(phrase.es, inclusive), transcript); setResult(pass); }
+        }
+
+        function saveAndNext(){
+          if(confidence > 0) setConfidenceHistory(prev => [...prev, confidence]);
+          setRecordings(prev => [...prev, {
+            transcript, target: phrase.es, passed: result, confidence,
+            timestamp: Date.now(), phraseId: phrase.id, track: 'playlist'
+          }]);
+          if(confidence >= 4) showToast('¡Con mucha confianza!', 'mia');
+          else if(confidence === 3) showToast('Vas mejorando', 'doom');
+          else showToast('Poquito a poquito', 'lassie');
+          setIdx(i=>i+1); setTranscript(''); setResult(null); setConfidence(0);
+        }
+
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <div className="flex items-center gap-2 mb-4 text-sm text-brand-700 dark:text-gray-400">
+              <span>🎵</span><span>{playlistName}</span>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft border border-brand-200 dark:border-gray-700">
+              <div className="text-xs text-brand-700 dark:text-gray-400 mb-2">{idx+1} / {practice.length}</div>
+              <p className="text-xl text-brand-900 dark:text-gray-100 mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">{phrase.hint}</p>
+              <div className="flex gap-2 mb-4">
+                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">🐢 Lento</button>
+                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">👂 Normal</button>
+                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+                  {recording ? '⏹ Detener' : '🎤 Grabar'}
+                </button>
+              </div>
+              {transcript && (
+                <div className="p-3 bg-brand-50 dark:bg-gray-700 rounded-lg mb-3">
+                  <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">Tu respuesta:</div>
+                  <div className="text-sm text-brand-900 dark:text-gray-100">{transcript}</div>
+                </div>
+              )}
+              {result !== null && (
+                <>
+                  <div className={cx('p-3 rounded-xl mb-3', result?'bg-emerald-100 dark:bg-emerald-900':'bg-amber-100 dark:bg-amber-900')}>
+                    {result ? '✓ Quedó chido' : '◻ Poquito más'}
+                  </div>
+                  <div className="mb-4">
+                    <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">¿Cómo te sentiste diciendo esto?</p>
+                    <div className="flex gap-2">
+                      {[1,2,3,4,5].map(n=>(
+                        <button key={n} onClick={()=>setConfidence(n)}
+                          className={cx('flex-1 py-3 rounded-lg', confidence===n?'bg-brand-900 text-white':'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100')}>
+                          <div className="text-lg">{['😰','😟','😐','🙂','😊'][n-1]}</div>
+                          <div className="text-xs mt-1">{n}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              <button onClick={saveAndNext} disabled={result===null||!confidence} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+                {result===null ? 'Graba primero' : 'Siguiente →'}
+              </button>
+            </div>
+          </div>
+        );
+      }
 /* END: Enhanced PracticaTab */
 
 /* START: All Cat Games from v6 */
       // ---------------- GATOS TAB - All 4 Games ----------------
-      function GatosTab({ catGamesPlayed, setCatGamesPlayed, showToast, badges }){
+      function GatosTab({ catGamesPlayed, setCatGamesPlayed, showToast, badges, onComplete }){
         const [selectedGame, setSelectedGame] = useState(null);
         
         if(!selectedGame){
@@ -1966,16 +2208,16 @@ function completeSession(){
           );
         }
         
-        if(selectedGame === 'otis') return <OtisGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} />;
-        if(selectedGame === 'doom') return <DoomGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} />;
-        if(selectedGame === 'jules') return <JulesGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} />;
-        if(selectedGame === 'lassie') return <LassieGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} />;
+        if(selectedGame === 'otis') return <OtisGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} onComplete={onComplete} />;
+        if(selectedGame === 'doom') return <DoomGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} onComplete={onComplete} />;
+        if(selectedGame === 'jules') return <JulesGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} onComplete={onComplete} />;
+        if(selectedGame === 'lassie') return <LassieGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} onComplete={onComplete} />;
         
         return null;
       }
       
       // Otis: Speed Challenge - How many phrases can you recognize in 10 seconds?
-      function OtisGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
+      function OtisGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast, onComplete }){
         const [timeLeft, setTimeLeft] = useState(10);
         const [score, setScore] = useState(0);
         const [started, setStarted] = useState(false);
@@ -1996,6 +2238,7 @@ function completeSession(){
             setCatGamesPlayed(prev => [...prev, {cat:'otis', score, timestamp:Date.now()}]);
             const msg = score > highScore ? `¡Nuevo récord: ${score}! MIAU MIAU!` : `${score} puntos! No mal para un humano...`;
             showToast(msg, 'otis');
+            onComplete();
           }
         }, [timeLeft, started]);
         
@@ -2079,7 +2322,7 @@ function completeSession(){
       }
       
       // Doom: Memory Match - Match Spanish phrases with their meanings
-      function DoomGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
+      function DoomGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast, onComplete }){
         const [cards, setCards] = useState([]);
         const [flipped, setFlipped] = useState([]);
         const [matched, setMatched] = useState([]);
@@ -2090,7 +2333,7 @@ function completeSession(){
         });
         
         useEffect(()=>{
-          const phrases = ALL_SENTENCES.slice(0,4);
+          const phrases = shuffle(ALL_SENTENCES).slice(0,4);
           const cards = phrases.map(p => [
             { id: p.id + '_es', text: p.es, match: p.id, type: 'es' },
             { id: p.id + '_en', text: p.hint, match: p.id, type: 'en' }
@@ -2111,10 +2354,11 @@ function completeSession(){
               setFlipped([]);
               if(matched.length + 2 === cards.length){
                 setCatGamesPlayed(prev => [...prev, {cat:'doom', moves, timestamp:Date.now()}]);
-                const msg = bestMoves === 0 || moves < bestMoves 
-                  ? `¡Nuevo récord: ${moves} movimientos! Te mando abrazo.` 
+                const msg = bestMoves === 0 || moves < bestMoves
+                  ? `¡Nuevo récord: ${moves} movimientos! Te mando abrazo.`
                   : `¡Completado en ${moves} movimientos! Bien hecho.`;
                 showToast(msg, 'doom');
+                onComplete();
               }
             } else {
               setTimeout(()=>setFlipped([]), 1000);
@@ -2164,16 +2408,25 @@ function completeSession(){
       }
       
       // Jules: Truth Meter - Rate your confidence honestly
-      function JulesGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
+      function JulesGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast, onComplete }){
         const phrases = useMemo(()=>shuffle(ALL_SENTENCES).slice(0,5),[]);
         const [idx, setIdx] = useState(0);
         const [ratings, setRatings] = useState([]);
-        
-        const phrase = phrases[idx];
+        const savedRef = useRef(false);
+
         const done = idx >= phrases.length;
-        
+
+        useEffect(()=>{
+          if(done && !savedRef.current){
+            savedRef.current = true;
+            setCatGamesPlayed(prev => [...prev, {cat:'jules', ratings, timestamp:Date.now()}]);
+            onComplete();
+          }
+        }, [done]);
+
+        const phrase = phrases[idx];
+
         if(done){
-          setCatGamesPlayed(prev => [...prev, {cat:'jules', ratings, timestamp:Date.now()}]);
           const avg = ratings.reduce((a,b)=>a+b,0)/ratings.length;
           return (
             <div className="text-center py-12">
@@ -2231,7 +2484,7 @@ function completeSession(){
       }
       
       // Lassie: Phrase Collector - Find the right translation
-      function LassieGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
+      function LassieGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast, onComplete }){
         const [round, setRound] = useState(0);
         const [score, setScore] = useState(0);
         const [target, setTarget] = useState(null);
@@ -2248,6 +2501,7 @@ function completeSession(){
             setCatGamesPlayed(prev => [...prev, {cat:'lassie', score, timestamp:Date.now()}]);
             const msg = score === totalRounds ? '¡Perfecto! Te protejo siempre.' : `${score}/${totalRounds} correctas. Sigo aquí para ti.`;
             showToast(msg, 'lassie');
+            onComplete();
           }
         }, [round]);
         
@@ -2720,25 +2974,25 @@ function completeSession(){
         );
       }
       
+      const JOURNAL_PROMPTS = [
+        { es: '¿Cómo te fue en la residencia hoy?', en: 'How was the residence today?' },
+        { es: '¿Qué fue lo mejor de tu día?', en: 'What was the best part of your day?' },
+        { es: 'Cuéntale a Mia algo nuevo que aprendiste', en: 'Tell Mia something new you learned' },
+        { es: '¿Cómo te sientes en este momento?', en: 'How are you feeling right now?' },
+        { es: 'Describe tu comida favorita mexicana', en: 'Describe your favorite Mexican food' },
+        { es: '¿Qué planes tienes para el fin de semana?', en: 'What are your weekend plans?' },
+        { es: '¿Qué extrañas de casa?', en: 'What do you miss from home?' },
+        { es: 'Habla de tu gato favorito y por qué', en: 'Talk about your favorite cat and why' },
+        { es: '¿Qué quieres hacer con Mia mañana?', en: 'What do you want to do with Mia tomorrow?' },
+        { es: 'Practica presentarte a los suegros', en: 'Practice introducing yourself to in-laws' }
+      ];
+
       // Enhanced Voice Journal with better prompts
       function JournalSection({ journals, setJournals, showToast, onBack }){
         const [recording, setRecording] = useState(false);
         const [transcript, setTranscript] = useState('');
         const [selectedPrompt, setSelectedPrompt] = useState(0);
         const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
-        
-        const JOURNAL_PROMPTS = [
-          { es: '¿Cómo te fue en la residencia hoy?', en: 'How was the residence today?' },
-          { es: '¿Qué fue lo mejor de tu día?', en: 'What was the best part of your day?' },
-          { es: 'Cuéntale a Mia algo nuevo que aprendiste', en: 'Tell Mia something new you learned' },
-          { es: '¿Cómo te sientes en este momento?', en: 'How are you feeling right now?' },
-          { es: 'Describe tu comida favorita mexicana', en: 'Describe your favorite Mexican food' },
-          { es: '¿Qué planes tienes para el fin de semana?', en: 'What are your weekend plans?' },
-          { es: '¿Qué extrañas de casa?', en: 'What do you miss from home?' },
-          { es: 'Habla de tu gato favorito y por qué', en: 'Talk about your favorite cat and why' },
-          { es: '¿Qué quieres hacer con Mia mañana?', en: 'What do you want to do with Mia tomorrow?' },
-          { es: 'Practica presentarte a los suegros', en: 'Practice introducing yourself to in-laws' }
-        ];
         
         const prompt = JOURNAL_PROMPTS[selectedPrompt];
         
@@ -2831,17 +3085,19 @@ function completeSession(){
         );
       }
       
+      const CULTURAL_TIPS = [
+        { title: '¿Mande?', text: 'Forma cortés de "¿qué?" muy común en México. Los suegros lo apreciarán.' },
+        { title: 'Jitomate vs. Tomate', text: 'En México: jitomate = rojo (lo normal), tomate = verde (para salsa verde).' },
+        { title: 'Diminutivos con cariño', text: 'Poquito, ratito, ahorita, tantito = no es vago, es cariñoso.' },
+        { title: 'Usted con los suegros', text: 'Al principio usa "usted" con los papás de Mia. Ellos te dirán cuándo tutear.' },
+        { title: 'La sobremesa', text: 'Después de comer, se platica. No te levantes rápido de la mesa.' },
+        { title: 'El "ahorita"', text: 'Ahorita = en un rato. Ahora mismo = right now. Ahorita no es urgente.' },
+        { title: 'Comida = almuerzo', text: 'Desayuno (morning), comida (lunch/main meal), cena (dinner).' },
+        { title: 'No digas "no" directo', text: 'Mejor "déjame ver", "a ver si puedo", "tal vez" que un "no" seco.' }
+      ];
+
       function TipsSection({ onBack }){
-        const tips = [
-          { title: '¿Mande?', text: 'Forma cortés de "¿qué?" muy común en México. Los suegros lo apreciarán.' },
-          { title: 'Jitomate vs. Tomate', text: 'En México: jitomate = rojo (lo normal), tomate = verde (para salsa verde).' },
-          { title: 'Diminutivos con cariño', text: 'Poquito, ratito, ahorita, tantito = no es vago, es cariñoso.' },
-          { title: 'Usted con los suegros', text: 'Al principio usa "usted" con los papás de Mia. Ellos te dirán cuándo tutear.' },
-          { title: 'La sobremesa', text: 'Después de comer, se platica. No te levantes rápido de la mesa.' },
-          { title: 'El "ahorita"', text: 'Ahorita = en un rato. Ahora mismo = right now. Ahorita no es urgente.' },
-          { title: 'Comida = almuerzo', text: 'Desayuno (morning), comida (lunch/main meal), cena (dinner).' },
-          { title: 'No digas "no" directo', text: 'Mejor "déjame ver", "a ver si puedo", "tal vez" que un "no" seco.' }
-        ];
+        const tips = CULTURAL_TIPS;
         
         return (
           <div>
