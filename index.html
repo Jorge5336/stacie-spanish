@@ -431,13 +431,13 @@ const LUNCH_CARDS = [
   { id:'lc3', es:'Dile algo bonito usando "me encanta..."', en:'Say something nice using "me encanta..."' },
   { id:'lc4', es:'Invítala a cocinar juntes esta noche.', en:'Invite her to cook together tonight.' },
   { id:'lc5', es:'Pregunta: "¿Cómo te sientes hoy?"', en:'Ask: "How do you feel today?"' },
-  { id:'lc6', es:'Practica: "Estoy [orgullose|orgullose] de ti."', en:'Practice: "I\'m proud of you."' },
+  { id:'lc6', es:'Practica: "Estoy [orgullosa|orgullose] de ti."', en:'Practice: "I\'m proud of you."' },
   { id:'lc7', es:'Sugiere planes para el fin de semana.', en:'Suggest weekend plans.' },
   { id:'lc8', es:'Habla del clima en español.', en:'Talk about the weather in Spanish.' },
   { id:'lc9', es:'Pide ayuda con algo usando "¿Me ayudas...?"', en:'Ask for help using "¿Me ayudas...?"' },
   { id:'lc10', es:'Comparte qué aprendiste hoy.', en:'Share what you learned today.' },
   { id:'lc11', es:'Pregunta sobre su familia en México.', en:'Ask about her family in Mexico.' },
-  { id:'lc12', es:'Dile tres cosas por las que estás [agradecide|agradecide].', en:'Tell three things you\'re grateful for.' },
+  { id:'lc12', es:'Dile tres cosas por las que estás [agradecida|agradecide].', en:'Tell three things you\'re grateful for.' },
   { id:'lc13', es:'Practica ordenar café en español.', en:'Practice ordering coffee in Spanish.' },
   { id:'lc14', es:'Describe tu comida favorita mexicana.', en:'Describe your favorite Mexican food.' },
   { id:'lc15', es:'Habla de tus metas en español.', en:'Talk about your goals in Spanish.' },
@@ -959,7 +959,8 @@ const BADGES = [
         const [loading, setLoading] = useState(false);
         const badges = useBadges();
         const [toast, setToast] = useState(null);
-        
+        const toastTimerRef = useRef(null);
+
         useEffect(()=>{
           document.body.className = darkMode ? 'dark' : 'light';
         }, [darkMode]);
@@ -968,7 +969,8 @@ const BADGES = [
           const catData = CATS[cat];
           const icon = catData ? `${catData.emoji} ${catData.name}: ` : '';
           setToast(icon + msg);
-          setTimeout(()=>setToast(null), 4000);
+          if(toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          toastTimerRef.current = setTimeout(()=>setToast(null), 4000);
         }, []);
 
         // Auto-level progression logic
@@ -1138,12 +1140,14 @@ function completeSession(){
                   confidenceHistory={confidenceHistory}
                   setConfidenceHistory={setConfidenceHistory}
                   showToast={showToast}
+                  onComplete={completeSession}
                 />}
-                {tab === 'gatos' && <GatosTab 
-                  catGamesPlayed={catGamesPlayed} 
-                  setCatGamesPlayed={setCatGamesPlayed} 
-                  showToast={showToast} 
-                  badges={badges} 
+                {tab === 'gatos' && <GatosTab
+                  catGamesPlayed={catGamesPlayed}
+                  setCatGamesPlayed={setCatGamesPlayed}
+                  showToast={showToast}
+                  badges={badges}
+                  onComplete={completeSession}
                 />}
                 {tab === 'stats' && <StatsTab 
                   sessions={sessions} 
@@ -1258,7 +1262,7 @@ function completeSession(){
                 </div>
               )}
               
-              <button onClick={onComplete} className="w-full py-2 rounded-xl bg-brand-900 text-white font-semibold">
+              <button onClick={()=>onNavigate('practica')} className="w-full py-2 rounded-xl bg-brand-900 text-white font-semibold">
                 Empezar práctica diaria →
               </button>
             </div>
@@ -1325,7 +1329,7 @@ function completeSession(){
       }
       
       // ---------------- CONVERSAR TAB (NEW) ----------------
-      function ConversarTab({ conversations, setConversations, confidenceHistory, setConfidenceHistory, showToast }){
+      function ConversarTab({ conversations, setConversations, confidenceHistory, setConfidenceHistory, showToast, onComplete }){
         const [selectedConvo, setSelectedConvo] = useState(null);
         const [currentNode, setCurrentNode] = useState(null);
         const [history, setHistory] = useState([]);
@@ -1377,6 +1381,7 @@ function completeSession(){
                 confidence: response.confidence
               }]);
               showToast(convo[response.next].feedback, 'mia');
+              onComplete();
             }
             setCurrentNode(convo[response.next]);
           }
@@ -1491,7 +1496,7 @@ function completeSession(){
         }
         
         if(mode === 'playlist'){
-          return <PlaylistMode playlists={playlists} setPlaylists={setPlaylists} level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} onBack={()=>setMode(null)} showToast={showToast} />;
+          return <PlaylistMode playlists={playlists} setPlaylists={setPlaylists} level={level} inclusive={inclusive} recordings={recordings} setRecordings={setRecordings} confidenceHistory={confidenceHistory} setConfidenceHistory={setConfidenceHistory} onBack={()=>setMode(null)} onComplete={onComplete} showToast={showToast} />;
         }
         
         if(mode === 'library'){
@@ -1826,7 +1831,7 @@ function completeSession(){
         const trackSentences = selectedTrack ? SENTENCES[selectedTrack] : ALL_SENTENCES;
         const sentences = trackSentences.filter(s => s.lvl <= level);
         const count = mode === 'quick' ? 1 : 5;
-        const practice = useMemo(()=>shuffle(sentences).slice(0,count),[selectedTrack, count]);
+        const practice = useMemo(()=>shuffle(sentences).slice(0,count),[selectedTrack, count, level]);
         
         const [idx, setIdx] = useState(0);
         const [recording, setRecording] = useState(false);
@@ -1958,11 +1963,27 @@ function completeSession(){
         );
       }
       
-      function PlaylistMode({ playlists, setPlaylists, level, inclusive, recordings, setRecordings, onBack, showToast }){
+      function PlaylistMode({ playlists, setPlaylists, level, inclusive, recordings, setRecordings, confidenceHistory, setConfidenceHistory, onBack, onComplete, showToast }){
         const [creating, setCreating] = useState(false);
         const [newName, setNewName] = useState('');
         const [selectedPhrases, setSelectedPhrases] = useState([]);
         const [practicing, setPracticing] = useState(null);
+
+        if(practicing){
+          const phrases = ALL_SENTENCES.filter(s => practicing.phrases.includes(s.id));
+          return <PlaylistPracticeSession
+            phrases={phrases}
+            playlistName={practicing.name}
+            inclusive={inclusive}
+            recordings={recordings}
+            setRecordings={setRecordings}
+            confidenceHistory={confidenceHistory}
+            setConfidenceHistory={setConfidenceHistory}
+            onBack={()=>setPracticing(null)}
+            onComplete={onComplete}
+            showToast={showToast}
+          />;
+        }
         
         if(creating){
           const available = ALL_SENTENCES.filter(s => s.lvl <= level);
@@ -2033,9 +2054,9 @@ function completeSession(){
                   <div key={pl.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
                     <h3 className="font-semibold text-brand-900 dark:text-gray-100">{pl.name}</h3>
                     <p className="text-xs text-brand-700 dark:text-gray-400 mb-2">{pl.phrases.length} frases</p>
-                    <button 
-                      onClick={()=>showToast('Práctica de playlist próximamente', 'otis')}
-                      className="text-xs text-blossom-600"
+                    <button
+                      onClick={()=>setPracticing(pl)}
+                      className="text-xs text-blossom-600 font-medium"
                     >
                       ▶ Practicar
                     </button>
@@ -2046,11 +2067,102 @@ function completeSession(){
           </div>
         );
       }
+      function PlaylistPracticeSession({ phrases, playlistName, inclusive, recordings, setRecordings, confidenceHistory, setConfidenceHistory, onBack, onComplete, showToast }){
+        const practice = useMemo(()=>shuffle(phrases), [phrases.length]);
+        const [idx, setIdx] = useState(0);
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState('');
+        const [result, setResult] = useState(null);
+        const [confidence, setConfidence] = useState(0);
+        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+
+        const phrase = practice[idx];
+        const done = idx >= practice.length;
+
+        if(done){
+          onComplete();
+          return (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🎵</div>
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">¡Playlist completo!</h2>
+              <p className="text-brand-700 dark:text-gray-300 mb-4">Practicaste todas las frases de "{playlistName}"</p>
+              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+            </div>
+          );
+        }
+
+        function handleRecord(){
+          if(!rec.supported) return;
+          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
+          else { rec.stop(); const { pass } = wordScore(flex(phrase.es, inclusive), transcript); setResult(pass); }
+        }
+
+        function saveAndNext(){
+          if(confidence > 0) setConfidenceHistory(prev => [...prev, confidence]);
+          setRecordings(prev => [...prev, {
+            transcript, target: phrase.es, passed: result, confidence,
+            timestamp: Date.now(), phraseId: phrase.id, track: 'playlist'
+          }]);
+          if(confidence >= 4) showToast('¡Con mucha confianza!', 'mia');
+          else if(confidence === 3) showToast('Vas mejorando', 'doom');
+          else showToast('Poquito a poquito', 'lassie');
+          setIdx(i=>i+1); setTranscript(''); setResult(null); setConfidence(0);
+        }
+
+        return (
+          <div>
+            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <div className="flex items-center gap-2 mb-4 text-sm text-brand-700 dark:text-gray-400">
+              <span>🎵</span><span>{playlistName}</span>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft border border-brand-200 dark:border-gray-700">
+              <div className="text-xs text-brand-700 dark:text-gray-400 mb-2">{idx+1} / {practice.length}</div>
+              <p className="text-xl text-brand-900 dark:text-gray-100 mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">{phrase.hint}</p>
+              <div className="flex gap-2 mb-4">
+                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">🐢 Lento</button>
+                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">👂 Normal</button>
+                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+                  {recording ? '⏹ Detener' : '🎤 Grabar'}
+                </button>
+              </div>
+              {transcript && (
+                <div className="p-3 bg-brand-50 dark:bg-gray-700 rounded-lg mb-3">
+                  <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">Tu respuesta:</div>
+                  <div className="text-sm text-brand-900 dark:text-gray-100">{transcript}</div>
+                </div>
+              )}
+              {result !== null && (
+                <>
+                  <div className={cx('p-3 rounded-xl mb-3', result?'bg-emerald-100 dark:bg-emerald-900':'bg-amber-100 dark:bg-amber-900')}>
+                    {result ? '✓ Quedó chido' : '◻ Poquito más'}
+                  </div>
+                  <div className="mb-4">
+                    <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">¿Cómo te sentiste diciendo esto?</p>
+                    <div className="flex gap-2">
+                      {[1,2,3,4,5].map(n=>(
+                        <button key={n} onClick={()=>setConfidence(n)}
+                          className={cx('flex-1 py-3 rounded-lg', confidence===n?'bg-brand-900 text-white':'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100')}>
+                          <div className="text-lg">{['😰','😟','😐','🙂','😊'][n-1]}</div>
+                          <div className="text-xs mt-1">{n}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              <button onClick={saveAndNext} disabled={result===null||!confidence} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+                {result===null ? 'Graba primero' : 'Siguiente →'}
+              </button>
+            </div>
+          </div>
+        );
+      }
 /* END: Enhanced PracticaTab */
 
 /* START: All Cat Games from v6 */
       // ---------------- GATOS TAB - All 4 Games ----------------
-      function GatosTab({ catGamesPlayed, setCatGamesPlayed, showToast, badges }){
+      function GatosTab({ catGamesPlayed, setCatGamesPlayed, showToast, badges, onComplete }){
         const [selectedGame, setSelectedGame] = useState(null);
         
         if(!selectedGame){
@@ -2096,16 +2208,16 @@ function completeSession(){
           );
         }
         
-        if(selectedGame === 'otis') return <OtisGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} />;
-        if(selectedGame === 'doom') return <DoomGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} />;
-        if(selectedGame === 'jules') return <JulesGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} />;
-        if(selectedGame === 'lassie') return <LassieGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} />;
+        if(selectedGame === 'otis') return <OtisGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} onComplete={onComplete} />;
+        if(selectedGame === 'doom') return <DoomGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} onComplete={onComplete} />;
+        if(selectedGame === 'jules') return <JulesGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} onComplete={onComplete} />;
+        if(selectedGame === 'lassie') return <LassieGame onBack={()=>setSelectedGame(null)} catGamesPlayed={catGamesPlayed} setCatGamesPlayed={setCatGamesPlayed} showToast={showToast} onComplete={onComplete} />;
         
         return null;
       }
       
       // Otis: Speed Challenge - How many phrases can you recognize in 10 seconds?
-      function OtisGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
+      function OtisGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast, onComplete }){
         const [timeLeft, setTimeLeft] = useState(10);
         const [score, setScore] = useState(0);
         const [started, setStarted] = useState(false);
@@ -2126,6 +2238,7 @@ function completeSession(){
             setCatGamesPlayed(prev => [...prev, {cat:'otis', score, timestamp:Date.now()}]);
             const msg = score > highScore ? `¡Nuevo récord: ${score}! MIAU MIAU!` : `${score} puntos! No mal para un humano...`;
             showToast(msg, 'otis');
+            onComplete();
           }
         }, [timeLeft, started]);
         
@@ -2209,7 +2322,7 @@ function completeSession(){
       }
       
       // Doom: Memory Match - Match Spanish phrases with their meanings
-      function DoomGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
+      function DoomGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast, onComplete }){
         const [cards, setCards] = useState([]);
         const [flipped, setFlipped] = useState([]);
         const [matched, setMatched] = useState([]);
@@ -2241,10 +2354,11 @@ function completeSession(){
               setFlipped([]);
               if(matched.length + 2 === cards.length){
                 setCatGamesPlayed(prev => [...prev, {cat:'doom', moves, timestamp:Date.now()}]);
-                const msg = bestMoves === 0 || moves < bestMoves 
-                  ? `¡Nuevo récord: ${moves} movimientos! Te mando abrazo.` 
+                const msg = bestMoves === 0 || moves < bestMoves
+                  ? `¡Nuevo récord: ${moves} movimientos! Te mando abrazo.`
                   : `¡Completado en ${moves} movimientos! Bien hecho.`;
                 showToast(msg, 'doom');
+                onComplete();
               }
             } else {
               setTimeout(()=>setFlipped([]), 1000);
@@ -2294,16 +2408,25 @@ function completeSession(){
       }
       
       // Jules: Truth Meter - Rate your confidence honestly
-      function JulesGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
+      function JulesGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast, onComplete }){
         const phrases = useMemo(()=>shuffle(ALL_SENTENCES).slice(0,5),[]);
         const [idx, setIdx] = useState(0);
         const [ratings, setRatings] = useState([]);
-        
-        const phrase = phrases[idx];
+        const savedRef = useRef(false);
+
         const done = idx >= phrases.length;
-        
+
+        useEffect(()=>{
+          if(done && !savedRef.current){
+            savedRef.current = true;
+            setCatGamesPlayed(prev => [...prev, {cat:'jules', ratings, timestamp:Date.now()}]);
+            onComplete();
+          }
+        }, [done]);
+
+        const phrase = phrases[idx];
+
         if(done){
-          setCatGamesPlayed(prev => [...prev, {cat:'jules', ratings, timestamp:Date.now()}]);
           const avg = ratings.reduce((a,b)=>a+b,0)/ratings.length;
           return (
             <div className="text-center py-12">
@@ -2361,7 +2484,7 @@ function completeSession(){
       }
       
       // Lassie: Phrase Collector - Find the right translation
-      function LassieGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast }){
+      function LassieGame({ onBack, catGamesPlayed, setCatGamesPlayed, showToast, onComplete }){
         const [round, setRound] = useState(0);
         const [score, setScore] = useState(0);
         const [target, setTarget] = useState(null);
@@ -2378,6 +2501,7 @@ function completeSession(){
             setCatGamesPlayed(prev => [...prev, {cat:'lassie', score, timestamp:Date.now()}]);
             const msg = score === totalRounds ? '¡Perfecto! Te protejo siempre.' : `${score}/${totalRounds} correctas. Sigo aquí para ti.`;
             showToast(msg, 'lassie');
+            onComplete();
           }
         }, [round]);
         
