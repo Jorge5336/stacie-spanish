@@ -10,6 +10,9 @@
     <meta name="theme-color" content="#0d3d30">
     <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { darkMode: 'class' };
+    </script>
     <style>
       :root {
         --brand-50: #edf7f3;
@@ -881,17 +884,23 @@ const BADGES = [
       }
       
       // ---------------- Badge System Hook ----------------
+      function readStored(key, fallback){
+        try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+        catch(e) { return fallback; }
+      }
+
       function useBadges(){
         const [earned, setEarned] = useLocalStorage('stacie.badges', []);
-        const [sessions] = useLocalStorage('stacie.sessions', 0);
-        const [streak] = useLocalStorage('stacie.streak', 0);
-        const [journals] = useLocalStorage('stacie.journals', []);
-        const [catGames] = useLocalStorage('stacie.catGamesPlayed', []);
-        const [recordings] = useLocalStorage('stacie.recordings', []);
-        const [conversations] = useLocalStorage('stacie.conversations', []);
-        const [confidence] = useLocalStorage('stacie.confidenceHistory', []);
-        
+
         function checkBadges(){
+          // Read fresh values so badges unlock as soon as progress is saved
+          const sessions = readStored('stacie.sessions', 0);
+          const streak = readStored('stacie.streak', 0);
+          const journals = readStored('stacie.journals', []);
+          const catGames = readStored('stacie.catGamesPlayed', []);
+          const recordings = readStored('stacie.recordings', []);
+          const conversations = readStored('stacie.conversations', []);
+          const confidence = readStored('stacie.confidenceHistory', []);
           const newBadges = [];
           BADGES.forEach(badge => {
             if(earned.includes(badge.id)) return;
@@ -1026,11 +1035,15 @@ function completeSession(){
     const today = todayISO();
 
     if(lastDone !== today){
-      if(lastDone === ydayISO()) {
+      if(!lastDone) {
+        setStreak(1);
+        showToast('¡Primer día! Poquito pero diario.', 'doom');
+      } else if(lastDone === ydayISO()) {
         setStreak(prev => prev + 1);
         showToast('¡Streak vivo!', 'doom');
       } else if (streakFreeze > 0) {
         setStreakFreeze(prev => prev - 1);
+        setStreak(prev => prev + 1);
         showToast(`Usaste un freeze. Quedan ${streakFreeze-1}.`, 'jules');
       } else {
         setStreak(1);
@@ -1044,18 +1057,20 @@ function completeSession(){
     // Check for level up
     const leveledUp = checkAndUpdateLevel();
 
-    // Check badges with error handling
-    try {
-      const newBadges = badges.checkBadges();
-      if(newBadges && newBadges.length > 0){
-        const badge = BADGES.find(b => b.id === newBadges[0]);
-        if(badge) {
-          showToast(`¡Nueva insignia! ${badge.emoji} ${badge.name}`, 'jules');
+    // Check badges after the updated stats have been persisted
+    setTimeout(() => {
+      try {
+        const newBadges = badges.checkBadges();
+        if(newBadges && newBadges.length > 0){
+          const badge = BADGES.find(b => b.id === newBadges[0]);
+          if(badge) {
+            showToast(`¡Nueva insignia! ${badge.emoji} ${badge.name}`, 'jules');
+          }
         }
+      } catch(e) {
+        console.error('Badge check error:', e);
       }
-    } catch(e) {
-      console.error('Badge check error:', e);
-    }
+    }, 0);
 
     if(!leveledUp){
       showToast('Sesión guardada', 'doom');
@@ -1234,7 +1249,7 @@ function completeSession(){
       function HoyTab({ level, inclusive, onComplete, onNavigate, showToast, confidenceHistory }){
         const context = useMemo(() => getContextualContent(), []);
         const sentences = useMemo(() => context.phrases.filter(s => s.lvl <= level), [context, level]);
-        const dailyPhrase = useMemo(() => sentences[Math.floor(Math.random() * sentences.length)], [level]);
+        const dailyPhrase = useMemo(() => sentences[Math.floor(Math.random() * sentences.length)], [sentences]);
         const encouragement = useMemo(()=>ENCOURAGEMENTS[Math.floor(Math.random()*ENCOURAGEMENTS.length)],[]);
         const lunchCard = useMemo(()=>LUNCH_CARDS[Math.floor(Math.random()*LUNCH_CARDS.length)],[]);
         
@@ -1298,8 +1313,13 @@ function completeSession(){
               <p className="text-sm text-brand-800 dark:text-gray-300 italic">{lunchCard.en}</p>
               <button
                 onClick={()=>{
-                  navigator.clipboard.writeText(lunchCard.es);
-                  showToast('Copiado!', 'mia');
+                  if(navigator.clipboard?.writeText){
+                    navigator.clipboard.writeText(lunchCard.es)
+                      .then(()=>showToast('Copiado!', 'mia'))
+                      .catch(()=>showToast('No se pudo copiar', 'jules'));
+                  } else {
+                    showToast('No se pudo copiar', 'jules');
+                  }
                 }}
                 className="text-xs text-brand-700 dark:text-gray-400 mt-2"
                 aria-label="Copiar frase al portapapeles"
@@ -1679,13 +1699,31 @@ function completeSession(){
         const [transcript, setTranscript] = useState('');
         const [result, setResult] = useState(null);
         const [confidence, setConfidence] = useState(0);
-        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
-        
+        const transcriptRef = useRef('');
+        const completedRef = useRef(false);
+        const rec = useSpeechRecognition({
+          onResult:(t)=>{ transcriptRef.current = t; setTranscript(t); },
+          onEnd:()=>{
+            setRecording(false);
+            const current = practice[idx];
+            if(current){
+              const { pass } = wordScore(flex(current.es, inclusive), transcriptRef.current);
+              setResult(pass);
+            }
+          }
+        });
+
         const phrase = practice[idx];
         const done = idx >= practice.length;
-        
+
+        useEffect(()=>{
+          if(done && practice.length > 0 && !completedRef.current){
+            completedRef.current = true;
+            onComplete();
+          }
+        }, [done]);
+
         if(done){
-          onComplete();
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">👴👵</div>
@@ -1697,19 +1735,17 @@ function completeSession(){
         }
         
         function handleRecord(){
-          if(!rec.supported) return;
-          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
+          if(!rec.supported){ showToast('Reconocimiento de voz no disponible en este navegador', 'jules'); return; }
+          if(!recording){ transcriptRef.current=''; setTranscript(''); setResult(null); rec.start(); setRecording(true); }
           else {
             rec.stop();
-            const { pass } = wordScore(flex(phrase.es, inclusive), transcript);
-            setResult(pass);
           }
         }
-        
+
         function saveAndNext(){
           if(confidence > 0){
             setConfidenceHistory(prev => [...prev, confidence]);
-            setRecordings(prev => [...prev, { 
+            setRecordings(prev => [...prev, {
               transcript, 
               target: phrase.es, 
               passed: result, 
@@ -1799,6 +1835,40 @@ function completeSession(){
       
       // Enhanced Practice Mode with track selection and confidence
       function PracticeMode({ mode, level, inclusive, recordings, setRecordings, confidenceHistory, setConfidenceHistory, selectedTrack, setSelectedTrack, onBack, onComplete, showToast }){
+        const trackSentences = selectedTrack ? SENTENCES[selectedTrack] : ALL_SENTENCES;
+        const sentences = trackSentences.filter(s => s.lvl <= level);
+        const count = mode === 'quick' ? 1 : 5;
+        const practice = useMemo(()=>shuffle(sentences).slice(0,count),[selectedTrack, count, level]);
+
+        const [idx, setIdx] = useState(0);
+        const [recording, setRecording] = useState(false);
+        const [transcript, setTranscript] = useState('');
+        const [result, setResult] = useState(null);
+        const [confidence, setConfidence] = useState(0);
+        const transcriptRef = useRef('');
+        const completedRef = useRef(false);
+        const rec = useSpeechRecognition({
+          onResult:(t)=>{ transcriptRef.current = t; setTranscript(t); },
+          onEnd:()=>{
+            setRecording(false);
+            const current = practice[idx];
+            if(current){
+              const { pass } = wordScore(flex(current.es, inclusive), transcriptRef.current);
+              setResult(pass);
+            }
+          }
+        });
+
+        const phrase = practice[idx];
+        const done = idx >= practice.length;
+
+        useEffect(()=>{
+          if(done && practice.length > 0 && !completedRef.current){
+            completedRef.current = true;
+            onComplete();
+          }
+        }, [done]);
+
         // Track selection first
         if(!selectedTrack && mode === 'structured'){
           return (
@@ -1827,24 +1897,8 @@ function completeSession(){
             </div>
           );
         }
-        
-        const trackSentences = selectedTrack ? SENTENCES[selectedTrack] : ALL_SENTENCES;
-        const sentences = trackSentences.filter(s => s.lvl <= level);
-        const count = mode === 'quick' ? 1 : 5;
-        const practice = useMemo(()=>shuffle(sentences).slice(0,count),[selectedTrack, count, level]);
-        
-        const [idx, setIdx] = useState(0);
-        const [recording, setRecording] = useState(false);
-        const [transcript, setTranscript] = useState('');
-        const [result, setResult] = useState(null);
-        const [confidence, setConfidence] = useState(0);
-        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
-        
-        const phrase = practice[idx];
-        const done = idx >= practice.length;
-        
+
         if(done){
-          onComplete();
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🎉</div>
@@ -1855,21 +1909,19 @@ function completeSession(){
         }
         
         function handleRecord(){
-          if(!rec.supported) return;
-          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
+          if(!rec.supported){ showToast('Reconocimiento de voz no disponible en este navegador', 'jules'); return; }
+          if(!recording){ transcriptRef.current=''; setTranscript(''); setResult(null); rec.start(); setRecording(true); }
           else {
             rec.stop();
-            const { pass } = wordScore(flex(phrase.es, inclusive), transcript);
-            setResult(pass);
           }
         }
-        
+
         function saveAndNext(){
           if(confidence > 0){
             setConfidenceHistory(prev => [...prev, confidence]);
           }
-          
-          setRecordings(prev => [...prev, { 
+
+          setRecordings(prev => [...prev, {
             transcript, 
             target: phrase.es, 
             passed: result, 
@@ -2074,13 +2126,31 @@ function completeSession(){
         const [transcript, setTranscript] = useState('');
         const [result, setResult] = useState(null);
         const [confidence, setConfidence] = useState(0);
-        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
+        const transcriptRef = useRef('');
+        const completedRef = useRef(false);
+        const rec = useSpeechRecognition({
+          onResult:(t)=>{ transcriptRef.current = t; setTranscript(t); },
+          onEnd:()=>{
+            setRecording(false);
+            const current = practice[idx];
+            if(current){
+              const { pass } = wordScore(flex(current.es, inclusive), transcriptRef.current);
+              setResult(pass);
+            }
+          }
+        });
 
         const phrase = practice[idx];
         const done = idx >= practice.length;
 
+        useEffect(()=>{
+          if(done && practice.length > 0 && !completedRef.current){
+            completedRef.current = true;
+            onComplete();
+          }
+        }, [done]);
+
         if(done){
-          onComplete();
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🎵</div>
@@ -2092,9 +2162,9 @@ function completeSession(){
         }
 
         function handleRecord(){
-          if(!rec.supported) return;
-          if(!recording){ setTranscript(''); setResult(null); rec.start(); setRecording(true); }
-          else { rec.stop(); const { pass } = wordScore(flex(phrase.es, inclusive), transcript); setResult(pass); }
+          if(!rec.supported){ showToast('Reconocimiento de voz no disponible en este navegador', 'jules'); return; }
+          if(!recording){ transcriptRef.current=''; setTranscript(''); setResult(null); rec.start(); setRecording(true); }
+          else { rec.stop(); }
         }
 
         function saveAndNext(){
@@ -2347,16 +2417,17 @@ function completeSession(){
           setFlipped(newFlipped);
           
           if(newFlipped.length === 2){
-            setMoves(m=>m+1);
+            const newMoves = moves + 1;
+            setMoves(newMoves);
             const [a,b] = newFlipped;
             if(cards[a].match === cards[b].match && cards[a].type !== cards[b].type){
               setMatched([...matched, a, b]);
               setFlipped([]);
               if(matched.length + 2 === cards.length){
-                setCatGamesPlayed(prev => [...prev, {cat:'doom', moves, timestamp:Date.now()}]);
-                const msg = bestMoves === 0 || moves < bestMoves
-                  ? `¡Nuevo récord: ${moves} movimientos! Te mando abrazo.`
-                  : `¡Completado en ${moves} movimientos! Bien hecho.`;
+                setCatGamesPlayed(prev => [...prev, {cat:'doom', moves: newMoves, timestamp:Date.now()}]);
+                const msg = bestMoves === 0 || newMoves < bestMoves
+                  ? `¡Nuevo récord: ${newMoves} movimientos! Te mando abrazo.`
+                  : `¡Completado en ${newMoves} movimientos! Bien hecho.`;
                 showToast(msg, 'doom');
                 onComplete();
               }
@@ -2992,24 +3063,31 @@ function completeSession(){
         const [recording, setRecording] = useState(false);
         const [transcript, setTranscript] = useState('');
         const [selectedPrompt, setSelectedPrompt] = useState(0);
-        const rec = useSpeechRecognition({ onResult:(t)=>setTranscript(t), onEnd:()=>setRecording(false) });
-        
+        const transcriptRef = useRef('');
         const prompt = JOURNAL_PROMPTS[selectedPrompt];
-        
-        function handleRecord(){
-          if(!rec.supported) return;
-          if(!recording){ setTranscript(''); rec.start(); setRecording(true); }
-          else {
-            rec.stop();
-            if(transcript){
-              setJournals(prev => [...prev, { 
-                text: transcript, 
+        const rec = useSpeechRecognition({
+          onResult:(t)=>{ transcriptRef.current = t; setTranscript(t); },
+          onEnd:()=>{
+            setRecording(false);
+            const text = transcriptRef.current.trim();
+            if(text){
+              setJournals(prev => [...prev, {
+                text,
                 prompt: prompt.es,
-                timestamp: Date.now() 
+                timestamp: Date.now()
               }]);
+              transcriptRef.current = '';
               setTranscript('');
               showToast('Guardado en tu diario', 'mia');
             }
+          }
+        });
+
+        function handleRecord(){
+          if(!rec.supported){ showToast('Reconocimiento de voz no disponible en este navegador', 'jules'); return; }
+          if(!recording){ transcriptRef.current=''; setTranscript(''); rec.start(); setRecording(true); }
+          else {
+            rec.stop();
           }
         }
         
@@ -3160,6 +3238,15 @@ function completeSession(){
       
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').catch(err => {
+            console.warn('Service worker registration failed:', err);
+          });
+        });
+      }
     </script>
   </body>
 </html>
