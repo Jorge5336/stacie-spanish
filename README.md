@@ -44,9 +44,21 @@ Cute site name ideas if "stacie" is taken:
 6. Deploy.
 
 ## Edit and update
-- Make changes in `index.html` inside the `<script type="text/babel">` block.
+- **Content** (sentences, conversations, lunch cards, encouragements, cultural
+  tips, badges, journal prompts) lives in `data.js` — edit there to add or
+  change what Stacie practices. No app code involved.
+- **App code** lives in `index.html` inside the `<script type="text/babel">` block.
 - Commit to GitHub — Netlify auto-deploys.
 - Local test for mic features: `python3 -m http.server` then open http://localhost:8000
+
+### Adding a sentence (data.js)
+```js
+{ id:'m21', lvl:1, es:'Tu frase aquí.', hint:'english hint here', tags:['love'] },
+```
+- `id` must be unique (keep the track prefix: w/m/f/s/v/h/fo + next number).
+- `lvl` is 0 (beginner), 1 (intermediate), or 2 (advanced).
+- Use `[femenino|inclusivo]` brackets for words that change with the
+  inclusive-language setting, e.g. `Estoy [cansada|cansade].`
 
 ## Cute domain ideas if `stacie` is taken
 - stacie-apapacho
