@@ -1,7 +1,8 @@
-const CACHE_NAME = 'stacie-v2.1.0';
+const CACHE_NAME = 'stacie-v2.2.0';
 const urlsToCache = [
   '/stacie-spanish/',
   '/stacie-spanish/index.html',
+  '/stacie-spanish/data.js',
   '/stacie-spanish/manifest.json',
   // CDN resources will be cached as they're fetched
 ];
