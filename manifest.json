@@ -4,8 +4,8 @@
   "description": "Práctica suave en español — méxico, tú",
   "start_url": "/stacie-spanish/",
   "display": "standalone",
-  "background_color": "#f6faf8",
-  "theme_color": "#0d3d30",
+  "background_color": "#faf4ea",
+  "theme_color": "#faf4ea",
   "orientation": "portrait-primary",
   "icons": [
     {

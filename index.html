@@ -7,93 +7,149 @@
     <meta name="description" content="español con confianza — para stacie"/>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0d3d30">
+    <meta name="theme-color" content="#faf4ea">
     <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = { darkMode: 'class' };
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              paper: '#faf4ea',
+              card: '#fffdf8',
+              cream: '#f6ecdd',
+              night: { DEFAULT: '#211913', card: '#2b221b', soft: '#382c22', line: '#463629' },
+              cocoa: {
+                50: '#faf6ef', 100: '#f2ead9', 200: '#e4d5bd', 300: '#d1ba9b',
+                400: '#b3946f', 500: '#94734f', 600: '#7a5c3e', 700: '#604732',
+                800: '#4b3728', 900: '#392a1f', 950: '#251a12'
+              },
+              clay: {
+                50: '#fdf5f0', 100: '#fbe7db', 200: '#f6ccb6', 300: '#efab88',
+                400: '#e4834f', 500: '#d3622f', 600: '#b04526', 700: '#8f3820',
+                800: '#75301e', 900: '#602a1d', 950: '#34140c'
+              },
+              marigold: {
+                50: '#fdf8ec', 100: '#faefd0', 200: '#f4dd9f', 300: '#ecc465',
+                400: '#e3a83a', 500: '#d18d24', 600: '#b26d1d', 700: '#8e4f1b',
+                800: '#74401d', 900: '#63371c', 950: '#391c0b'
+              },
+              sage: {
+                50: '#f4f7f1', 100: '#e5ecdf', 200: '#ccd9c2', 300: '#a8bf9b',
+                400: '#81a173', 500: '#618453', 600: '#4a6840', 700: '#3b5334',
+                800: '#31432c', 900: '#293826', 950: '#151f12'
+              },
+              blossom: {
+                50: '#fdf4f5', 100: '#fbe8eb', 200: '#f7cfd7', 300: '#f0a8b8',
+                400: '#e57690', 500: '#d44e6e', 600: '#b93553', 700: '#9b2844',
+                800: '#81253c', 900: '#6e2336', 950: '#3d0f1a'
+              },
+              /* brand = alias of clay: TRACKS in data.js reference bg-brand-* classes */
+              brand: {
+                50: '#fdf5f0', 100: '#fbe7db', 200: '#f6ccb6', 300: '#efab88',
+                400: '#e4834f', 500: '#d3622f', 600: '#b04526', 700: '#8f3820',
+                800: '#75301e', 900: '#602a1d', 950: '#34140c'
+              }
+            },
+            fontFamily: {
+              display: ["'Iowan Old Style'", "'Palatino Linotype'", 'Palatino', "'Book Antiqua'", 'Georgia', 'serif'],
+              sans: ['system-ui', '-apple-system', "'Segoe UI'", 'Roboto', "'Helvetica Neue'", 'Arial', 'sans-serif']
+            },
+            boxShadow: {
+              soft: '0 1px 2px rgba(57,42,31,.05), 0 8px 24px -10px rgba(57,42,31,.14)',
+              lift: '0 12px 32px -8px rgba(57,42,31,.28)',
+              clay: '0 6px 16px -6px rgba(176,69,38,.45)',
+              glow: '0 0 0 1px rgba(209,141,36,.35), 0 4px 18px -2px rgba(209,141,36,.45)'
+            },
+            keyframes: {
+              rise: {
+                from: { opacity: '0', transform: 'translateY(12px)' },
+                to: { opacity: '1', transform: 'translateY(0)' }
+              },
+              pop: {
+                '0%': { opacity: '0', transform: 'scale(.5)' },
+                '60%': { opacity: '1', transform: 'scale(1.12)' },
+                '100%': { opacity: '1', transform: 'scale(1)' }
+              }
+            },
+            animation: {
+              rise: 'rise .35s cubic-bezier(.22,1,.36,1) both',
+              pop: 'pop .4s cubic-bezier(.34,1.56,.64,1) both'
+            }
+          }
+        }
+      };
     </script>
     <style>
-      :root {
-        --brand-50: #edf7f3;
-        --brand-100: #d6efe6;
-        --brand-200: #b0e0cf;
-        --brand-600: #1f7d62;
-        --brand-700: #186651;
-        --brand-800: #115240;
-        --brand-900: #0d3d30;
-        --blossom-600: #db4b94;
-        --otis: #f59e0b;
-        --doom: #8b5cf6;
-        --jules: #ec4899;
-        --lassie: #10b981;
-        --mia: #3b82f6;
-      }
       html, body { height: 100%; }
-      body { margin: 0; transition: background-color 0.3s, color 0.3s; }
-      body.light { background: #f6faf8; color: #0d3d30; }
-      body.dark { background: #1a1a1a; color: #e0e0e0; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      body.light { background: #faf4ea; color: #392a1f; color-scheme: light; }
+      body.dark { background: #211913; color: #f6ecdd; color-scheme: dark; }
+      h1, h2, h3 {
+        font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+        letter-spacing: -0.015em;
+      }
       * { -webkit-tap-highlight-color: transparent; }
-      
-      .bg-brand-50 { background-color: var(--brand-50); }
-      .bg-brand-100 { background-color: var(--brand-100); }
-      .bg-brand-600 { background-color: var(--brand-600); }
-      .bg-brand-700 { background-color: var(--brand-700); }
-      .bg-brand-800 { background-color: var(--brand-800); }
-      .bg-brand-900 { background-color: var(--brand-900); }
-      .bg-blossom-600 { background-color: var(--blossom-600); }
-      .text-brand-700 { color: var(--brand-700); }
-      .text-brand-900 { color: var(--brand-900); }
-      .border-brand-200 { border-color: var(--brand-200); }
-      
-      .shadow-soft { box-shadow: 0 8px 28px rgba(0,0,0,.10); }
-      .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #d6efe6; z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
-      .main-content { padding-bottom: 80px; min-height: 100vh; }
-      
-      body.dark .tab-bar { background: #2a2a2a; border-top-color: #444; }
-      body.dark .bg-white { background: #2a2a2a !important; }
-      body.dark .text-brand-900 { color: #e0e0e0 !important; }
-      body.dark .text-brand-700 { color: #b0b0b0 !important; }
-      body.dark .border-brand-200 { border-color: #444 !important; }
-      body.dark .bg-brand-50 { background-color: #333 !important; }
-      body.dark .bg-brand-100 { background-color: #3a3a3a !important; }
-      
+      button {
+        transition: transform .15s ease, background-color .2s ease, color .2s ease,
+                    border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
+      }
+      button:not(:disabled):active { transform: scale(.97); }
+      :focus-visible { outline: 3px solid rgba(209,141,36,.85); outline-offset: 2px; }
+
+      .tab-bar {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+        background: rgba(255,253,248,.92);
+        -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+        border-top: 1px solid rgba(228,213,189,.7);
+        box-shadow: 0 -8px 24px -12px rgba(57,42,31,.18);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      body.dark .tab-bar { background: rgba(33,25,19,.92); border-top-color: #463629; }
+      .main-content { padding-bottom: calc(104px + env(safe-area-inset-bottom)); min-height: 100vh; }
+
       @keyframes slideIn {
         from { transform: translateY(-100%); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
       }
-      .toast { animation: slideIn 0.3s ease-out; }
-      .hero-card { background: linear-gradient(135deg, var(--brand-700) 0%, var(--brand-900) 100%); }
-      .badge-earned { box-shadow: 0 0 20px rgba(236, 90, 166, 0.4); }
-      
+      .toast { animation: slideIn 0.3s cubic-bezier(.22,1,.36,1); }
+
       @keyframes tortilla {
         0%, 100% { transform: rotate(0deg); }
         25% { transform: rotate(5deg); }
         75% { transform: rotate(-5deg); }
       }
       .loading { animation: tortilla 1s ease-in-out infinite; }
-      
-      .cat-card { transition: transform 0.2s; }
-      .cat-card:hover { transform: scale(1.05); }
-      
+
+      .cat-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+      .cat-card:hover { transform: scale(1.04); }
+
       /* Confidence meter */
       .confidence-bar {
-        height: 8px;
-        border-radius: 4px;
-        background: linear-gradient(to right, #ef4444 0%, #f59e0b 40%, #10b981 100%);
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(to right, #e4834f 0%, #e3a83a 45%, #81a173 100%);
         position: relative;
       }
       .confidence-marker {
         position: absolute;
-        top: -2px;
-        width: 12px;
-        height: 12px;
-        background: white;
-        border: 2px solid #0d3d30;
+        top: -3px;
+        width: 16px;
+        height: 16px;
+        background: #fffdf8;
+        border: 2.5px solid #8f3820;
         border-radius: 50%;
-        transition: left 0.3s ease;
+        box-shadow: 0 1px 4px rgba(57,42,31,.35);
+        transition: left 0.4s cubic-bezier(.22,1,.36,1);
       }
-      
+      body.dark .confidence-marker { background: #211913; border-color: #efab88; }
+
       /* Conversation flow */
       .conversation-bubble {
         animation: slideIn 0.3s ease;
@@ -103,6 +159,14 @@
         50% { opacity: 0.5; }
       }
       .recording-pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: .01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: .01ms !important;
+        }
+      }
     </style>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -506,16 +570,16 @@ function completeSession(){
           <div className="min-h-screen">
             {loading && (
               <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
-                <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-lg">
+                <div className="bg-card dark:bg-night-card px-5 py-2.5 rounded-full shadow-lift border border-cocoa-200/70 dark:border-night-line text-cocoa-800 dark:text-cream text-sm font-medium">
                   <span className="loading inline-block">🫓</span>
                   <span className="ml-2">Calentando...</span>
                 </div>
               </div>
             )}
-            
+
             {toast && (
               <div className="fixed top-4 left-4 right-4 z-50 toast">
-                <div className="bg-brand-900 text-white px-4 py-3 rounded-xl shadow-lg text-center max-w-md mx-auto">
+                <div className="bg-cocoa-900/95 dark:bg-cream text-cream dark:text-cocoa-900 px-5 py-3.5 rounded-2xl shadow-lift text-center text-sm font-medium max-w-md mx-auto">
                   {toast}
                 </div>
               </div>
@@ -525,31 +589,33 @@ function completeSession(){
               <PanicOverlay onClose={()=>setPanicMode(false)} />
             )}
             
-            <header className="bg-white dark:bg-gray-900 border-b border-brand-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-40 shadow-sm">
+            <header className="bg-paper/90 dark:bg-night/90 backdrop-blur-md border-b border-cocoa-200/60 dark:border-night-line px-4 py-2 sticky top-0 z-40">
               <div className="max-w-md mx-auto flex items-center justify-between">
-                <h1 className="text-xl font-bold text-brand-900 dark:text-gray-100">
-                  stacie <span className="text-xs text-blossom-600">v7</span>
+                <h1 className="text-2xl font-bold italic text-cocoa-900 dark:text-cream">
+                  stacie <span className="text-[10px] not-italic font-sans font-bold tracking-wider text-clay-500 dark:text-clay-300 align-super">v7</span>
                 </h1>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={()=>setPanicMode(true)}
-                    className="px-2 py-1 bg-rose-500 text-white rounded-lg text-xs font-bold"
+                    className="min-h-[44px] px-3 bg-blossom-600 hover:bg-blossom-700 text-white rounded-full text-xs font-bold tracking-wide shadow-soft"
                     aria-label="Frases de emergencia"
                   >
                     ¡PÁNICO!
                   </button>
-                  <div className="text-brand-900 dark:text-gray-100 font-semibold">🔥 {streak}</div>
+                  <div className="flex items-center gap-1 min-h-[44px] px-1.5 text-cocoa-900 dark:text-cream font-bold">
+                    🔥 <span key={streak} className="inline-block animate-pop">{streak}</span>
+                  </div>
                   {streakFreeze > 0 && (
-                    <div className="text-xs bg-brand-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                    <div className="text-xs font-semibold bg-clay-100 dark:bg-night-soft text-cocoa-700 dark:text-cocoa-200 px-2.5 py-1.5 rounded-full">
                       ❄️ {streakFreeze}
                     </div>
                   )}
                 </div>
               </div>
             </header>
-            
+
             <div className="main-content">
-              <div className="max-w-md mx-auto px-4 py-4">
+              <div key={tab} className="max-w-md mx-auto px-4 py-5 animate-rise">
                 {tab === 'hoy' && <HoyTab 
                   level={level} 
                   inclusive={inclusive} 
@@ -609,7 +675,7 @@ function completeSession(){
             </div>
             
             <div className="tab-bar">
-              <div className="max-w-md mx-auto flex items-center justify-around py-2">
+              <div className="max-w-md mx-auto flex items-center justify-around py-1.5">
                 <TabButton icon="🏠" label="Hoy" active={tab==='hoy'} onClick={()=>setTab('hoy')} />
                 <TabButton icon="📚" label="Práctica" active={tab==='practica'} onClick={()=>setTab('practica')} />
                 <TabButton icon="💬" label="Conversar" active={tab==='conversar'} onClick={()=>setTab('conversar')} />
@@ -624,9 +690,9 @@ function completeSession(){
       
       function TabButton({ icon, label, active, onClick }){
         return (
-          <button onClick={onClick} className={cx('flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors', active ? 'text-brand-900 dark:text-gray-100' : 'text-gray-400')}>
-            <span className="text-xl">{icon}</span>
-            <span className="text-xs font-medium">{label}</span>
+          <button onClick={onClick} aria-current={active ? 'page' : undefined} className={cx('flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 min-h-[52px] min-w-[48px] rounded-2xl', active ? 'text-clay-700 dark:text-marigold-200' : 'text-cocoa-400 dark:text-cocoa-500')}>
+            <span className={cx('text-lg leading-none px-2.5 py-1 rounded-full transition-colors', active ? 'bg-clay-100 dark:bg-night-soft' : 'bg-transparent')}>{icon}</span>
+            <span className={cx('text-[10px] tracking-wide', active ? 'font-bold' : 'font-medium')}>{label}</span>
           </button>
         );
       }
@@ -634,19 +700,19 @@ function completeSession(){
       // ---------------- PANIC OVERLAY (NEW) ----------------
       function PanicOverlay({ onClose }){
         return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto">
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">
+          <div className="fixed inset-0 bg-cocoa-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-card dark:bg-night-card rounded-3xl p-6 max-w-sm w-full max-h-[80vh] overflow-y-auto shadow-lift border border-cocoa-200/70 dark:border-night-line animate-rise">
+              <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-4">
                 🆘 Frases de emergencia
               </h2>
               <div className="space-y-3">
                 {PANIC_PHRASES.map((phrase, idx) => (
-                  <div key={idx} className="bg-brand-50 dark:bg-gray-700 rounded-xl p-3">
-                    <p className="text-brand-900 dark:text-gray-100 font-medium">{phrase.es}</p>
-                    <p className="text-sm text-brand-700 dark:text-gray-400">{phrase.hint}</p>
+                  <div key={idx} className="bg-blossom-50 dark:bg-night-soft border border-blossom-100 dark:border-night-line rounded-2xl p-3">
+                    <p className="text-cocoa-900 dark:text-cream font-medium">{phrase.es}</p>
+                    <p className="text-sm text-cocoa-600 dark:text-cocoa-300">{phrase.hint}</p>
                     <button
                       onClick={()=>speak(phrase.es, {rate:0.8})}
-                      className="text-xs text-blossom-600 mt-2"
+                      className="inline-flex items-center min-h-[44px] text-xs font-semibold text-blossom-600 dark:text-blossom-300"
                       aria-label="Escuchar frase"
                     >
                       👂 Escuchar
@@ -656,7 +722,7 @@ function completeSession(){
               </div>
               <button
                 onClick={onClose}
-                className="w-full mt-4 py-2 bg-brand-900 text-white rounded-xl font-semibold"
+                className="w-full mt-4 min-h-[48px] py-2 bg-clay-600 hover:bg-clay-700 text-white rounded-2xl font-semibold shadow-clay"
                 aria-label="Cerrar frases de emergencia"
               >
                 Cerrar
@@ -681,14 +747,14 @@ function completeSession(){
         
         return (
           <div className="space-y-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-2">{context.greeting}</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-1">{context.activity}</p>
-              <p className="text-sm text-brand-700 dark:text-gray-300 mb-3">Meta: 3 frases con confianza</p>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+              <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-2">{context.greeting}</h2>
+              <p className="text-cocoa-700 dark:text-cocoa-200 mb-1">{context.activity}</p>
+              <p className="text-sm text-cocoa-700 dark:text-cocoa-200 mb-3">Meta: 3 frases con confianza</p>
               
               {avgConfidence > 0 && (
                 <div className="mb-3">
-                  <div className="flex justify-between text-xs text-brand-700 dark:text-gray-400 mb-1">
+                  <div className="flex justify-between text-xs text-cocoa-600 dark:text-cocoa-300 mb-1">
                     <span>Tu confianza</span>
                     <span>{avgConfidence}/5</span>
                   </div>
@@ -698,13 +764,13 @@ function completeSession(){
                 </div>
               )}
               
-              <button onClick={()=>onNavigate('practica')} className="w-full py-2 rounded-xl bg-brand-900 text-white font-semibold">
+              <button onClick={()=>onNavigate('practica')} className="w-full min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay">
                 Empezar práctica diaria →
               </button>
             </div>
             
             <div>
-              <h2 className="text-sm font-semibold text-brand-800 dark:text-gray-300 mb-3">Acciones rápidas</h2>
+              <h2 className="text-xs font-sans font-bold uppercase tracking-widest text-cocoa-500 dark:text-cocoa-400 mb-3">Acciones rápidas</h2>
               <div className="grid grid-cols-3 gap-3">
                 <QuickAction icon="⚡" label="Práctica rápida" onClick={()=>onNavigate('practica')} />
                 <QuickAction icon="💬" label="Conversación" onClick={()=>onNavigate('conversar')} />
@@ -713,25 +779,25 @@ function completeSession(){
             </div>
             
             {dailyPhrase && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
-                <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-2">Frase del día</h3>
-                <p className="text-lg text-brand-900 dark:text-gray-100 mb-1">{flex(dailyPhrase.es, inclusive)}</p>
-                <p className="text-sm text-brand-700 dark:text-gray-400 mb-3">{dailyPhrase.hint}</p>
+              <div className="bg-card dark:bg-night-card rounded-3xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+                <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-2">Frase del día</h3>
+                <p className="text-lg text-cocoa-900 dark:text-cream mb-1">{flex(dailyPhrase.es, inclusive)}</p>
+                <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-3">{dailyPhrase.hint}</p>
                 <div className="flex gap-2">
-                  <button onClick={()=>speak(flex(dailyPhrase.es, inclusive))} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                  <button onClick={()=>speak(flex(dailyPhrase.es, inclusive))} className="min-h-[44px] px-4 py-1.5 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">
                     👂 Normal
                   </button>
-                  <button onClick={()=>speak(flex(dailyPhrase.es, inclusive), {rate:0.75})} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                  <button onClick={()=>speak(flex(dailyPhrase.es, inclusive), {rate:0.75})} className="min-h-[44px] px-4 py-1.5 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">
                     🐢 Lento
                   </button>
                 </div>
               </div>
             )}
             
-            <div className="bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900 dark:to-purple-900 rounded-2xl p-4">
-              <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-2">💕 Lunch Card para hoy</h3>
-              <p className="text-brand-900 dark:text-gray-200 mb-2">{flex(lunchCard.es, inclusive)}</p>
-              <p className="text-sm text-brand-800 dark:text-gray-300 italic">{lunchCard.en}</p>
+            <div className="bg-gradient-to-br from-blossom-100 to-marigold-100 dark:from-blossom-950 dark:to-night-soft border border-blossom-200/70 dark:border-night-line rounded-3xl p-5 shadow-soft">
+              <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-2">💕 Lunch Card para hoy</h3>
+              <p className="text-lg text-cocoa-900 dark:text-cream mb-2">{flex(lunchCard.es, inclusive)}</p>
+              <p className="text-sm text-cocoa-700 dark:text-cocoa-200 italic">{lunchCard.en}</p>
               <button
                 onClick={()=>{
                   if(navigator.clipboard?.writeText){
@@ -742,19 +808,19 @@ function completeSession(){
                     showToast('No se pudo copiar', 'jules');
                   }
                 }}
-                className="text-xs text-brand-700 dark:text-gray-400 mt-2"
+                className="inline-flex items-center min-h-[44px] text-xs font-semibold text-blossom-700 dark:text-blossom-300 mt-1"
                 aria-label="Copiar frase al portapapeles"
               >
                 📋 Copiar
               </button>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
+            <div className="bg-card dark:bg-night-card rounded-3xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-2xl">{CATS[encouragement.cat].emoji}</span>
-                <span className="font-semibold text-brand-900 dark:text-gray-100">{CATS[encouragement.cat].name}</span>
+                <span className="font-semibold text-cocoa-900 dark:text-cream">{CATS[encouragement.cat].name}</span>
               </div>
-              <p className="text-sm text-brand-700 dark:text-gray-300">{flex(encouragement.text, inclusive)}</p>
+              <p className="text-sm text-cocoa-700 dark:text-cocoa-200">{flex(encouragement.text, inclusive)}</p>
             </div>
           </div>
         );
@@ -762,9 +828,9 @@ function completeSession(){
       
       function QuickAction({ icon, label, onClick }){
         return (
-          <button onClick={onClick} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-soft border border-brand-200 dark:border-gray-700 flex flex-col items-center gap-2 hover:bg-brand-50 dark:hover:bg-gray-700 transition-colors">
+          <button onClick={onClick} className="bg-card dark:bg-night-card rounded-3xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line flex flex-col items-center gap-2 hover:bg-clay-50 dark:hover:bg-night-soft hover:border-clay-200 dark:hover:border-night-line transition-colors">
             <span className="text-3xl">{icon}</span>
-            <span className="text-xs font-medium text-brand-900 dark:text-gray-100 text-center">{label}</span>
+            <span className="text-xs font-semibold text-cocoa-800 dark:text-cream text-center">{label}</span>
           </button>
         );
       }
@@ -778,7 +844,7 @@ function completeSession(){
         if(!selectedConvo){
           return (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Conversaciones</h2>
+              <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-4">Conversaciones</h2>
               
               <div className="space-y-3">
                 {Object.entries(CONVERSATIONS).map(([key, convo]) => (
@@ -789,18 +855,18 @@ function completeSession(){
                       setCurrentNode(convo.start);
                       setHistory([]);
                     }}
-                    className="w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700 text-left hover:bg-brand-50 dark:hover:bg-gray-700"
+                    className="w-full bg-card dark:bg-night-card rounded-3xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line text-left hover:bg-clay-50 dark:hover:bg-night-soft"
                   >
-                    <h3 className="font-semibold text-brand-900 dark:text-gray-100">{convo.name}</h3>
-                    <p className="text-sm text-brand-700 dark:text-gray-400 mt-1">
+                    <h3 className="font-semibold text-cocoa-900 dark:text-cream">{convo.name}</h3>
+                    <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mt-1">
                       Practica conversación realista
                     </p>
                   </button>
                 ))}
               </div>
               
-              <div className="bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 rounded-2xl p-4">
-                <p className="text-sm text-brand-900 dark:text-gray-100">
+              <div className="bg-marigold-50 dark:bg-night-soft border border-marigold-200/80 dark:border-night-line rounded-3xl p-4">
+                <p className="text-sm text-cocoa-800 dark:text-cocoa-100">
                   💡 Tip: Las conversaciones te ayudan a practicar intercambios completos, no solo frases sueltas.
                 </p>
               </div>
@@ -832,11 +898,11 @@ function completeSession(){
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">¡Conversación completa!</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-4">{currentNode.feedback}</p>
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-2">¡Conversación completa!</h2>
+              <p className="text-cocoa-700 dark:text-cocoa-200 mb-4">{currentNode.feedback}</p>
               <button 
                 onClick={()=>setSelectedConvo(null)}
-                className="px-4 py-2 rounded-xl bg-brand-900 text-white"
+                className="px-6 min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay"
               >
                 Volver
               </button>
@@ -848,47 +914,47 @@ function completeSession(){
           <div>
             <button 
               onClick={()=>setSelectedConvo(null)}
-              className="text-brand-700 dark:text-gray-400 mb-4"
+              className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft"
             >
               ← Atrás
             </button>
             
-            <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-4">{convo.name}</h3>
+            <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-4">{convo.name}</h3>
             
             <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
               {history.map((exchange, idx) => (
                 <div key={idx} className="space-y-2">
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-3 mr-12">
-                    <p className="text-sm text-brand-900 dark:text-gray-100">{exchange.them}</p>
+                  <div className="bg-cocoa-100 dark:bg-night-soft rounded-2xl p-3 mr-12">
+                    <p className="text-sm text-cocoa-900 dark:text-cream">{exchange.them}</p>
                   </div>
-                  <div className="bg-brand-600 text-white rounded-2xl p-3 ml-12">
+                  <div className="bg-clay-600 text-white rounded-2xl p-3 ml-12">
                     <p className="text-sm">{exchange.you}</p>
                   </div>
                 </div>
               ))}
               
               {currentNode && (
-                <div className="conversation-bubble bg-gray-100 dark:bg-gray-700 rounded-2xl p-3 mr-12">
-                  <p className="text-sm text-brand-900 dark:text-gray-100">{currentNode.them}</p>
+                <div className="conversation-bubble bg-cocoa-100 dark:bg-night-soft rounded-2xl p-3 mr-12">
+                  <p className="text-sm text-cocoa-900 dark:text-cream">{currentNode.them}</p>
                 </div>
               )}
             </div>
             
             {currentNode && (
               <div className="space-y-2">
-                <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">Elige tu respuesta:</p>
+                <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-2">Elige tu respuesta:</p>
                 {currentNode.responses.map((response, idx) => (
                   <button
                     key={idx}
                     onClick={()=>handleResponse(response)}
-                    className="w-full text-left bg-white dark:bg-gray-800 rounded-xl p-3 border border-brand-200 dark:border-gray-700 hover:bg-brand-50 dark:hover:bg-gray-700"
+                    className="w-full text-left bg-card dark:bg-night-card rounded-2xl p-3 border border-cocoa-200/70 dark:border-night-line hover:bg-clay-50 dark:hover:bg-night-soft"
                   >
-                    <p className="text-brand-900 dark:text-gray-100">{response.text}</p>
+                    <p className="text-cocoa-900 dark:text-cream">{response.text}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs text-brand-700 dark:text-gray-400">Confianza:</span>
+                      <span className="text-xs text-cocoa-600 dark:text-cocoa-300">Confianza:</span>
                       <div className="flex gap-1">
                         {[1,2,3,4,5].map(n => (
-                          <span key={n} className={n <= response.confidence ? 'text-amber-500' : 'text-gray-300'}>
+                          <span key={n} className={n <= response.confidence ? 'text-marigold-400' : 'text-cocoa-200 dark:text-night-line'}>
                             ★
                           </span>
                         ))}
@@ -912,19 +978,19 @@ function completeSession(){
         if(!mode){
           return (
             <div className="space-y-3">
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">¿Qué quieres practicar?</h2>
+              <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-4">¿Qué quieres practicar?</h2>
               
               <div className="grid grid-cols-2 gap-3">
                 <ModeCard icon="⚡" title="Rápido" desc="1 frase, ahora" onClick={()=>setMode('quick')} />
                 <ModeCard icon="📖" title="Estructurado" desc="Sesión completa" onClick={()=>setMode('structured')} />
-                <ModeCard icon="👴" title="Suegros Mode" desc="Práctica formal" onClick={()=>setMode('suegros')} color="bg-purple-100 dark:bg-purple-900" />
+                <ModeCard icon="👴" title="Suegros Mode" desc="Práctica formal" onClick={()=>setMode('suegros')} color="bg-blossom-100 dark:bg-blossom-950" />
                 <ModeCard icon="🎵" title="Playlist" desc="Tu colección" onClick={()=>setMode('playlist')} />
                 <ModeCard icon="🔍" title="Buscar" desc="Encuentra frases" onClick={()=>setMode('search')} />
-                <ModeCard icon="📼" title="Biblioteca" desc="Tus grabaciones" onClick={()=>setMode('library')} color="bg-emerald-100 dark:bg-emerald-900" />
+                <ModeCard icon="📼" title="Biblioteca" desc="Tus grabaciones" onClick={()=>setMode('library')} color="bg-sage-100 dark:bg-sage-950" />
               </div>
               
-              <div className="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-2xl p-4">
-                <p className="text-sm text-brand-900 dark:text-gray-100">
+              <div className="bg-marigold-50 dark:bg-night-soft border border-marigold-200/80 dark:border-night-line rounded-3xl p-4">
+                <p className="text-sm text-cocoa-800 dark:text-cocoa-100">
                   💡 Nuevo: Graba tu confianza después de cada frase para ver tu progreso emocional
                 </p>
               </div>
@@ -957,10 +1023,10 @@ function completeSession(){
       
       function ModeCard({ icon, title, desc, onClick, color }){
         return (
-          <button onClick={onClick} className={cx("rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700 text-left hover:scale-105 transition-transform", color || "bg-white dark:bg-gray-800")}>
+          <button onClick={onClick} className={cx("rounded-3xl p-5 shadow-soft border border-cocoa-200/70 dark:border-night-line text-left hover:scale-[1.03] transition-transform", color || "bg-card dark:bg-night-card")}>
             <div className="text-4xl mb-2">{icon}</div>
-            <h3 className="font-bold text-brand-900 dark:text-gray-100 mb-1">{title}</h3>
-            <p className="text-xs text-brand-700 dark:text-gray-400">{desc}</p>
+            <h3 className="font-bold text-cocoa-900 dark:text-cream mb-1">{title}</h3>
+            <p className="text-xs text-cocoa-600 dark:text-cocoa-300">{desc}</p>
           </button>
         );
       }
@@ -980,7 +1046,7 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
             
             <div className="mb-4">
               <input 
@@ -988,7 +1054,7 @@ function completeSession(){
                 value={searchTerm}
                 onChange={e=>setSearchTerm(e.target.value)}
                 placeholder="Buscar... (ej: 'greeting', 'mia', 'café')"
-                className="w-full px-4 py-3 rounded-xl border border-brand-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-brand-900 dark:text-gray-100"
+                className="w-full px-4 py-3 rounded-xl border border-cocoa-200/70 dark:border-night-line bg-card dark:bg-night-card text-cocoa-900 dark:text-cream"
               />
             </div>
             
@@ -997,7 +1063,7 @@ function completeSession(){
                 <button
                   key={tag}
                   onClick={()=>setSearchTerm(tag)}
-                  className="px-3 py-1 rounded-full bg-brand-100 dark:bg-gray-700 text-xs text-brand-900 dark:text-gray-100"
+                  className="min-h-[44px] px-3.5 py-1 rounded-full bg-clay-100 dark:bg-night-soft text-xs font-semibold text-clay-900 dark:text-cream"
                 >
                   #{tag}
                 </button>
@@ -1006,20 +1072,20 @@ function completeSession(){
             
             {searchTerm && (
               <div className="space-y-2">
-                <p className="text-sm text-brand-700 dark:text-gray-400">{results.length} resultados</p>
+                <p className="text-sm text-cocoa-600 dark:text-cocoa-300">{results.length} resultados</p>
                 {results.slice(0,20).map(phrase => (
-                  <div key={phrase.id} className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-soft border border-brand-200 dark:border-gray-700">
-                    <p className="text-brand-900 dark:text-gray-100 mb-1">{flex(phrase.es, inclusive)}</p>
-                    <p className="text-xs text-brand-700 dark:text-gray-400">{phrase.hint}</p>
+                  <div key={phrase.id} className="bg-card dark:bg-night-card rounded-2xl p-3 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+                    <p className="text-cocoa-900 dark:text-cream mb-1">{flex(phrase.es, inclusive)}</p>
+                    <p className="text-xs text-cocoa-600 dark:text-cocoa-300">{phrase.hint}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <button onClick={()=>{speak(flex(phrase.es, inclusive)); showToast('Reproduciendo', 'lassie');}} className="text-xs text-blossom-600">
+                      <button onClick={()=>{speak(flex(phrase.es, inclusive)); showToast('Reproduciendo', 'lassie');}} className="inline-flex items-center min-h-[44px] text-xs font-semibold text-blossom-600 dark:text-blossom-300">
                         👂 Normal
                       </button>
-                      <button onClick={()=>{speak(flex(phrase.es, inclusive), {rate:0.75}); showToast('Lento', 'lassie');}} className="text-xs text-blossom-600">
+                      <button onClick={()=>{speak(flex(phrase.es, inclusive), {rate:0.75}); showToast('Lento', 'lassie');}} className="inline-flex items-center min-h-[44px] text-xs font-semibold text-blossom-600 dark:text-blossom-300">
                         🐢 Lento
                       </button>
                       {phrase.tags && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-cocoa-500 dark:text-cocoa-400">
                           {phrase.tags.map(t => `#${t}`).join(' ')}
                         </span>
                       )}
@@ -1054,16 +1120,16 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-            <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Tu biblioteca de grabaciones</h2>
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
+            <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-4">Tu biblioteca de grabaciones</h2>
             
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-4 overflow-x-auto -mx-4 px-4 pb-1">
               {['all', 'passed', 'failed', 'recent'].map(f => (
                 <button
                   key={f}
                   onClick={()=>setFilter(f)}
-                  className={cx('px-3 py-1 rounded-lg text-sm', 
-                    filter === f ? 'bg-brand-900 text-white' : 'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100'
+                  className={cx('min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1 rounded-full text-sm font-semibold',
+                    filter === f ? 'bg-clay-600 text-white shadow-clay' : 'bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream'
                   )}
                 >
                   {f === 'all' ? 'Todas' : f === 'passed' ? '✓ Correctas' : f === 'failed' ? '✗ Practicar' : '🕐 Recientes'}
@@ -1072,24 +1138,24 @@ function completeSession(){
             </div>
             
             {filtered.length === 0 ? (
-              <p className="text-center text-brand-700 dark:text-gray-400 py-8">No hay grabaciones {filter !== 'all' && `(${filter})`}</p>
+              <p className="text-center text-cocoa-600 dark:text-cocoa-300 py-8">No hay grabaciones {filter !== 'all' && `(${filter})`}</p>
             ) : (
               <div className="space-y-2">
                 {filtered.map((rec, idx) => (
-                  <div key={idx} className={cx('rounded-xl p-3 border', 
-                    rec.passed ? 'bg-emerald-50 dark:bg-emerald-900 border-emerald-200 dark:border-emerald-700' : 'bg-amber-50 dark:bg-amber-900 border-amber-200 dark:border-amber-700'
+                  <div key={idx} className={cx('rounded-2xl p-3 border',
+                    rec.passed ? 'bg-sage-50 dark:bg-sage-950 border-sage-200 dark:border-sage-800' : 'bg-marigold-50 dark:bg-marigold-950 border-marigold-200 dark:border-marigold-800'
                   )}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <p className="text-sm text-brand-900 dark:text-gray-100 font-medium">{rec.target}</p>
-                        <p className="text-xs text-brand-700 dark:text-gray-400">Tu respuesta: {rec.transcript}</p>
+                        <p className="text-sm text-cocoa-900 dark:text-cream font-medium">{rec.target}</p>
+                        <p className="text-xs text-cocoa-600 dark:text-cocoa-300">Tu respuesta: {rec.transcript}</p>
                         {rec.confidence && (
-                          <p className="text-xs text-brand-700 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-cocoa-600 dark:text-cocoa-300 mt-1">
                             Confianza: {'⭐'.repeat(rec.confidence)}
                           </p>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-cocoa-500 dark:text-cocoa-400">
                         {new Date(rec.timestamp).toLocaleDateString('es-MX')}
                       </div>
                     </div>
@@ -1099,9 +1165,9 @@ function completeSession(){
             )}
             
             {Object.keys(groupedByPhrase).length > 0 && (
-              <div className="mt-6 bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900 dark:to-green-900 rounded-2xl p-4">
-                <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-2">📈 Tu progreso</h3>
-                <p className="text-sm text-brand-900 dark:text-gray-200">
+              <div className="mt-6 bg-sage-50 dark:bg-night-soft border border-sage-200/80 dark:border-night-line rounded-3xl p-4">
+                <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-2">📈 Tu progreso</h3>
+                <p className="text-sm text-cocoa-800 dark:text-cocoa-100">
                   Has practicado {Object.keys(groupedByPhrase).length} frases diferentes.
                   {Object.values(groupedByPhrase).filter(attempts => attempts.some(a => a.passed)).length} dominadas.
                 </p>
@@ -1147,9 +1213,9 @@ function completeSession(){
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">👴👵</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">¡Listo para los suegros!</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-4">Practicaste frases formales y respetuosas.</p>
-              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-4">¡Listo para los suegros!</h2>
+              <p className="text-cocoa-700 dark:text-cocoa-200 mb-4">Practicaste frases formales y respetuosas.</p>
+              <button onClick={onBack} className="px-6 min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay">Salir</button>
             </div>
           );
         }
@@ -1185,40 +1251,40 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
             
-            <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-2xl p-4 mb-4">
-              <h3 className="font-semibold text-brand-900 dark:text-gray-100">👴👵 Modo Suegros</h3>
-              <p className="text-sm text-brand-800 dark:text-gray-200">Practica frases formales y respetuosas</p>
+            <div className="bg-gradient-to-br from-blossom-100 to-marigold-100 dark:from-blossom-950 dark:to-night-soft border border-blossom-200/70 dark:border-night-line rounded-3xl p-4 mb-4 shadow-soft">
+              <h3 className="font-semibold text-cocoa-900 dark:text-cream">👴👵 Modo Suegros</h3>
+              <p className="text-sm text-cocoa-700 dark:text-cocoa-200">Practica frases formales y respetuosas</p>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft border border-brand-200 dark:border-gray-700">
-              <div className="text-xs text-brand-700 dark:text-gray-400 mb-2">{idx+1} / {practice.length}</div>
-              <p className="text-xl text-brand-900 dark:text-gray-100 mb-2">{flex(phrase.es, inclusive)}</p>
-              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">{phrase.hint}</p>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-6 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+              <div className="text-xs text-cocoa-600 dark:text-cocoa-300 mb-2">{idx+1} / {practice.length}</div>
+              <p className="text-xl text-cocoa-900 dark:text-cream mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-4">{phrase.hint}</p>
               
               <div className="flex gap-2 mb-4">
-                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="min-h-[44px] px-4 py-2 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">
                   🐢 Lento
                 </button>
-                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="min-h-[44px] px-4 py-2 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">
                   👂 Normal
                 </button>
-                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+                <button onClick={handleRecord} className={cx('flex-1 min-h-[48px] py-2 rounded-2xl text-white font-semibold shadow-clay', recording?'bg-blossom-600 recording-pulse':'bg-clay-600 hover:bg-clay-700')}>
                   {recording ? '⏹ Detener' : '🎤 Grabar'}
                 </button>
               </div>
               
               {transcript && (
-                <div className="p-3 bg-brand-50 dark:bg-gray-700 rounded-lg mb-3">
-                  <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">Tu respuesta:</div>
-                  <div className="text-sm text-brand-900 dark:text-gray-100">{transcript}</div>
+                <div className="p-3 bg-paper dark:bg-night-soft rounded-lg mb-3">
+                  <div className="text-xs text-cocoa-600 dark:text-cocoa-300 mb-1">Tu respuesta:</div>
+                  <div className="text-sm text-cocoa-900 dark:text-cream">{transcript}</div>
                 </div>
               )}
               
               {result !== null && (
                 <>
-                  <div className={cx('p-3 rounded-xl mb-3', result.pass?'bg-emerald-100 dark:bg-emerald-900':'bg-amber-100 dark:bg-amber-900')}>
+                  <div className={cx('p-4 rounded-2xl mb-3 font-medium animate-pop', result.pass?'bg-sage-100 dark:bg-sage-900 text-sage-900 dark:text-sage-100':'bg-marigold-100 dark:bg-marigold-950 text-marigold-900 dark:text-marigold-100')}>
                     {result.pass ? '✓ Correcto' : '◻ Casi - intenta otra vez'}
                     {!result.pass && result.badWords.length > 0 && (
                       <p className="text-xs mt-1">Repasa: <strong>{result.badWords.join(', ')}</strong></p>
@@ -1226,21 +1292,21 @@ function completeSession(){
                   </div>
                   
                   <div className="mb-4">
-                    <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">¿Qué tan seguro te sentiste?</p>
+                    <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-2">¿Qué tan seguro te sentiste?</p>
                     <div className="flex gap-2">
                       {[1,2,3,4,5].map(n => (
                         <button
                           key={n}
                           onClick={()=>setConfidence(n)}
-                          className={cx('flex-1 py-2 rounded-lg text-sm',
-                            confidence === n ? 'bg-brand-900 text-white' : 'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100'
+                          className={cx('flex-1 min-h-[44px] py-2 rounded-xl text-sm font-semibold',
+                            confidence === n ? 'bg-clay-600 text-white shadow-clay' : 'bg-clay-100 dark:bg-night-soft text-cocoa-900 dark:text-cream'
                           )}
                         >
                           {n}
                         </button>
                       ))}
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <div className="flex justify-between text-xs text-cocoa-500 dark:text-cocoa-400 mt-1">
                       <span>Nada</span>
                       <span>Muy seguro</span>
                     </div>
@@ -1248,7 +1314,7 @@ function completeSession(){
                 </>
               )}
               
-              <button onClick={saveAndNext} disabled={!confidence} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+              <button onClick={saveAndNext} disabled={!confidence} className="w-full min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay disabled:opacity-40 disabled:shadow-none">
                 Siguiente →
               </button>
             </div>
@@ -1295,20 +1361,20 @@ function completeSession(){
         if(!selectedTrack && mode === 'structured'){
           return (
             <div>
-              <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-              <h3 className="text-lg font-semibold text-brand-900 dark:text-gray-100 mb-4">Elige un tema</h3>
+              <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
+              <h3 className="text-lg font-semibold text-cocoa-900 dark:text-cream mb-4">Elige un tema</h3>
               <div className="space-y-2">
                 {TRACKS.map(track => (
                   <button
                     key={track.key}
                     onClick={()=>setSelectedTrack(track.key)}
-                    className={cx('w-full text-left p-4 rounded-xl border border-brand-200 dark:border-gray-700 hover:bg-brand-50 dark:hover:bg-gray-700', track.color)}
+                    className="w-full text-left p-4 rounded-2xl bg-card dark:bg-night-card shadow-soft border border-cocoa-200/70 dark:border-night-line hover:bg-clay-50 dark:hover:bg-night-soft transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{track.icon}</span>
                       <div>
-                        <h4 className="font-semibold text-brand-900 dark:text-gray-100">{track.name}</h4>
-                        <p className="text-xs text-brand-700 dark:text-gray-400">
+                        <h4 className="font-semibold text-cocoa-900 dark:text-cream flex items-center gap-2">{track.name}<span className={cx('inline-block w-2 h-2 rounded-full', track.color)}></span></h4>
+                        <p className="text-xs text-cocoa-600 dark:text-cocoa-300">
                           {SENTENCES[track.key]?.filter(s => s.lvl <= level).length || 0} frases disponibles
                         </p>
                       </div>
@@ -1324,8 +1390,8 @@ function completeSession(){
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">¡De lujo!</h2>
-              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-4">¡De lujo!</h2>
+              <button onClick={onBack} className="px-6 min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay">Salir</button>
             </div>
           );
         }
@@ -1370,42 +1436,42 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
             
             {selectedTrack && (
-              <div className="flex items-center gap-2 mb-4 text-sm text-brand-700 dark:text-gray-400">
+              <div className="flex items-center gap-2 mb-4 text-sm text-cocoa-600 dark:text-cocoa-300">
                 <span>{TRACKS.find(t => t.key === selectedTrack)?.icon}</span>
                 <span>{TRACKS.find(t => t.key === selectedTrack)?.name}</span>
               </div>
             )}
             
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft border border-brand-200 dark:border-gray-700">
-              <div className="text-xs text-brand-700 dark:text-gray-400 mb-2">{idx+1} / {practice.length}</div>
-              <p className="text-xl text-brand-900 dark:text-gray-100 mb-2">{flex(phrase.es, inclusive)}</p>
-              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">{phrase.hint}</p>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-6 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+              <div className="text-xs text-cocoa-600 dark:text-cocoa-300 mb-2">{idx+1} / {practice.length}</div>
+              <p className="text-xl text-cocoa-900 dark:text-cream mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-4">{phrase.hint}</p>
               
               <div className="flex gap-2 mb-4">
-                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="min-h-[44px] px-4 py-2 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">
                   🐢 Lento
                 </button>
-                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="min-h-[44px] px-4 py-2 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">
                   👂 Normal
                 </button>
-                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+                <button onClick={handleRecord} className={cx('flex-1 min-h-[48px] py-2 rounded-2xl text-white font-semibold shadow-clay', recording?'bg-blossom-600 recording-pulse':'bg-clay-600 hover:bg-clay-700')}>
                   {recording ? '⏹ Detener' : '🎤 Grabar'}
                 </button>
               </div>
               
               {transcript && (
-                <div className="p-3 bg-brand-50 dark:bg-gray-700 rounded-lg mb-3">
-                  <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">Tu respuesta:</div>
-                  <div className="text-sm text-brand-900 dark:text-gray-100">{transcript}</div>
+                <div className="p-3 bg-paper dark:bg-night-soft rounded-lg mb-3">
+                  <div className="text-xs text-cocoa-600 dark:text-cocoa-300 mb-1">Tu respuesta:</div>
+                  <div className="text-sm text-cocoa-900 dark:text-cream">{transcript}</div>
                 </div>
               )}
               
               {result !== null && (
                 <>
-                  <div className={cx('p-3 rounded-xl mb-3', result.pass?'bg-emerald-100 dark:bg-emerald-900':'bg-amber-100 dark:bg-amber-900')}>
+                  <div className={cx('p-4 rounded-2xl mb-3 font-medium animate-pop', result.pass?'bg-sage-100 dark:bg-sage-900 text-sage-900 dark:text-sage-100':'bg-marigold-100 dark:bg-marigold-950 text-marigold-900 dark:text-marigold-100')}>
                     {result.pass ? '✓ Quedó chido' : '◻ Poquito más'}
                     {!result.pass && result.badWords.length > 0 && (
                       <p className="text-xs mt-1">Repasa: <strong>{result.badWords.join(', ')}</strong></p>
@@ -1413,14 +1479,14 @@ function completeSession(){
                   </div>
                   
                   <div className="mb-4">
-                    <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">¿Cómo te sentiste diciendo esto?</p>
+                    <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-2">¿Cómo te sentiste diciendo esto?</p>
                     <div className="flex gap-2">
                       {[1,2,3,4,5].map(n => (
                         <button
                           key={n}
                           onClick={()=>setConfidence(n)}
-                          className={cx('flex-1 py-3 rounded-lg',
-                            confidence === n ? 'bg-brand-900 text-white' : 'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100'
+                          className={cx('flex-1 py-3 rounded-xl',
+                            confidence === n ? 'bg-clay-600 text-white shadow-clay' : 'bg-clay-100 dark:bg-night-soft text-cocoa-900 dark:text-cream'
                           )}
                         >
                           <div className="text-lg">{['😰','😟','😐','🙂','😊'][n-1]}</div>
@@ -1432,7 +1498,7 @@ function completeSession(){
                 </>
               )}
               
-              <button onClick={saveAndNext} disabled={result === null || !confidence} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+              <button onClick={saveAndNext} disabled={result === null || !confidence} className="w-full min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay disabled:opacity-40 disabled:shadow-none">
                 {result === null ? 'Graba primero' : 'Siguiente →'}
               </button>
             </div>
@@ -1481,16 +1547,16 @@ function completeSession(){
           
           return (
             <div>
-              <button onClick={()=>setCreating(false)} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+              <button onClick={()=>setCreating(false)} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
               <input 
                 type="text"
                 value={newName}
                 onChange={e=>setNewName(e.target.value)}
                 placeholder="Nombre del playlist"
-                className="w-full px-4 py-2 rounded-xl border border-brand-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-brand-900 dark:text-gray-100 mb-4"
+                className="w-full px-4 py-2 rounded-xl border border-cocoa-200/70 dark:border-night-line bg-card dark:bg-night-card text-cocoa-900 dark:text-cream mb-4"
               />
               
-              <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">Selecciona frases ({selectedPhrases.length})</p>
+              <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-2">Selecciona frases ({selectedPhrases.length})</p>
               <div className="space-y-2 mb-4 max-h-96 overflow-y-auto">
                 {available.map(phrase => (
                   <button
@@ -1500,15 +1566,15 @@ function completeSession(){
                       else setSelectedPhrases(prev => [...prev, phrase.id]);
                     }}
                     className={cx('w-full text-left p-3 rounded-xl border', 
-                      selectedPhrases.includes(phrase.id) ? 'border-brand-900 bg-brand-50 dark:bg-gray-700' : 'border-brand-200 dark:border-gray-700 bg-white dark:bg-gray-800')}
+                      selectedPhrases.includes(phrase.id) ? 'border-clay-500 bg-clay-50 dark:bg-night-soft' : 'border-cocoa-200/70 dark:border-night-line bg-card dark:bg-night-card')}
                   >
-                    <p className="text-sm text-brand-900 dark:text-gray-100">{flex(phrase.es, inclusive)}</p>
-                    <p className="text-xs text-brand-700 dark:text-gray-400">{phrase.hint}</p>
+                    <p className="text-sm text-cocoa-900 dark:text-cream">{flex(phrase.es, inclusive)}</p>
+                    <p className="text-xs text-cocoa-600 dark:text-cocoa-300">{phrase.hint}</p>
                   </button>
                 ))}
               </div>
               
-              <button onClick={savePlaylist} disabled={!newName || selectedPhrases.length===0} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+              <button onClick={savePlaylist} disabled={!newName || selectedPhrases.length===0} className="w-full min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay disabled:opacity-40 disabled:shadow-none">
                 Guardar playlist
               </button>
             </div>
@@ -1517,23 +1583,23 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
             
-            <button onClick={()=>setCreating(true)} className="w-full py-3 rounded-xl bg-brand-900 text-white mb-4">
+            <button onClick={()=>setCreating(true)} className="w-full min-h-[52px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay mb-4">
               + Crear playlist
             </button>
             
             {playlists.length === 0 ? (
-              <p className="text-center text-brand-700 dark:text-gray-400 py-8">No hay playlists todavía</p>
+              <p className="text-center text-cocoa-600 dark:text-cocoa-300 py-8">No hay playlists todavía</p>
             ) : (
               <div className="space-y-3">
                 {playlists.map((pl) => (
-                  <div key={pl.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
-                    <h3 className="font-semibold text-brand-900 dark:text-gray-100">{pl.name}</h3>
-                    <p className="text-xs text-brand-700 dark:text-gray-400 mb-2">{pl.phrases.length} frases</p>
+                  <div key={pl.id} className="bg-card dark:bg-night-card rounded-2xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+                    <h3 className="font-semibold text-cocoa-900 dark:text-cream">{pl.name}</h3>
+                    <p className="text-xs text-cocoa-600 dark:text-cocoa-300 mb-2">{pl.phrases.length} frases</p>
                     <button
                       onClick={()=>setPracticing(pl)}
-                      className="text-xs text-blossom-600 font-medium"
+                      className="inline-flex items-center min-h-[44px] text-xs font-semibold text-blossom-600 dark:text-blossom-300"
                     >
                       ▶ Practicar
                     </button>
@@ -1578,9 +1644,9 @@ function completeSession(){
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🎵</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">¡Playlist completo!</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-4">Practicaste todas las frases de "{playlistName}"</p>
-              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-4">¡Playlist completo!</h2>
+              <p className="text-cocoa-700 dark:text-cocoa-200 mb-4">Practicaste todas las frases de "{playlistName}"</p>
+              <button onClick={onBack} className="px-6 min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay">Salir</button>
             </div>
           );
         }
@@ -1605,41 +1671,41 @@ function completeSession(){
 
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-            <div className="flex items-center gap-2 mb-4 text-sm text-brand-700 dark:text-gray-400">
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
+            <div className="flex items-center gap-2 mb-4 text-sm text-cocoa-600 dark:text-cocoa-300">
               <span>🎵</span><span>{playlistName}</span>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft border border-brand-200 dark:border-gray-700">
-              <div className="text-xs text-brand-700 dark:text-gray-400 mb-2">{idx+1} / {practice.length}</div>
-              <p className="text-xl text-brand-900 dark:text-gray-100 mb-2">{flex(phrase.es, inclusive)}</p>
-              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">{phrase.hint}</p>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-6 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+              <div className="text-xs text-cocoa-600 dark:text-cocoa-300 mb-2">{idx+1} / {practice.length}</div>
+              <p className="text-xl text-cocoa-900 dark:text-cream mb-2">{flex(phrase.es, inclusive)}</p>
+              <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-4">{phrase.hint}</p>
               <div className="flex gap-2 mb-4">
-                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">🐢 Lento</button>
-                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="px-3 py-2 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">👂 Normal</button>
-                <button onClick={handleRecord} className={cx('flex-1 py-2 rounded-xl text-white', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+                <button onClick={()=>speak(flex(phrase.es, inclusive), {rate:0.75})} className="min-h-[44px] px-4 py-2 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">🐢 Lento</button>
+                <button onClick={()=>speak(flex(phrase.es, inclusive))} className="min-h-[44px] px-4 py-2 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">👂 Normal</button>
+                <button onClick={handleRecord} className={cx('flex-1 min-h-[48px] py-2 rounded-2xl text-white font-semibold shadow-clay', recording?'bg-blossom-600 recording-pulse':'bg-clay-600 hover:bg-clay-700')}>
                   {recording ? '⏹ Detener' : '🎤 Grabar'}
                 </button>
               </div>
               {transcript && (
-                <div className="p-3 bg-brand-50 dark:bg-gray-700 rounded-lg mb-3">
-                  <div className="text-xs text-brand-700 dark:text-gray-400 mb-1">Tu respuesta:</div>
-                  <div className="text-sm text-brand-900 dark:text-gray-100">{transcript}</div>
+                <div className="p-3 bg-paper dark:bg-night-soft rounded-lg mb-3">
+                  <div className="text-xs text-cocoa-600 dark:text-cocoa-300 mb-1">Tu respuesta:</div>
+                  <div className="text-sm text-cocoa-900 dark:text-cream">{transcript}</div>
                 </div>
               )}
               {result !== null && (
                 <>
-                  <div className={cx('p-3 rounded-xl mb-3', result.pass?'bg-emerald-100 dark:bg-emerald-900':'bg-amber-100 dark:bg-amber-900')}>
+                  <div className={cx('p-4 rounded-2xl mb-3 font-medium animate-pop', result.pass?'bg-sage-100 dark:bg-sage-900 text-sage-900 dark:text-sage-100':'bg-marigold-100 dark:bg-marigold-950 text-marigold-900 dark:text-marigold-100')}>
                     {result.pass ? '✓ Quedó chido' : '◻ Poquito más'}
                     {!result.pass && result.badWords.length > 0 && (
                       <p className="text-xs mt-1">Repasa: <strong>{result.badWords.join(', ')}</strong></p>
                     )}
                   </div>
                   <div className="mb-4">
-                    <p className="text-sm text-brand-700 dark:text-gray-400 mb-2">¿Cómo te sentiste diciendo esto?</p>
+                    <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-2">¿Cómo te sentiste diciendo esto?</p>
                     <div className="flex gap-2">
                       {[1,2,3,4,5].map(n=>(
                         <button key={n} onClick={()=>setConfidence(n)}
-                          className={cx('flex-1 py-3 rounded-lg', confidence===n?'bg-brand-900 text-white':'bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100')}>
+                          className={cx('flex-1 py-3 rounded-xl', confidence===n?'bg-clay-600 text-white shadow-clay':'bg-clay-100 dark:bg-night-soft text-cocoa-900 dark:text-cream')}>
                           <div className="text-lg">{['😰','😟','😐','🙂','😊'][n-1]}</div>
                           <div className="text-xs mt-1">{n}</div>
                         </button>
@@ -1648,7 +1714,7 @@ function completeSession(){
                   </div>
                 </>
               )}
-              <button onClick={saveAndNext} disabled={result===null||!confidence} className="w-full py-2 rounded-xl bg-brand-900 text-white disabled:opacity-50">
+              <button onClick={saveAndNext} disabled={result===null||!confidence} className="w-full min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay disabled:opacity-40 disabled:shadow-none">
                 {result===null ? 'Graba primero' : 'Siguiente →'}
               </button>
             </div>
@@ -1665,21 +1731,21 @@ function completeSession(){
         if(!selectedGame){
           return (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Juegos de gatos 🐱</h2>
+              <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-4">Juegos de gatos 🐱</h2>
               
               <div className="grid grid-cols-2 gap-3">
                 {Object.entries(CATS).filter(([k,v]) => v.game).map(([key, cat]) => (
                   <button
                     key={key}
                     onClick={()=>setSelectedGame(key)}
-                    className="cat-card bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700 text-center"
+                    className="cat-card bg-card dark:bg-night-card rounded-3xl p-5 shadow-soft border-2 text-center"
                     style={{borderColor: cat.color}}
                   >
                     <div className="text-6xl mb-2">{cat.emoji}</div>
-                    <h3 className="font-bold text-brand-900 dark:text-gray-100 mb-1">{cat.name}</h3>
-                    <p className="text-xs text-brand-700 dark:text-gray-400">{cat.game}</p>
+                    <h3 className="font-bold text-cocoa-900 dark:text-cream mb-1">{cat.name}</h3>
+                    <p className="text-xs text-cocoa-600 dark:text-cocoa-300">{cat.game}</p>
                     {catGamesPlayed.filter(g => g.cat === key).length > 0 && (
-                      <p className="text-xs text-emerald-600 mt-2">
+                      <p className="text-xs text-sage-600 dark:text-sage-300 mt-2">
                         Jugado {catGamesPlayed.filter(g => g.cat === key).length}x
                       </p>
                     )}
@@ -1687,8 +1753,8 @@ function completeSession(){
                 ))}
               </div>
               
-              <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-2xl p-4">
-                <p className="text-sm text-brand-900 dark:text-gray-100">
+              <div className="bg-marigold-50 dark:bg-night-soft border border-marigold-200/80 dark:border-night-line rounded-3xl p-4">
+                <p className="text-sm text-cocoa-800 dark:text-cocoa-100">
                   🏆 Juega con los 4 gatos para desbloquear "Gato favorito"
                 </p>
                 <div className="flex gap-4 mt-3">
@@ -1759,14 +1825,14 @@ function completeSession(){
         if(!started){
           return (
             <div className="text-center py-8">
-              <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+              <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
               <div className="text-8xl mb-4">🐱</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">Speed Challenge de Otis</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-2">30 segundos. ¿Cuántas frases reconoces?</p>
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-2">Speed Challenge de Otis</h2>
+              <p className="text-cocoa-700 dark:text-cocoa-200 mb-2">30 segundos. ¿Cuántas frases reconoces?</p>
               {highScore > 0 && (
-                <p className="text-sm text-amber-600 mb-4">Tu récord: {highScore} puntos</p>
+                <p className="text-sm text-marigold-600 dark:text-marigold-300 mb-4">Tu récord: {highScore} puntos</p>
               )}
-              <button onClick={start} className="px-6 py-3 rounded-xl bg-amber-600 text-white font-semibold">
+              <button onClick={start} className="px-8 min-h-[52px] py-3 rounded-2xl bg-marigold-600 hover:bg-marigold-700 text-white font-semibold shadow-soft">
                 Empezar
               </button>
             </div>
@@ -1777,23 +1843,23 @@ function completeSession(){
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🐱</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">¡Terminado!</h2>
-              <p className="text-4xl font-bold text-brand-900 dark:text-gray-100 mb-2">{score} puntos</p>
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-2">¡Terminado!</h2>
+              <p className="text-4xl font-bold text-cocoa-900 dark:text-cream mb-2">{score} puntos</p>
               {score > highScore && (
-                <p className="text-amber-600 font-semibold mb-2">🏆 ¡Nuevo récord!</p>
+                <p className="text-marigold-600 dark:text-marigold-300 font-semibold mb-2">🏆 ¡Nuevo récord!</p>
               )}
-              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">
+              <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-4">
                 Otis dice: "{score >= 20 ? 'Impresionante... para un humano.' : score >= 12 ? 'Aceptable. Yo hubiera hecho 50.' : 'Necesitas más práctica. Obvio.'}"
               </p>
-              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+              <button onClick={onBack} className="px-6 min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay">Salir</button>
             </div>
           );
         }
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Salir</button>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft">
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Salir</button>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-6 shadow-soft">
               <div className="flex justify-between mb-4">
                 <div className="text-2xl font-bold">⏱️ {timeLeft}s</div>
                 <div className="text-2xl font-bold">🎯 {score}</div>
@@ -1801,13 +1867,13 @@ function completeSession(){
               
               {phrase && (
                 <>
-                  <p className="text-xl text-brand-900 dark:text-gray-100 mb-2 text-center">{phrase.es}</p>
-                  <p className="text-sm text-brand-700 dark:text-gray-400 mb-4 text-center">{phrase.hint}</p>
+                  <p className="text-xl text-cocoa-900 dark:text-cream mb-2 text-center">{phrase.es}</p>
+                  <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-4 text-center">{phrase.hint}</p>
                   <div className="grid grid-cols-2 gap-2">
-                    <button onClick={()=>check(true)} className="py-3 rounded-xl bg-emerald-600 text-white font-semibold">
+                    <button onClick={()=>check(true)} className="min-h-[52px] py-3 rounded-2xl bg-sage-600 hover:bg-sage-700 text-white font-semibold shadow-soft">
                       ✓ Sé esto
                     </button>
-                    <button onClick={()=>check(false)} className="py-3 rounded-xl bg-rose-600 text-white font-semibold">
+                    <button onClick={()=>check(false)} className="min-h-[52px] py-3 rounded-2xl bg-blossom-600 hover:bg-blossom-700 text-white font-semibold shadow-soft">
                       ✗ No sé
                     </button>
                   </div>
@@ -1866,11 +1932,11 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft">
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-4 shadow-soft">
               <div className="flex justify-between mb-4">
-                <h3 className="font-bold text-brand-900 dark:text-gray-100">🐈 Memory de Doom</h3>
-                <div className="text-sm text-brand-700 dark:text-gray-400">
+                <h3 className="font-bold text-cocoa-900 dark:text-cream">🐈 Memory de Doom</h3>
+                <div className="text-sm text-cocoa-600 dark:text-cocoa-300">
                   Movimientos: {moves}
                   {bestMoves > 0 && ` (Récord: ${bestMoves})`}
                 </div>
@@ -1881,10 +1947,10 @@ function completeSession(){
                   <button
                     key={idx}
                     onClick={()=>flip(idx)}
-                    className={cx('aspect-square rounded-xl flex items-center justify-center text-xs p-2 transition-all',
-                      matched.includes(idx) ? 'bg-purple-200 dark:bg-purple-800' :
-                      flipped.includes(idx) ? 'bg-purple-100 dark:bg-purple-900' :
-                      'bg-brand-100 dark:bg-gray-700'
+                    className={cx('aspect-square rounded-2xl flex items-center justify-center text-xs font-medium p-2 transition-all',
+                      matched.includes(idx) ? 'bg-sage-200 dark:bg-sage-800 text-sage-900 dark:text-sage-100' :
+                      flipped.includes(idx) ? 'bg-marigold-100 dark:bg-marigold-900 text-cocoa-900 dark:text-cream' :
+                      'bg-clay-100 dark:bg-night-soft text-cocoa-900 dark:text-cream'
                     )}
                   >
                     {(flipped.includes(idx) || matched.includes(idx)) 
@@ -1896,8 +1962,8 @@ function completeSession(){
               
               {matched.length === cards.length && (
                 <div className="mt-4 text-center">
-                  <p className="text-emerald-600 font-semibold">¡Completado!</p>
-                  <p className="text-sm text-brand-700 dark:text-gray-400">Doom dice: "Te quiero mucho"</p>
+                  <p className="text-sage-600 dark:text-sage-300 font-semibold">¡Completado!</p>
+                  <p className="text-sm text-cocoa-600 dark:text-cocoa-300">Doom dice: "Te quiero mucho"</p>
                 </div>
               )}
             </div>
@@ -1929,14 +1995,14 @@ function completeSession(){
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🐾</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">Evaluación completa</h2>
-              <p className="text-brand-700 dark:text-gray-300 mb-2">
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-2">Evaluación completa</h2>
+              <p className="text-cocoa-700 dark:text-cocoa-200 mb-2">
                 Confianza promedio: {avg.toFixed(1)}/5
               </p>
-              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">
+              <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-4">
                 Jules dice: "{avg >= 4 ? 'Confianza sólida. Respeto.' : avg >= 3 ? 'Vas bien. Sigue trabajando.' : 'Necesitas más práctica. Es obvio.'}"
               </p>
-              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+              <button onClick={onBack} className="px-6 min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay">Salir</button>
             </div>
           );
         }
@@ -1949,20 +2015,20 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft">
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-6 shadow-soft">
               <div className="text-center mb-4">
                 <div className="text-6xl mb-2">🐾</div>
-                <h3 className="font-bold text-brand-900 dark:text-gray-100">Jules Truth Meter</h3>
-                <p className="text-xs text-brand-700 dark:text-gray-400">{idx+1} / {phrases.length}</p>
+                <h3 className="font-bold text-cocoa-900 dark:text-cream">Jules Truth Meter</h3>
+                <p className="text-xs text-cocoa-600 dark:text-cocoa-300">{idx+1} / {phrases.length}</p>
               </div>
               
-              <p className="text-lg text-brand-900 dark:text-gray-100 text-center mb-2">{phrase.es}</p>
-              <p className="text-sm text-brand-700 dark:text-gray-400 text-center mb-6">¿Qué tan segure te sientes diciendo esto?</p>
+              <p className="text-lg text-cocoa-900 dark:text-cream text-center mb-2">{phrase.es}</p>
+              <p className="text-sm text-cocoa-600 dark:text-cocoa-300 text-center mb-6">¿Qué tan segure te sientes diciendo esto?</p>
               
               <div className="space-y-2">
                 {[1,2,3,4,5].map(n=>(
-                  <button key={n} onClick={()=>rate(n)} className="w-full py-3 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 hover:bg-brand-200 dark:hover:bg-gray-600 transition-colors">
+                  <button key={n} onClick={()=>rate(n)} className="w-full py-3 rounded-xl bg-clay-100 dark:bg-night-soft text-cocoa-900 dark:text-cream hover:bg-clay-200 dark:hover:bg-night-line transition-colors">
                     <div className="flex items-center justify-center gap-2">
                       <span>{'⭐'.repeat(n)}</span>
                       <span className="text-sm">
@@ -2017,36 +2083,36 @@ function completeSession(){
           return (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">😸</div>
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-2">¡Terminado!</h2>
-              <p className="text-3xl font-bold text-brand-900 dark:text-gray-100 mb-2">{score}/{totalRounds}</p>
-              <p className="text-sm text-brand-700 dark:text-gray-400 mb-4">
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-2">¡Terminado!</h2>
+              <p className="text-3xl font-bold text-cocoa-900 dark:text-cream mb-2">{score}/{totalRounds}</p>
+              <p className="text-sm text-cocoa-600 dark:text-cocoa-300 mb-4">
                 Lassie dice: "{score === totalRounds ? 'Perfecto. Siempre te cuido.' : score >= 3 ? 'Bien hecho. Aquí estoy.' : 'Practica más. Te apoyo.'}"
               </p>
-              <button onClick={onBack} className="px-4 py-2 rounded-xl bg-brand-900 text-white">Salir</button>
+              <button onClick={onBack} className="px-6 min-h-[48px] py-3 rounded-2xl bg-clay-600 hover:bg-clay-700 text-white font-semibold shadow-clay">Salir</button>
             </div>
           );
         }
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft">
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-6 shadow-soft">
               <div className="text-center mb-4">
                 <div className="text-6xl mb-2">😸</div>
-                <h3 className="font-bold text-brand-900 dark:text-gray-100">Lassie Phrase Collector</h3>
-                <p className="text-sm text-brand-700 dark:text-gray-400">Ronda {round+1}/{totalRounds} • Puntos: {score}</p>
+                <h3 className="font-bold text-cocoa-900 dark:text-cream">Lassie Phrase Collector</h3>
+                <p className="text-sm text-cocoa-600 dark:text-cocoa-300">Ronda {round+1}/{totalRounds} • Puntos: {score}</p>
               </div>
               
               {target && (
                 <>
-                  <p className="text-center text-brand-700 dark:text-gray-300 mb-2">Encuentra la traducción:</p>
-                  <div className="bg-emerald-100 dark:bg-emerald-900 rounded-xl p-3 mb-6">
-                    <p className="text-lg text-center text-brand-900 dark:text-gray-100 font-semibold">{target.hint}</p>
+                  <p className="text-center text-cocoa-700 dark:text-cocoa-200 mb-2">Encuentra la traducción:</p>
+                  <div className="bg-sage-100 dark:bg-sage-950 rounded-2xl p-3 mb-6">
+                    <p className="text-lg text-center text-cocoa-900 dark:text-cream font-semibold">{target.hint}</p>
                   </div>
                   
                   <div className="space-y-2">
                     {options.map((p,i)=>(
-                      <button key={i} onClick={()=>select(p)} className="w-full text-left py-3 px-4 rounded-xl bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 hover:bg-brand-200 dark:hover:bg-gray-600 transition-colors">
+                      <button key={i} onClick={()=>select(p)} className="w-full text-left py-3 px-4 rounded-xl bg-clay-100 dark:bg-night-soft text-cocoa-900 dark:text-cream hover:bg-clay-200 dark:hover:bg-night-line transition-colors">
                         {p.es}
                       </button>
                     ))}
@@ -2101,14 +2167,14 @@ function completeSession(){
         if(view === 'overview'){
           return (
             <div className="space-y-4">
-              <div className="flex gap-2 mb-4">
-                <button onClick={()=>setView('overview')} className="px-3 py-1 rounded-lg bg-brand-900 text-white text-sm">Vista general</button>
-                <button onClick={()=>setView('confidence')} className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">Confianza</button>
-                <button onClick={()=>setView('tracks')} className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">Temas</button>
-                <button onClick={()=>setView('timeline')} className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">Progreso</button>
+              <div className="flex gap-2 mb-4 overflow-x-auto -mx-4 px-4 pb-1">
+                <button onClick={()=>setView('overview')} className="min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1 rounded-full bg-clay-600 text-white text-sm font-semibold shadow-clay">Vista general</button>
+                <button onClick={()=>setView('confidence')} className="min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold">Confianza</button>
+                <button onClick={()=>setView('tracks')} className="min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold">Temas</button>
+                <button onClick={()=>setView('timeline')} className="min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold">Progreso</button>
               </div>
               
-              <div className="bg-gradient-to-br from-blossom-600 to-brand-900 text-white rounded-2xl p-6">
+              <div className="bg-gradient-to-br from-clay-500 via-clay-600 to-blossom-700 text-white rounded-3xl p-6 shadow-lift">
                 <h2 className="text-xl font-bold mb-2">Esta semana</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -2134,36 +2200,36 @@ function completeSession(){
                   title="Confianza"
                   value={avgConfidence}
                   detail="promedio /5"
-                  color="bg-purple-100 dark:bg-purple-900"
+                  color="bg-blossom-100 dark:bg-blossom-950"
                 />
                 <StatCard 
                   icon="🔥"
                   title="Streak"
                   value={streak}
                   detail="días seguidos"
-                  color="bg-orange-100 dark:bg-orange-900"
+                  color="bg-marigold-100 dark:bg-marigold-950"
                 />
                 <StatCard 
                   icon="💬"
                   title="Conversaciones"
                   value={conversations.length}
                   detail="completadas"
-                  color="bg-blue-100 dark:bg-blue-900"
+                  color="bg-sage-100 dark:bg-sage-950"
                 />
               </div>
               
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700">
-                <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-4">Insignias ganadas</h3>
+              <div className="bg-card dark:bg-night-card rounded-3xl p-5 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+                <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-4">Insignias ganadas</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {BADGES.map(badge => {
                     const earned = badges.earned.includes(badge.id);
                     return (
-                      <div key={badge.id} className={cx('p-3 rounded-xl text-center transition-all', 
-                        earned ? 'bg-pink-100 dark:bg-pink-900 scale-100' : 'bg-gray-100 dark:bg-gray-700 opacity-50 scale-95'
+                      <div key={badge.id} className={cx('p-3 rounded-2xl text-center transition-all duration-300',
+                        earned ? 'bg-marigold-100 dark:bg-marigold-950 shadow-glow scale-100' : 'bg-cocoa-100 dark:bg-night-soft opacity-50 scale-95'
                       )}>
                         <div className="text-3xl mb-1">{badge.emoji}</div>
-                        <div className="text-xs font-semibold text-brand-900 dark:text-gray-100">{badge.name}</div>
-                        {!earned && <div className="text-xs text-gray-500 mt-1">{badge.desc}</div>}
+                        <div className="text-xs font-semibold text-cocoa-900 dark:text-cream">{badge.name}</div>
+                        {!earned && <div className="text-xs text-cocoa-500 dark:text-cocoa-400 mt-1">{badge.desc}</div>}
                       </div>
                     );
                   })}
@@ -2176,15 +2242,15 @@ function completeSession(){
         if(view === 'confidence'){
           return (
             <div className="space-y-4">
-              <button onClick={()=>setView('overview')} className="text-brand-700 dark:text-gray-400">← Vista general</button>
+              <button onClick={()=>setView('overview')} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Vista general</button>
               
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-soft">
-                <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Tu confianza al hablar</h2>
+              <div className="bg-card dark:bg-night-card rounded-3xl p-6 shadow-soft">
+                <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-4">Tu confianza al hablar</h2>
                 
                 <div className="mb-6">
                   <div className="flex justify-between items-end mb-2">
-                    <span className="text-sm text-brand-700 dark:text-gray-400">Promedio actual</span>
-                    <span className="text-3xl font-bold text-brand-900 dark:text-gray-100">{avgConfidence}/5</span>
+                    <span className="text-sm text-cocoa-600 dark:text-cocoa-300">Promedio actual</span>
+                    <span className="text-3xl font-bold text-cocoa-900 dark:text-cream">{avgConfidence}/5</span>
                   </div>
                   <div className="confidence-bar h-12 rounded-lg">
                     <div className="confidence-marker" style={{left: `${(avgConfidence/5)*100}%`, width: '20px', height: '20px', top: '14px'}}></div>
@@ -2193,23 +2259,23 @@ function completeSession(){
                 
                 {recentConfidence.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-brand-900 dark:text-gray-100 mb-3">Últimas 30 prácticas</h3>
+                    <h3 className="text-sm font-semibold text-cocoa-900 dark:text-cream mb-3">Últimas 30 prácticas</h3>
                     <div className="flex gap-1 items-end" style={{height: '100px'}}>
                       {recentConfidence.map((conf, idx) => (
                         <div 
                           key={idx}
-                          className="flex-1 bg-gradient-to-t from-brand-600 to-brand-400 rounded-t"
+                          className="flex-1 bg-gradient-to-t from-clay-500 to-marigold-400 rounded-t"
                           style={{height: `${(conf/5)*100}%`}}
                           title={`Confianza: ${conf}/5`}
                         />
                       ))}
                     </div>
-                    <p className="text-xs text-brand-700 dark:text-gray-400 mt-2 text-center">→ Tiempo</p>
+                    <p className="text-xs text-cocoa-600 dark:text-cocoa-300 mt-2 text-center">→ Tiempo</p>
                   </div>
                 )}
                 
-                <div className="mt-6 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-xl p-4">
-                  <p className="text-sm text-brand-900 dark:text-gray-100">
+                <div className="mt-6 bg-marigold-50 dark:bg-night-soft border border-marigold-200/80 dark:border-night-line rounded-2xl p-4">
+                  <p className="text-sm text-cocoa-800 dark:text-cocoa-100">
                     {avgConfidence >= 4 ? '🌟 ¡Excelente confianza! Sigue así.' :
                      avgConfidence >= 3 ? '💪 Vas bien. La práctica hace la confianza.' :
                      avgConfidence >= 2 ? '🌱 Mejorando poco a poco. No te rindas.' :
@@ -2224,37 +2290,37 @@ function completeSession(){
         if(view === 'tracks'){
           return (
             <div className="space-y-4">
-              <button onClick={()=>setView('overview')} className="text-brand-700 dark:text-gray-400">← Vista general</button>
+              <button onClick={()=>setView('overview')} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Vista general</button>
               
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100">Progreso por tema</h2>
+              <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream">Progreso por tema</h2>
               
               {TRACKS.map(track => {
                 const stats = trackStats[track.key];
                 if(!stats || stats.total === 0) return null;
                 
                 return (
-                  <div key={track.key} className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
+                  <div key={track.key} className="bg-card dark:bg-night-card rounded-3xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line">
                     <div className="flex items-center gap-3 mb-3">
                       <span className="text-2xl">{track.icon}</span>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-brand-900 dark:text-gray-100">{track.name}</h3>
-                        <p className="text-xs text-brand-700 dark:text-gray-400">{stats.total} prácticas</p>
+                        <h3 className="font-semibold text-cocoa-900 dark:text-cream">{track.name}</h3>
+                        <p className="text-xs text-cocoa-600 dark:text-cocoa-300">{stats.total} prácticas</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-brand-900 dark:text-gray-100">{stats.rate}%</div>
-                        <div className="text-xs text-brand-700 dark:text-gray-400">éxito</div>
+                        <div className="text-2xl font-bold text-cocoa-900 dark:text-cream">{stats.rate}%</div>
+                        <div className="text-xs text-cocoa-600 dark:text-cocoa-300">éxito</div>
                       </div>
                     </div>
                     
-                    <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div className="bg-cocoa-100 dark:bg-night-soft rounded-full h-3 overflow-hidden">
                       <div 
-                        className="bg-gradient-to-r from-brand-600 to-brand-400 h-full rounded-full transition-all"
+                        className="bg-gradient-to-r from-clay-500 to-marigold-400 h-full rounded-full transition-all"
                         style={{width: `${stats.rate}%`}}
                       />
                     </div>
                     
                     {stats.avgConfidence > 0 && (
-                      <p className="text-xs text-brand-700 dark:text-gray-400 mt-2">
+                      <p className="text-xs text-cocoa-600 dark:text-cocoa-300 mt-2">
                         Confianza promedio: {stats.avgConfidence.toFixed(1)}/5
                       </p>
                     )}
@@ -2263,7 +2329,7 @@ function completeSession(){
               })}
               
               {Object.values(trackStats).every(s => s.total === 0) && (
-                <p className="text-center text-brand-700 dark:text-gray-400 py-8">
+                <p className="text-center text-cocoa-600 dark:text-cocoa-300 py-8">
                   Todavía no has practicado ningún tema específico
                 </p>
               )}
@@ -2286,31 +2352,31 @@ function completeSession(){
           
           return (
             <div className="space-y-4">
-              <button onClick={()=>setView('overview')} className="text-brand-700 dark:text-gray-400">← Vista general</button>
+              <button onClick={()=>setView('overview')} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Vista general</button>
               
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100">Tu progreso</h2>
+              <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream">Tu progreso</h2>
               
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-soft">
-                <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-4">Últimos 7 días</h3>
+              <div className="bg-card dark:bg-night-card rounded-3xl p-4 shadow-soft">
+                <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-4">Últimos 7 días</h3>
                 
                 {last7Days.length === 0 ? (
-                  <p className="text-center text-brand-700 dark:text-gray-400 py-6">
+                  <p className="text-center text-cocoa-600 dark:text-cocoa-300 py-6">
                     No hay datos de los últimos 7 días
                   </p>
                 ) : (
                   <div className="space-y-3">
                     {last7Days.map(([day, stats]) => (
-                      <div key={day} className="border-b border-brand-200 dark:border-gray-700 pb-3">
+                      <div key={day} className="border-b border-cocoa-200/70 dark:border-night-line pb-3">
                         <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-medium text-brand-900 dark:text-gray-100">{day}</span>
-                          <span className="text-xs text-brand-700 dark:text-gray-400">{stats.total} frases</span>
+                          <span className="text-sm font-medium text-cocoa-900 dark:text-cream">{day}</span>
+                          <span className="text-xs text-cocoa-600 dark:text-cocoa-300">{stats.total} frases</span>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div className="bg-emerald-100 dark:bg-emerald-900 rounded px-2 py-1">
+                          <div className="bg-sage-100 dark:bg-sage-950 text-sage-900 dark:text-sage-100 rounded-lg px-2 py-1 font-medium">
                             Éxito: {Math.round((stats.passed/stats.total)*100)}%
                           </div>
                           {stats.confidence.length > 0 && (
-                            <div className="bg-purple-100 dark:bg-purple-900 rounded px-2 py-1">
+                            <div className="bg-blossom-100 dark:bg-blossom-950 text-blossom-900 dark:text-blossom-100 rounded-lg px-2 py-1 font-medium">
                               Confianza: {(stats.confidence.reduce((a,b)=>a+b,0)/stats.confidence.length).toFixed(1)}
                             </div>
                           )}
@@ -2321,7 +2387,7 @@ function completeSession(){
                 )}
                 
                 <div className="mt-4 text-center">
-                  <p className="text-sm text-brand-700 dark:text-gray-400">
+                  <p className="text-sm text-cocoa-600 dark:text-cocoa-300">
                     Total histórico: {recordings.length} prácticas en {Object.keys(dailyStats).length} días
                   </p>
                 </div>
@@ -2333,10 +2399,10 @@ function completeSession(){
       
       function StatCard({ icon, title, value, detail, color }){
         return (
-          <div className={cx("rounded-xl p-4 border border-brand-200 dark:border-gray-700", color || "bg-white dark:bg-gray-800")}>
+          <div className={cx("rounded-2xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line", color || "bg-card dark:bg-night-card")}>
             <div className="text-2xl mb-2">{icon}</div>
-            <div className="text-2xl font-bold text-brand-900 dark:text-gray-100">{value}</div>
-            <div className="text-xs text-brand-700 dark:text-gray-400">{detail}</div>
+            <div className="text-2xl font-bold text-cocoa-900 dark:text-cream">{value}</div>
+            <div className="text-xs text-cocoa-600 dark:text-cocoa-300">{detail}</div>
           </div>
         );
       }
@@ -2433,14 +2499,14 @@ function completeSession(){
         
         return (
           <div className="space-y-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Ajustes</h2>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-5 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+              <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-4">Ajustes</h2>
               
               <div className="space-y-3">
-                <div className="py-2 border-b border-brand-200 dark:border-gray-700">
+                <div className="py-2 border-b border-cocoa-200/70 dark:border-night-line">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-brand-900 dark:text-gray-100">Nivel</span>
-                    <select value={level} onChange={e=>setLevel(parseInt(e.target.value))} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100">
+                    <span className="text-cocoa-900 dark:text-cream">Nivel</span>
+                    <select value={level} onChange={e=>setLevel(parseInt(e.target.value))} className="min-h-[44px] px-3.5 py-1.5 rounded-xl bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream font-medium">
                       <option value={0}>0 - Principiante</option>
                       <option value={1}>1 - Intermedio</option>
                       <option value={2}>2 - Avanzado</option>
@@ -2448,50 +2514,50 @@ function completeSession(){
                   </div>
                   {level < 2 && recentRecordings.length > 0 && (
                     <div className="mt-2">
-                      <div className="flex justify-between text-xs text-brand-700 dark:text-gray-400 mb-1">
+                      <div className="flex justify-between text-xs text-cocoa-600 dark:text-cocoa-300 mb-1">
                         <span>Progreso al siguiente nivel</span>
                         <span>{progressPercent.toFixed(0)}%</span>
                       </div>
-                      <div className="w-full bg-brand-100 dark:bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-clay-100 dark:bg-night-soft rounded-full h-2">
                         <div
-                          className="bg-brand-600 h-2 rounded-full transition-all duration-300"
+                          className="bg-clay-500 h-2 rounded-full transition-all duration-300"
                           style={{width: `${Math.min(progressPercent, 100)}%`}}
                         ></div>
                       </div>
-                      <p className="text-xs text-brand-700 dark:text-gray-400 mt-1">{progressMsg}</p>
+                      <p className="text-xs text-cocoa-600 dark:text-cocoa-300 mt-1">{progressMsg}</p>
                     </div>
                   )}
                   {level < 2 && recentRecordings.length === 0 && (
-                    <p className="text-xs text-brand-700 dark:text-gray-400 mt-2">
+                    <p className="text-xs text-cocoa-600 dark:text-cocoa-300 mt-2">
                       Empieza a practicar para desbloquear niveles automáticamente
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between py-2 border-b border-brand-200 dark:border-gray-700">
-                  <span className="text-brand-900 dark:text-gray-100">Lenguaje inclusivo</span>
-                  <button onClick={()=>setInclusive(v=>!v)} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100">
+                <div className="flex items-center justify-between py-2 border-b border-cocoa-200/70 dark:border-night-line">
+                  <span className="text-cocoa-900 dark:text-cream">Lenguaje inclusivo</span>
+                  <button onClick={()=>setInclusive(v=>!v)} className="min-h-[44px] px-3.5 py-1.5 rounded-xl bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream font-medium">
                     {inclusive ? 'Sí' : 'No'}
                   </button>
                 </div>
                 
-                <div className="flex items-center justify-between py-2 border-b border-brand-200 dark:border-gray-700">
-                  <span className="text-brand-900 dark:text-gray-100">Modo oscuro 🌙</span>
-                  <button onClick={()=>setDarkMode(v=>!v)} className="px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100">
+                <div className="flex items-center justify-between py-2 border-b border-cocoa-200/70 dark:border-night-line">
+                  <span className="text-cocoa-900 dark:text-cream">Modo oscuro 🌙</span>
+                  <button onClick={()=>setDarkMode(v=>!v)} className="min-h-[44px] px-3.5 py-1.5 rounded-xl bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream font-medium">
                     {darkMode ? 'Sí' : 'No'}
                   </button>
                 </div>
 
                 <div className="py-2">
-                  <span className="text-brand-900 dark:text-gray-100">Tus datos 💾</span>
-                  <p className="text-xs text-brand-700 dark:text-gray-400 mt-1 mb-2">
+                  <span className="text-cocoa-900 dark:text-cream">Tus datos 💾</span>
+                  <p className="text-xs text-cocoa-600 dark:text-cocoa-300 mt-1 mb-2">
                     Todo se guarda en este dispositivo. Descarga un respaldo de vez en cuando.
                   </p>
                   <div className="flex gap-2">
-                    <button onClick={exportData} className="flex-1 px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm">
+                    <button onClick={exportData} className="flex-1 min-h-[44px] px-4 py-1.5 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line">
                       ⬇️ Descargar respaldo
                     </button>
-                    <label className="flex-1 px-3 py-1.5 rounded-lg bg-brand-100 dark:bg-gray-700 text-brand-900 dark:text-gray-100 text-sm text-center cursor-pointer">
+                    <label className="flex-1 min-h-[44px] px-4 py-1.5 rounded-full bg-clay-100 dark:bg-night-soft text-clay-900 dark:text-cream text-sm font-semibold hover:bg-clay-200 dark:hover:bg-night-line text-center cursor-pointer">
                       ⬆️ Restaurar
                       <input
                         type="file"
@@ -2505,15 +2571,15 @@ function completeSession(){
               </div>
             </div>
             
-            <button onClick={()=>setTab('journal')} className="w-full bg-brand-900 text-white py-3 rounded-xl font-semibold">
+            <button onClick={()=>setTab('journal')} className="w-full bg-clay-600 hover:bg-clay-700 text-white min-h-[52px] py-3.5 rounded-2xl font-semibold shadow-clay">
               💬 Mi diario de voz
             </button>
-            
-            <button onClick={()=>setTab('tips')} className="w-full bg-blossom-600 text-white py-3 rounded-xl font-semibold">
+
+            <button onClick={()=>setTab('tips')} className="w-full bg-blossom-600 hover:bg-blossom-700 text-white min-h-[52px] py-3.5 rounded-2xl font-semibold shadow-soft">
               📚 Tips culturales
             </button>
-            
-            <button onClick={()=>setTab('about')} className="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold">
+
+            <button onClick={()=>setTab('about')} className="w-full bg-marigold-600 hover:bg-marigold-700 text-white min-h-[52px] py-3.5 rounded-2xl font-semibold shadow-soft">
               💜 Sobre esta app
             </button>
             
@@ -2523,7 +2589,7 @@ function completeSession(){
                   <span key={cat.name} title={cat.name}>{cat.emoji}</span>
                 ))}
               </div>
-              <div className="text-xs text-brand-700 dark:text-gray-400">
+              <div className="text-xs text-cocoa-600 dark:text-cocoa-300">
                 para stacie · v7.0 · con amor de mia
               </div>
             </div>
@@ -2566,68 +2632,68 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
             
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft border border-brand-200 dark:border-gray-700 mb-4">
-              <h3 className="font-bold text-brand-900 dark:text-gray-100 mb-3">Prompt de hoy:</h3>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-5 shadow-soft border border-cocoa-200/70 dark:border-night-line mb-4">
+              <h3 className="font-bold text-cocoa-900 dark:text-cream mb-3">Prompt de hoy:</h3>
               
               <div className="mb-4">
-                <p className="text-brand-900 dark:text-gray-100 font-medium">{prompt.es}</p>
-                <p className="text-sm text-brand-700 dark:text-gray-400 italic">{prompt.en}</p>
+                <p className="text-cocoa-900 dark:text-cream font-medium">{prompt.es}</p>
+                <p className="text-sm text-cocoa-600 dark:text-cocoa-300 italic">{prompt.en}</p>
               </div>
               
               <div className="flex gap-2 mb-4">
                 <button 
                   onClick={()=>setSelectedPrompt((selectedPrompt+1) % JOURNAL_PROMPTS.length)}
-                  className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-sm text-brand-900 dark:text-gray-100"
+                  className="min-h-[44px] px-4 py-1 rounded-full bg-clay-100 dark:bg-night-soft text-sm font-semibold text-clay-900 dark:text-cream"
                 >
                   🔄 Otro prompt
                 </button>
                 <button 
                   onClick={()=>speak(prompt.es, {rate:0.9})}
-                  className="px-3 py-1 rounded-lg bg-brand-100 dark:bg-gray-700 text-sm text-brand-900 dark:text-gray-100"
+                  className="min-h-[44px] px-4 py-1 rounded-full bg-clay-100 dark:bg-night-soft text-sm font-semibold text-clay-900 dark:text-cream"
                 >
                   👂 Escuchar
                 </button>
               </div>
               
-              <button onClick={handleRecord} className={cx('w-full py-3 rounded-xl text-white font-semibold', recording?'bg-rose-600 recording-pulse':'bg-brand-900')}>
+              <button onClick={handleRecord} className={cx('w-full min-h-[48px] py-3 rounded-2xl text-white font-semibold shadow-clay', recording?'bg-blossom-600 recording-pulse':'bg-clay-600 hover:bg-clay-700')}>
                 {recording ? '⏹ Detener grabación' : '🎤 Grabar respuesta'}
               </button>
               
               {transcript && (
-                <div className="mt-3 p-3 bg-brand-50 dark:bg-gray-700 rounded-xl">
-                  <p className="text-brand-900 dark:text-gray-100">{transcript}</p>
+                <div className="mt-3 p-3 bg-paper dark:bg-night-soft rounded-xl">
+                  <p className="text-cocoa-900 dark:text-cream">{transcript}</p>
                 </div>
               )}
             </div>
             
-            <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-3">Entradas recientes</h3>
+            <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-3">Entradas recientes</h3>
             {journals.length === 0 ? (
-              <p className="text-center text-brand-700 dark:text-gray-400 py-6">
+              <p className="text-center text-cocoa-600 dark:text-cocoa-300 py-6">
                 Tu diario está vacío. ¡Graba tu primera entrada!
               </p>
             ) : (
               <div className="space-y-2">
                 {journals.slice().reverse().slice(0,5).map((j,i)=>(
-                  <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-soft border border-brand-200 dark:border-gray-700">
+                  <div key={i} className="bg-card dark:bg-night-card rounded-2xl p-3 shadow-soft border border-cocoa-200/70 dark:border-night-line">
                     <div className="flex justify-between items-start mb-1">
-                      <div className="text-xs text-brand-700 dark:text-gray-400">
+                      <div className="text-xs text-cocoa-600 dark:text-cocoa-300">
                         {new Date(j.timestamp).toLocaleDateString('es-MX')}
                       </div>
                       <button 
                         onClick={()=>speak(j.text)}
-                        className="text-xs text-blossom-600"
+                        className="inline-flex items-center min-h-[44px] text-xs font-semibold text-blossom-600 dark:text-blossom-300"
                       >
                         👂
                       </button>
                     </div>
                     {j.prompt && (
-                      <p className="text-xs text-brand-700 dark:text-gray-400 italic mb-1">
+                      <p className="text-xs text-cocoa-600 dark:text-cocoa-300 italic mb-1">
                         Prompt: {j.prompt}
                       </p>
                     )}
-                    <p className="text-sm text-brand-900 dark:text-gray-100">{j.text}</p>
+                    <p className="text-sm text-cocoa-900 dark:text-cream">{j.text}</p>
                   </div>
                 ))}
               </div>
@@ -2641,13 +2707,13 @@ function completeSession(){
         
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
-            <h2 className="text-xl font-bold text-brand-900 dark:text-gray-100 mb-4">Tips culturales 🌮</h2>
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
+            <h2 className="text-xl font-bold text-cocoa-900 dark:text-cream mb-4">Tips culturales 🌮</h2>
             <div className="space-y-3">
               {tips.map((tip,i)=>(
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-soft border border-brand-200 dark:border-gray-700">
-                  <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-1">{tip.title}</h3>
-                  <p className="text-sm text-brand-700 dark:text-gray-300">{tip.text}</p>
+                <div key={i} className="bg-card dark:bg-night-card rounded-2xl p-4 shadow-soft border border-cocoa-200/70 dark:border-night-line">
+                  <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-1">{tip.title}</h3>
+                  <p className="text-sm text-cocoa-700 dark:text-cocoa-200">{tip.text}</p>
                 </div>
               ))}
             </div>
@@ -2658,30 +2724,30 @@ function completeSession(){
       function AboutSection({ onBack }){
         return (
           <div>
-            <button onClick={onBack} className="text-brand-700 dark:text-gray-400 mb-4">← Atrás</button>
+            <button onClick={onBack} className="inline-flex items-center gap-1 min-h-[44px] px-3 -ml-3 mb-2 rounded-full text-sm font-semibold text-cocoa-500 dark:text-cocoa-300 hover:text-clay-700 dark:hover:text-clay-300 hover:bg-clay-50 dark:hover:bg-night-soft">← Atrás</button>
             
-            <div className="bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900 dark:to-purple-900 rounded-2xl p-6 mb-4">
-              <h2 className="text-2xl font-bold text-brand-900 dark:text-gray-100 mb-4">
+            <div className="bg-gradient-to-br from-blossom-100 via-marigold-100 to-clay-100 dark:from-blossom-950 dark:via-night-soft dark:to-night-soft border border-blossom-200/70 dark:border-night-line rounded-3xl p-6 mb-4 shadow-soft">
+              <h2 className="text-2xl font-bold text-cocoa-900 dark:text-cream mb-4">
                 Hecha con amor 💜
               </h2>
-              <p className="text-brand-900 dark:text-gray-200 mb-3">
+              <p className="text-cocoa-800 dark:text-cocoa-100 mb-3">
                 Esta app fue creada por Mia para Stacie, con la ayuda de cuatro gatos supervisores.
               </p>
-              <p className="text-sm text-brand-800 dark:text-gray-300">
+              <p className="text-sm text-cocoa-700 dark:text-cocoa-200">
                 Después de 11,000 días en Duolingo, era hora de algo diferente. 
                 Esta app no es sobre memorizar palabras — es sobre sentir confianza al hablar español con la familia.
               </p>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-soft mb-4">
-              <h3 className="font-semibold text-brand-900 dark:text-gray-100 mb-3">Los supervisores:</h3>
+            <div className="bg-card dark:bg-night-card rounded-3xl p-5 shadow-soft mb-4">
+              <h3 className="font-semibold text-cocoa-900 dark:text-cream mb-3">Los supervisores:</h3>
               <div className="space-y-2">
                 {Object.entries(CATS).map(([key, cat]) => (
                   <div key={key} className="flex items-center gap-3">
                     <span className="text-2xl">{cat.emoji}</span>
                     <div>
-                      <span className="font-medium text-brand-900 dark:text-gray-100">{cat.name}</span>
-                      <span className="text-sm text-brand-700 dark:text-gray-400 ml-2">
+                      <span className="font-medium text-cocoa-900 dark:text-cream">{cat.name}</span>
+                      <span className="text-sm text-cocoa-600 dark:text-cocoa-300 ml-2">
                         — {cat.personality}
                       </span>
                     </div>
@@ -2690,7 +2756,7 @@ function completeSession(){
               </div>
             </div>
             
-            <div className="text-center text-sm text-brand-700 dark:text-gray-400">
+            <div className="text-center text-sm text-cocoa-600 dark:text-cocoa-300">
               <p>Versión 7.0 • Confidence Edition</p>
               <p className="mt-2">Para Stacie, siempre 💙</p>
             </div>
