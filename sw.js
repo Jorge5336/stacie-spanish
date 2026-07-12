@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stacie-v2.2.0';
+const CACHE_NAME = 'stacie-v3.0.0';
 const urlsToCache = [
   '/stacie-spanish/',
   '/stacie-spanish/index.html',
